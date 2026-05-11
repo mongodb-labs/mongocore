@@ -1,3 +1,4 @@
+pub mod analytics;
 pub mod compiled;
 pub mod config;
 pub mod connection;
