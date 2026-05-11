@@ -18,6 +18,51 @@ function loadProto() {
   return grpc.loadPackageDefinition(packageDef);
 }
 
+/** Options for starting an ingestion job */
+export interface IngestOptions {
+  /** Source URI (file path, URL, or S3 URI) */
+  source: string;
+  /** Target database name */
+  database: string;
+  /** Target collection name */
+  collection: string;
+  /** File format (e.g., 'json', 'csv', 'parquet') */
+  format?: string;
+  /** Batch size for ingestion */
+  batchSize?: number;
+}
+
+/** Status of an ingestion job */
+export interface IngestJobStatus {
+  jobId: string;
+  status: string;
+  documentsProcessed: number;
+  documentsTotal: number;
+  errors: string[];
+  startedAt: string;
+  completedAt?: string;
+}
+
+/** Options for watching a directory */
+export interface WatchDirectoryOptions {
+  /** Path to the directory to watch */
+  path: string;
+  /** Target database name */
+  database: string;
+  /** Target collection name */
+  collection: string;
+  /** File format filter (e.g., 'json', 'csv') */
+  format?: string;
+  /** Whether to watch recursively */
+  recursive?: boolean;
+}
+
+/** Result of starting a directory watch */
+export interface WatchResult {
+  watchId: string;
+  status: string;
+}
+
 export class MongoClient {
   private address: string;
   private autoSpawn: boolean;
@@ -86,6 +131,82 @@ export class MongoClient {
         if (err) return reject(err);
         const result = BSON.deserialize(Buffer.from(response.result.data)) as Record<string, unknown>;
         resolve(result);
+      });
+    });
+  }
+
+  // --- Ingestion Methods ---
+
+  /** Start an ingestion job */
+  async ingest(options: IngestOptions): Promise<IngestJobStatus> {
+    return new Promise((resolve, reject) => {
+      const request = {
+        source: options.source,
+        database: options.database,
+        collection: options.collection,
+        format: options.format || '',
+        batchSize: options.batchSize || 0,
+      };
+      this.getGrpcClient().ingest(request, (err: any, response: any) => {
+        if (err) return reject(err);
+        resolve(response as IngestJobStatus);
+      });
+    });
+  }
+
+  /** Get the status of an ingestion job */
+  async ingestStatus(jobId: string): Promise<IngestJobStatus> {
+    return new Promise((resolve, reject) => {
+      this.getGrpcClient().ingestStatus({ jobId }, (err: any, response: any) => {
+        if (err) return reject(err);
+        resolve(response as IngestJobStatus);
+      });
+    });
+  }
+
+  /** List all ingestion jobs */
+  async listIngestJobs(): Promise<IngestJobStatus[]> {
+    return new Promise((resolve, reject) => {
+      this.getGrpcClient().listIngestJobs({}, (err: any, response: any) => {
+        if (err) return reject(err);
+        resolve(response.jobs || []);
+      });
+    });
+  }
+
+  /** Cancel an ingestion job */
+  async cancelIngest(jobId: string): Promise<IngestJobStatus> {
+    return new Promise((resolve, reject) => {
+      this.getGrpcClient().cancelIngest({ jobId }, (err: any, response: any) => {
+        if (err) return reject(err);
+        resolve(response as IngestJobStatus);
+      });
+    });
+  }
+
+  /** Start watching a directory for new files to ingest */
+  async watchDirectory(options: WatchDirectoryOptions): Promise<WatchResult> {
+    return new Promise((resolve, reject) => {
+      const request = {
+        path: options.path,
+        database: options.database,
+        collection: options.collection,
+        format: options.format || '',
+        recursive: options.recursive ?? true,
+      };
+      this.getGrpcClient().watchDirectory(request, (err: any, response: any) => {
+        if (err) return reject(err);
+        resolve(response as WatchResult);
+      });
+    });
+  }
+
+  /** Stop watching a directory */
+  async stopWatch(watchId: string): Promise<{ watchId: string; status: string }> {
+    return new Promise((resolve, reject) => {
+      this.getGrpcClient().stopWatch({ watchId }, (err: any, response: any) => {
+        if (err) return reject(err);
+        resolve(response as { watchId: string; status: string });
       });
     });
   }
