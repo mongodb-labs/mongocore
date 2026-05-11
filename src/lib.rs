@@ -8,4 +8,5 @@ pub mod grpc;
 pub mod mcp;
 pub mod operations;
 pub mod search;
+pub mod tenant;
 pub mod voyage;

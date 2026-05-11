@@ -1484,6 +1484,7 @@ dependencies = [
  "clap",
  "dashmap",
  "futures",
+ "http",
  "http-body-util",
  "mongodb",
  "prost",
