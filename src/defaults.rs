@@ -24,6 +24,9 @@ pub const DEFAULT_RETRYABLE_READS: bool = true;
 /// Default compiled cache sync setting.
 pub const DEFAULT_COMPILED_CACHE_SYNC: bool = true;
 
+/// Default MongoDB connection URI.
+pub const DEFAULT_CONNECTION_URI: &str = "mongodb://localhost:27017";
+
 /// Returns the default write concern (majority).
 pub fn default_write_concern() -> mongodb::options::WriteConcern {
     mongodb::options::WriteConcern::majority()

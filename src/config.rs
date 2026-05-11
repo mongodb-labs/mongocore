@@ -3,7 +3,8 @@ use serde::Deserialize;
 use std::path::PathBuf;
 
 use crate::defaults::{
-    DEFAULT_COMPILED_CACHE_SYNC, DEFAULT_GRPC_PORT, DEFAULT_LOG_LEVEL, DEFAULT_MCP_PORT,
+    DEFAULT_COMPILED_CACHE_SYNC, DEFAULT_CONNECTION_URI, DEFAULT_GRPC_PORT, DEFAULT_LOG_LEVEL,
+    DEFAULT_MCP_PORT,
 };
 use crate::error::MongoCoreError;
 
@@ -90,7 +91,7 @@ impl Config {
             .connection_uri
             .clone()
             .or(file_config.connection_uri)
-            .unwrap_or_else(|| "mongodb://localhost:27017".to_string());
+            .unwrap_or_else(|| DEFAULT_CONNECTION_URI.to_string());
 
         let grpc_port = cli
             .grpc_port

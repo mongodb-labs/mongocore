@@ -4,7 +4,8 @@ use tracing_subscriber::EnvFilter;
 
 use mongocore::config::{CliArgs, Config};
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let cli = CliArgs::parse();
 
     let config = Config::load(&cli).unwrap_or_else(|e| {
@@ -28,11 +29,11 @@ fn main() {
 fn print_banner(config: &Config) {
     println!(
         r#"
-  __  __                         ____
- |  \/  | ___  _ __   __ _  ___|  _ \  ___  _ __ ___
- | |\/| |/ _ \| '_ \ / _` |/ _ \ | | / _ \| '__/ _ \
- | |  | | (_) | | | | (_| | (_) | |_| (_) | | |  __/
- |_|  |_|\___/|_| |_|\__, |\___/|____\___/|_|  \___|
+  __  __                          ____
+ |  \/  | ___  _ __   __ _  ___ / ___|___  _ __ ___
+ | |\/| |/ _ \| '_ \ / _` |/ _ \ |   / _ \| '__/ _ \
+ | |  | | (_) | | | | (_| | (_) | |__| (_) | | |  __/
+ |_|  |_|\___/|_| |_|\__, |\___/ \____\___/|_|  \___|
                       |___/
 "#
     );

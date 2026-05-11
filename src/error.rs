@@ -21,7 +21,18 @@ pub enum MongoCoreError {
 
 impl From<mongodb::error::Error> for MongoCoreError {
     fn from(err: mongodb::error::Error) -> Self {
-        MongoCoreError::ConnectionError(err.to_string())
+        use mongodb::error::ErrorKind;
+        let msg = err.to_string();
+        match *err.kind {
+            ErrorKind::Authentication { .. } => MongoCoreError::ConnectionError(msg),
+            ErrorKind::ServerSelection { .. } => MongoCoreError::ConnectionError(msg),
+            ErrorKind::DnsResolve { .. } => MongoCoreError::ConnectionError(msg),
+            ErrorKind::Write(_) => MongoCoreError::OperationError(msg),
+            ErrorKind::Command(_) => MongoCoreError::OperationError(msg),
+            ErrorKind::BulkWrite(_) => MongoCoreError::OperationError(msg),
+            ErrorKind::Io(_) => MongoCoreError::TimeoutError(msg),
+            _ => MongoCoreError::OperationError(msg),
+        }
     }
 }
 
