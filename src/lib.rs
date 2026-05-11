@@ -1,3 +1,4 @@
+pub mod compiled;
 pub mod config;
 pub mod connection;
 pub mod defaults;

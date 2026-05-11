@@ -12,3 +12,6 @@ mod grpc_test;
 
 #[path = "integration/mcp_test.rs"]
 mod mcp_test;
+
+#[path = "integration/compiled_test.rs"]
+mod compiled_test;
