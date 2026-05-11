@@ -1,0 +1,114 @@
+syntax = "proto3";
+package mongocore.v1;
+option go_package = "github.com/rozza/mongocore/clients/go/proto";
+
+message CsvOptions {
+  string delimiter = 1;
+  string quote_char = 2;
+  bool has_header = 3;
+  string comment_char = 4;
+}
+
+message IngestRequest {
+  string file_path = 1;
+  string database = 2;
+  string collection = 3;
+  FileFormat format = 4;
+  repeated string dedup_key = 5;
+  ConflictStrategy conflict_strategy = 6;
+  int32 batch_size = 7;
+  int32 concurrency = 8;
+  repeated string expressions = 9;
+  map<string, string> schema_overrides = 10;
+  int32 sample_size = 11;
+  CsvOptions csv_options = 12;
+}
+
+message IngestResponse {
+  string job_id = 1;
+  IngestJobStatus status = 2;
+  map<string, string> inferred_schema = 3;
+  int64 total_rows = 4;
+}
+
+message GetIngestStatusRequest {
+  string job_id = 1;
+}
+
+message GetIngestStatusResponse {
+  string job_id = 1;
+  IngestJobStatus status = 2;
+  int64 total_rows = 3;
+  int64 rows_processed = 4;
+  int64 rows_inserted = 5;
+  int64 rows_skipped = 6;
+  int64 rows_failed = 7;
+  int64 elapsed_ms = 8;
+  int64 estimated_remaining_ms = 9;
+}
+
+message ListIngestJobsRequest {}
+
+message ListIngestJobsResponse {
+  repeated IngestJobSummary jobs = 1;
+}
+
+message IngestJobSummary {
+  string job_id = 1;
+  string file_path = 2;
+  string database = 3;
+  string collection = 4;
+  IngestJobStatus status = 5;
+  int64 total_rows = 6;
+  int64 rows_processed = 7;
+}
+
+message CancelIngestRequest {
+  string job_id = 1;
+}
+
+message CancelIngestResponse {
+  bool success = 1;
+}
+
+message WatchDirectoryRequest {
+  string path = 1;
+  string file_pattern = 2;
+  string database = 3;
+  string collection = 4;
+  ConflictStrategy conflict_strategy = 5;
+  repeated string dedup_key = 6;
+}
+
+message WatchDirectoryResponse {
+  string watch_id = 1;
+}
+
+message StopWatchRequest {
+  string watch_id = 1;
+}
+
+message StopWatchResponse {
+  bool success = 1;
+}
+
+enum FileFormat {
+  FILE_FORMAT_AUTO = 0;
+  FILE_FORMAT_CSV = 1;
+  FILE_FORMAT_JSON = 2;
+  FILE_FORMAT_NDJSON = 3;
+  FILE_FORMAT_PARQUET = 4;
+}
+
+enum ConflictStrategy {
+  CONFLICT_STRATEGY_SKIP = 0;
+  CONFLICT_STRATEGY_OVERWRITE = 1;
+  CONFLICT_STRATEGY_MERGE = 2;
+}
+
+enum IngestJobStatus {
+  INGEST_JOB_STATUS_RUNNING = 0;
+  INGEST_JOB_STATUS_COMPLETED = 1;
+  INGEST_JOB_STATUS_FAILED = 2;
+  INGEST_JOB_STATUS_CANCELLED = 3;
+}

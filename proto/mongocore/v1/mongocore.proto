@@ -3,6 +3,7 @@ package mongocore.v1;
 option go_package = "github.com/rozza/mongocore/clients/go/proto";
 
 import "mongocore/v1/types.proto";
+import "mongocore/v1/ingestion.proto";
 
 service MongoCore {
   // CRUD
@@ -43,6 +44,14 @@ service MongoCore {
 
   // Analytics
   rpc GetAnalytics(GetAnalyticsRequest) returns (GetAnalyticsResponse);
+
+  // Ingestion
+  rpc Ingest(IngestRequest) returns (IngestResponse);
+  rpc GetIngestStatus(GetIngestStatusRequest) returns (GetIngestStatusResponse);
+  rpc ListIngestJobs(ListIngestJobsRequest) returns (ListIngestJobsResponse);
+  rpc CancelIngest(CancelIngestRequest) returns (CancelIngestResponse);
+  rpc WatchDirectory(WatchDirectoryRequest) returns (WatchDirectoryResponse);
+  rpc StopWatch(StopWatchRequest) returns (StopWatchResponse);
 }
 
 // ==================== CRUD Requests/Responses ====================

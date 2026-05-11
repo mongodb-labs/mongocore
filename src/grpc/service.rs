@@ -850,4 +850,48 @@ impl MongoCore for MongoCoreService {
             top_collections,
         }))
     }
+
+    // Ingestion RPCs (stub implementations - Task 13 will provide full implementation)
+
+    async fn ingest(
+        &self,
+        _request: Request<proto::IngestRequest>,
+    ) -> Result<Response<proto::IngestResponse>, Status> {
+        Err(Status::unimplemented("Ingest not yet implemented"))
+    }
+
+    async fn get_ingest_status(
+        &self,
+        _request: Request<proto::GetIngestStatusRequest>,
+    ) -> Result<Response<proto::GetIngestStatusResponse>, Status> {
+        Err(Status::unimplemented("GetIngestStatus not yet implemented"))
+    }
+
+    async fn list_ingest_jobs(
+        &self,
+        _request: Request<proto::ListIngestJobsRequest>,
+    ) -> Result<Response<proto::ListIngestJobsResponse>, Status> {
+        Err(Status::unimplemented("ListIngestJobs not yet implemented"))
+    }
+
+    async fn cancel_ingest(
+        &self,
+        _request: Request<proto::CancelIngestRequest>,
+    ) -> Result<Response<proto::CancelIngestResponse>, Status> {
+        Err(Status::unimplemented("CancelIngest not yet implemented"))
+    }
+
+    async fn watch_directory(
+        &self,
+        _request: Request<proto::WatchDirectoryRequest>,
+    ) -> Result<Response<proto::WatchDirectoryResponse>, Status> {
+        Err(Status::unimplemented("WatchDirectory not yet implemented"))
+    }
+
+    async fn stop_watch(
+        &self,
+        _request: Request<proto::StopWatchRequest>,
+    ) -> Result<Response<proto::StopWatchResponse>, Status> {
+        Err(Status::unimplemented("StopWatch not yet implemented"))
+    }
 }
