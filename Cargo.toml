@@ -20,6 +20,11 @@ prost = "0.13"
 dashmap = "6"
 uuid = { version = "1", features = ["v4"] }
 tokio-stream = "0.1"
+axum = "0.8"
+serde_json = "1"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors"] }
+http-body-util = "0.1"
 
 [build-dependencies]
 tonic-build = "0.12"
@@ -27,3 +32,4 @@ tonic-build = "0.12"
 [dev-dependencies]
 tempfile = "3"
 uuid = { version = "1", features = ["v4"] }
+reqwest = { version = "0.12", features = ["json"] }

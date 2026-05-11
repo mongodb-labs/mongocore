@@ -9,3 +9,6 @@ mod aggregation_test;
 
 #[path = "integration/grpc_test.rs"]
 mod grpc_test;
+
+#[path = "integration/mcp_test.rs"]
+mod mcp_test;
