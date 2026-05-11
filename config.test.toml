@@ -1,0 +1,12 @@
+connection_uri = "mongodb://localhost:27017"
+grpc_port = 50051
+mcp_port = 3000
+log_level = "debug"
+compiled_cache_sync = false
+
+# Uncomment to test compiled queries with Anthropic
+# llm_provider = "anthropic"
+# llm_api_key_env = "ANTHROPIC_API_KEY"
+
+# Uncomment to test vector search with Voyage AI
+# voyage_api_key_env = "VOYAGE_API_KEY"
