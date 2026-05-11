@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from . import mongocore_pb2 as mongocore_dot_v1_dot_mongocore__pb2
+from mongocore.v1 import mongocore_pb2 as mongocore_dot_v1_dot_mongocore__pb2
 
 GRPC_GENERATED_VERSION = '1.80.0'
 GRPC_VERSION = grpc.__version__
@@ -119,10 +119,25 @@ class MongoCoreStub(object):
                 request_serializer=mongocore_dot_v1_dot_mongocore__pb2.ListCollectionsRequest.SerializeToString,
                 response_deserializer=mongocore_dot_v1_dot_mongocore__pb2.ListCollectionsResponse.FromString,
                 _registered_method=True)
+        self.Search = channel.unary_unary(
+                '/mongocore.v1.MongoCore/Search',
+                request_serializer=mongocore_dot_v1_dot_mongocore__pb2.SearchRequest.SerializeToString,
+                response_deserializer=mongocore_dot_v1_dot_mongocore__pb2.SearchResponse.FromString,
+                _registered_method=True)
         self.Watch = channel.unary_stream(
                 '/mongocore.v1.MongoCore/Watch',
                 request_serializer=mongocore_dot_v1_dot_mongocore__pb2.WatchRequest.SerializeToString,
                 response_deserializer=mongocore_dot_v1_dot_mongocore__pb2.WatchEvent.FromString,
+                _registered_method=True)
+        self.RunCommand = channel.unary_unary(
+                '/mongocore.v1.MongoCore/RunCommand',
+                request_serializer=mongocore_dot_v1_dot_mongocore__pb2.RunCommandRequest.SerializeToString,
+                response_deserializer=mongocore_dot_v1_dot_mongocore__pb2.RunCommandResponse.FromString,
+                _registered_method=True)
+        self.GetAnalytics = channel.unary_unary(
+                '/mongocore.v1.MongoCore/GetAnalytics',
+                request_serializer=mongocore_dot_v1_dot_mongocore__pb2.GetAnalyticsRequest.SerializeToString,
+                response_deserializer=mongocore_dot_v1_dot_mongocore__pb2.GetAnalyticsResponse.FromString,
                 _registered_method=True)
 
 
@@ -236,8 +251,29 @@ class MongoCoreServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Search(self, request, context):
+        """Search
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def Watch(self, request, context):
         """Streaming
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RunCommand(self, request, context):
+        """Raw Passthrough
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetAnalytics(self, request, context):
+        """Analytics
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -331,10 +367,25 @@ def add_MongoCoreServicer_to_server(servicer, server):
                     request_deserializer=mongocore_dot_v1_dot_mongocore__pb2.ListCollectionsRequest.FromString,
                     response_serializer=mongocore_dot_v1_dot_mongocore__pb2.ListCollectionsResponse.SerializeToString,
             ),
+            'Search': grpc.unary_unary_rpc_method_handler(
+                    servicer.Search,
+                    request_deserializer=mongocore_dot_v1_dot_mongocore__pb2.SearchRequest.FromString,
+                    response_serializer=mongocore_dot_v1_dot_mongocore__pb2.SearchResponse.SerializeToString,
+            ),
             'Watch': grpc.unary_stream_rpc_method_handler(
                     servicer.Watch,
                     request_deserializer=mongocore_dot_v1_dot_mongocore__pb2.WatchRequest.FromString,
                     response_serializer=mongocore_dot_v1_dot_mongocore__pb2.WatchEvent.SerializeToString,
+            ),
+            'RunCommand': grpc.unary_unary_rpc_method_handler(
+                    servicer.RunCommand,
+                    request_deserializer=mongocore_dot_v1_dot_mongocore__pb2.RunCommandRequest.FromString,
+                    response_serializer=mongocore_dot_v1_dot_mongocore__pb2.RunCommandResponse.SerializeToString,
+            ),
+            'GetAnalytics': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetAnalytics,
+                    request_deserializer=mongocore_dot_v1_dot_mongocore__pb2.GetAnalyticsRequest.FromString,
+                    response_serializer=mongocore_dot_v1_dot_mongocore__pb2.GetAnalyticsResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -807,6 +858,33 @@ class MongoCore(object):
             _registered_method=True)
 
     @staticmethod
+    def Search(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mongocore.v1.MongoCore/Search',
+            mongocore_dot_v1_dot_mongocore__pb2.SearchRequest.SerializeToString,
+            mongocore_dot_v1_dot_mongocore__pb2.SearchResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
     def Watch(request,
             target,
             options=(),
@@ -823,6 +901,60 @@ class MongoCore(object):
             '/mongocore.v1.MongoCore/Watch',
             mongocore_dot_v1_dot_mongocore__pb2.WatchRequest.SerializeToString,
             mongocore_dot_v1_dot_mongocore__pb2.WatchEvent.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def RunCommand(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mongocore.v1.MongoCore/RunCommand',
+            mongocore_dot_v1_dot_mongocore__pb2.RunCommandRequest.SerializeToString,
+            mongocore_dot_v1_dot_mongocore__pb2.RunCommandResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetAnalytics(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mongocore.v1.MongoCore/GetAnalytics',
+            mongocore_dot_v1_dot_mongocore__pb2.GetAnalyticsRequest.SerializeToString,
+            mongocore_dot_v1_dot_mongocore__pb2.GetAnalyticsResponse.FromString,
             options,
             channel_credentials,
             insecure,

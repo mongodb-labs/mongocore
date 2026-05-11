@@ -304,6 +304,28 @@ class ListCollectionsResponse(_message.Message):
     collections: _containers.RepeatedScalarFieldContainer[str]
     def __init__(self, collections: _Optional[_Iterable[str]] = ...) -> None: ...
 
+class SearchRequest(_message.Message):
+    __slots__ = ("database", "collection", "query", "limit")
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    QUERY_FIELD_NUMBER: _ClassVar[int]
+    LIMIT_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    query: str
+    limit: int
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., query: _Optional[str] = ..., limit: _Optional[int] = ...) -> None: ...
+
+class SearchResponse(_message.Message):
+    __slots__ = ("documents", "method", "total")
+    DOCUMENTS_FIELD_NUMBER: _ClassVar[int]
+    METHOD_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_FIELD_NUMBER: _ClassVar[int]
+    documents: _containers.RepeatedCompositeFieldContainer[_types_pb2.Document]
+    method: str
+    total: int
+    def __init__(self, documents: _Optional[_Iterable[_Union[_types_pb2.Document, _Mapping]]] = ..., method: _Optional[str] = ..., total: _Optional[int] = ...) -> None: ...
+
 class WatchRequest(_message.Message):
     __slots__ = ("database", "collection", "pipeline")
     DATABASE_FIELD_NUMBER: _ClassVar[int]
@@ -341,3 +363,61 @@ class WatchEvent(_message.Message):
     update_description: _types_pb2.Document
     document_key: _types_pb2.Document
     def __init__(self, operation_type: _Optional[_Union[WatchEvent.OperationType, str]] = ..., database: _Optional[str] = ..., collection: _Optional[str] = ..., document: _Optional[_Union[_types_pb2.Document, _Mapping]] = ..., update_description: _Optional[_Union[_types_pb2.Document, _Mapping]] = ..., document_key: _Optional[_Union[_types_pb2.Document, _Mapping]] = ...) -> None: ...
+
+class RunCommandRequest(_message.Message):
+    __slots__ = ("database", "command", "allow_all")
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COMMAND_FIELD_NUMBER: _ClassVar[int]
+    ALLOW_ALL_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    command: _types_pb2.Document
+    allow_all: bool
+    def __init__(self, database: _Optional[str] = ..., command: _Optional[_Union[_types_pb2.Document, _Mapping]] = ..., allow_all: bool = ...) -> None: ...
+
+class RunCommandResponse(_message.Message):
+    __slots__ = ("result",)
+    RESULT_FIELD_NUMBER: _ClassVar[int]
+    result: _types_pb2.Document
+    def __init__(self, result: _Optional[_Union[_types_pb2.Document, _Mapping]] = ...) -> None: ...
+
+class GetAnalyticsRequest(_message.Message):
+    __slots__ = ("window_seconds",)
+    WINDOW_SECONDS_FIELD_NUMBER: _ClassVar[int]
+    window_seconds: int
+    def __init__(self, window_seconds: _Optional[int] = ...) -> None: ...
+
+class GetAnalyticsResponse(_message.Message):
+    __slots__ = ("total_operations", "total_errors", "error_rate", "p50_latency_ms", "p95_latency_ms", "p99_latency_ms", "top_operations", "top_collections")
+    TOTAL_OPERATIONS_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_ERRORS_FIELD_NUMBER: _ClassVar[int]
+    ERROR_RATE_FIELD_NUMBER: _ClassVar[int]
+    P50_LATENCY_MS_FIELD_NUMBER: _ClassVar[int]
+    P95_LATENCY_MS_FIELD_NUMBER: _ClassVar[int]
+    P99_LATENCY_MS_FIELD_NUMBER: _ClassVar[int]
+    TOP_OPERATIONS_FIELD_NUMBER: _ClassVar[int]
+    TOP_COLLECTIONS_FIELD_NUMBER: _ClassVar[int]
+    total_operations: int
+    total_errors: int
+    error_rate: float
+    p50_latency_ms: float
+    p95_latency_ms: float
+    p99_latency_ms: float
+    top_operations: _containers.RepeatedCompositeFieldContainer[OperationCount]
+    top_collections: _containers.RepeatedCompositeFieldContainer[CollectionCount]
+    def __init__(self, total_operations: _Optional[int] = ..., total_errors: _Optional[int] = ..., error_rate: _Optional[float] = ..., p50_latency_ms: _Optional[float] = ..., p95_latency_ms: _Optional[float] = ..., p99_latency_ms: _Optional[float] = ..., top_operations: _Optional[_Iterable[_Union[OperationCount, _Mapping]]] = ..., top_collections: _Optional[_Iterable[_Union[CollectionCount, _Mapping]]] = ...) -> None: ...
+
+class OperationCount(_message.Message):
+    __slots__ = ("operation", "count")
+    OPERATION_FIELD_NUMBER: _ClassVar[int]
+    COUNT_FIELD_NUMBER: _ClassVar[int]
+    operation: str
+    count: int
+    def __init__(self, operation: _Optional[str] = ..., count: _Optional[int] = ...) -> None: ...
+
+class CollectionCount(_message.Message):
+    __slots__ = ("collection", "count")
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    COUNT_FIELD_NUMBER: _ClassVar[int]
+    collection: str
+    count: int
+    def __init__(self, collection: _Optional[str] = ..., count: _Optional[int] = ...) -> None: ...

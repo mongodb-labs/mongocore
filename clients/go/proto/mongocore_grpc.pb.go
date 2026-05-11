@@ -38,6 +38,8 @@ const (
 	MongoCore_ListCollections_FullMethodName   = "/mongocore.v1.MongoCore/ListCollections"
 	MongoCore_Search_FullMethodName            = "/mongocore.v1.MongoCore/Search"
 	MongoCore_Watch_FullMethodName             = "/mongocore.v1.MongoCore/Watch"
+	MongoCore_RunCommand_FullMethodName        = "/mongocore.v1.MongoCore/RunCommand"
+	MongoCore_GetAnalytics_FullMethodName      = "/mongocore.v1.MongoCore/GetAnalytics"
 )
 
 // MongoCoreClient is the client API for MongoCore service.
@@ -70,6 +72,10 @@ type MongoCoreClient interface {
 	Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error)
 	// Streaming
 	Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WatchEvent], error)
+	// Raw Passthrough
+	RunCommand(ctx context.Context, in *RunCommandRequest, opts ...grpc.CallOption) (*RunCommandResponse, error)
+	// Analytics
+	GetAnalytics(ctx context.Context, in *GetAnalyticsRequest, opts ...grpc.CallOption) (*GetAnalyticsResponse, error)
 }
 
 type mongoCoreClient struct {
@@ -279,6 +285,26 @@ func (c *mongoCoreClient) Watch(ctx context.Context, in *WatchRequest, opts ...g
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type MongoCore_WatchClient = grpc.ServerStreamingClient[WatchEvent]
 
+func (c *mongoCoreClient) RunCommand(ctx context.Context, in *RunCommandRequest, opts ...grpc.CallOption) (*RunCommandResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RunCommandResponse)
+	err := c.cc.Invoke(ctx, MongoCore_RunCommand_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mongoCoreClient) GetAnalytics(ctx context.Context, in *GetAnalyticsRequest, opts ...grpc.CallOption) (*GetAnalyticsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAnalyticsResponse)
+	err := c.cc.Invoke(ctx, MongoCore_GetAnalytics_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MongoCoreServer is the server API for MongoCore service.
 // All implementations must embed UnimplementedMongoCoreServer
 // for forward compatibility.
@@ -309,6 +335,10 @@ type MongoCoreServer interface {
 	Search(context.Context, *SearchRequest) (*SearchResponse, error)
 	// Streaming
 	Watch(*WatchRequest, grpc.ServerStreamingServer[WatchEvent]) error
+	// Raw Passthrough
+	RunCommand(context.Context, *RunCommandRequest) (*RunCommandResponse, error)
+	// Analytics
+	GetAnalytics(context.Context, *GetAnalyticsRequest) (*GetAnalyticsResponse, error)
 	mustEmbedUnimplementedMongoCoreServer()
 }
 
@@ -375,6 +405,12 @@ func (UnimplementedMongoCoreServer) Search(context.Context, *SearchRequest) (*Se
 }
 func (UnimplementedMongoCoreServer) Watch(*WatchRequest, grpc.ServerStreamingServer[WatchEvent]) error {
 	return status.Error(codes.Unimplemented, "method Watch not implemented")
+}
+func (UnimplementedMongoCoreServer) RunCommand(context.Context, *RunCommandRequest) (*RunCommandResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RunCommand not implemented")
+}
+func (UnimplementedMongoCoreServer) GetAnalytics(context.Context, *GetAnalyticsRequest) (*GetAnalyticsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAnalytics not implemented")
 }
 func (UnimplementedMongoCoreServer) mustEmbedUnimplementedMongoCoreServer() {}
 func (UnimplementedMongoCoreServer) testEmbeddedByValue()                   {}
@@ -732,6 +768,42 @@ func _MongoCore_Watch_Handler(srv interface{}, stream grpc.ServerStream) error {
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type MongoCore_WatchServer = grpc.ServerStreamingServer[WatchEvent]
 
+func _MongoCore_RunCommand_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RunCommandRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MongoCoreServer).RunCommand(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MongoCore_RunCommand_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MongoCoreServer).RunCommand(ctx, req.(*RunCommandRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MongoCore_GetAnalytics_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAnalyticsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MongoCoreServer).GetAnalytics(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MongoCore_GetAnalytics_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MongoCoreServer).GetAnalytics(ctx, req.(*GetAnalyticsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MongoCore_ServiceDesc is the grpc.ServiceDesc for MongoCore service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -810,6 +882,14 @@ var MongoCore_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Search",
 			Handler:    _MongoCore_Search_Handler,
+		},
+		{
+			MethodName: "RunCommand",
+			Handler:    _MongoCore_RunCommand_Handler,
+		},
+		{
+			MethodName: "GetAnalytics",
+			Handler:    _MongoCore_GetAnalytics_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

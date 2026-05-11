@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	pb "github.com/rozza/mongocore/clients/go/proto"
+	"go.mongodb.org/mongo-driver/v2/bson"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -57,4 +58,27 @@ func (c *Client) ListDatabases(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 	return resp.Databases, nil
+}
+
+// RunCommand executes an arbitrary MongoDB command via raw passthrough.
+func (c *Client) RunCommand(ctx context.Context, database string, command interface{}, allowAll bool) (interface{}, error) {
+	commandBytes, err := bson.Marshal(command)
+	if err != nil {
+		return nil, fmt.Errorf("mongocore: failed to marshal command: %w", err)
+	}
+
+	resp, err := c.stub.RunCommand(ctx, &pb.RunCommandRequest{
+		Database: database,
+		Command:  &pb.Document{Data: commandBytes},
+		AllowAll: allowAll,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var result interface{}
+	if err := bson.Unmarshal(resp.Result.Data, &result); err != nil {
+		return nil, fmt.Errorf("mongocore: failed to unmarshal result: %w", err)
+	}
+	return result, nil
 }

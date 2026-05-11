@@ -73,7 +73,7 @@ func (x WatchEvent_OperationType) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use WatchEvent_OperationType.Descriptor instead.
 func (WatchEvent_OperationType) EnumDescriptor() ([]byte, []int) {
-	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{35, 0}
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{37, 0}
 }
 
 type FindRequest struct {
@@ -1940,6 +1940,134 @@ func (x *ListCollectionsResponse) GetCollections() []string {
 	return nil
 }
 
+type SearchRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Database      string                 `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
+	Collection    string                 `protobuf:"bytes,2,opt,name=collection,proto3" json:"collection,omitempty"`
+	Query         string                 `protobuf:"bytes,3,opt,name=query,proto3" json:"query,omitempty"`
+	Limit         int64                  `protobuf:"varint,4,opt,name=limit,proto3" json:"limit,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchRequest) Reset() {
+	*x = SearchRequest{}
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[34]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchRequest) ProtoMessage() {}
+
+func (x *SearchRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[34]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchRequest.ProtoReflect.Descriptor instead.
+func (*SearchRequest) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{34}
+}
+
+func (x *SearchRequest) GetDatabase() string {
+	if x != nil {
+		return x.Database
+	}
+	return ""
+}
+
+func (x *SearchRequest) GetCollection() string {
+	if x != nil {
+		return x.Collection
+	}
+	return ""
+}
+
+func (x *SearchRequest) GetQuery() string {
+	if x != nil {
+		return x.Query
+	}
+	return ""
+}
+
+func (x *SearchRequest) GetLimit() int64 {
+	if x != nil {
+		return x.Limit
+	}
+	return 0
+}
+
+type SearchResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Documents     []*Document            `protobuf:"bytes,1,rep,name=documents,proto3" json:"documents,omitempty"`
+	Method        string                 `protobuf:"bytes,2,opt,name=method,proto3" json:"method,omitempty"` // "vector", "fulltext", or "filter"
+	Total         int64                  `protobuf:"varint,3,opt,name=total,proto3" json:"total,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *SearchResponse) Reset() {
+	*x = SearchResponse{}
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[35]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SearchResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SearchResponse) ProtoMessage() {}
+
+func (x *SearchResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[35]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SearchResponse.ProtoReflect.Descriptor instead.
+func (*SearchResponse) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{35}
+}
+
+func (x *SearchResponse) GetDocuments() []*Document {
+	if x != nil {
+		return x.Documents
+	}
+	return nil
+}
+
+func (x *SearchResponse) GetMethod() string {
+	if x != nil {
+		return x.Method
+	}
+	return ""
+}
+
+func (x *SearchResponse) GetTotal() int64 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
 type WatchRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Database      string                 `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
@@ -1951,7 +2079,7 @@ type WatchRequest struct {
 
 func (x *WatchRequest) Reset() {
 	*x = WatchRequest{}
-	mi := &file_mongocore_v1_mongocore_proto_msgTypes[34]
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[36]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1963,7 +2091,7 @@ func (x *WatchRequest) String() string {
 func (*WatchRequest) ProtoMessage() {}
 
 func (x *WatchRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_mongocore_v1_mongocore_proto_msgTypes[34]
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[36]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1976,7 +2104,7 @@ func (x *WatchRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchRequest.ProtoReflect.Descriptor instead.
 func (*WatchRequest) Descriptor() ([]byte, []int) {
-	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{34}
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{36}
 }
 
 func (x *WatchRequest) GetDatabase() string {
@@ -2014,7 +2142,7 @@ type WatchEvent struct {
 
 func (x *WatchEvent) Reset() {
 	*x = WatchEvent{}
-	mi := &file_mongocore_v1_mongocore_proto_msgTypes[35]
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[37]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2026,7 +2154,7 @@ func (x *WatchEvent) String() string {
 func (*WatchEvent) ProtoMessage() {}
 
 func (x *WatchEvent) ProtoReflect() protoreflect.Message {
-	mi := &file_mongocore_v1_mongocore_proto_msgTypes[35]
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[37]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2039,7 +2167,7 @@ func (x *WatchEvent) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use WatchEvent.ProtoReflect.Descriptor instead.
 func (*WatchEvent) Descriptor() ([]byte, []int) {
-	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{35}
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{37}
 }
 
 func (x *WatchEvent) GetOperationType() WatchEvent_OperationType {
@@ -2082,6 +2210,358 @@ func (x *WatchEvent) GetDocumentKey() *Document {
 		return x.DocumentKey
 	}
 	return nil
+}
+
+type RunCommandRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Database      string                 `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
+	Command       *Document              `protobuf:"bytes,2,opt,name=command,proto3" json:"command,omitempty"`
+	AllowAll      bool                   `protobuf:"varint,3,opt,name=allow_all,json=allowAll,proto3" json:"allow_all,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunCommandRequest) Reset() {
+	*x = RunCommandRequest{}
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunCommandRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunCommandRequest) ProtoMessage() {}
+
+func (x *RunCommandRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunCommandRequest.ProtoReflect.Descriptor instead.
+func (*RunCommandRequest) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *RunCommandRequest) GetDatabase() string {
+	if x != nil {
+		return x.Database
+	}
+	return ""
+}
+
+func (x *RunCommandRequest) GetCommand() *Document {
+	if x != nil {
+		return x.Command
+	}
+	return nil
+}
+
+func (x *RunCommandRequest) GetAllowAll() bool {
+	if x != nil {
+		return x.AllowAll
+	}
+	return false
+}
+
+type RunCommandResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Result        *Document              `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RunCommandResponse) Reset() {
+	*x = RunCommandResponse{}
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RunCommandResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RunCommandResponse) ProtoMessage() {}
+
+func (x *RunCommandResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RunCommandResponse.ProtoReflect.Descriptor instead.
+func (*RunCommandResponse) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *RunCommandResponse) GetResult() *Document {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+type GetAnalyticsRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	WindowSeconds int64                  `protobuf:"varint,1,opt,name=window_seconds,json=windowSeconds,proto3" json:"window_seconds,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAnalyticsRequest) Reset() {
+	*x = GetAnalyticsRequest{}
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[40]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAnalyticsRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAnalyticsRequest) ProtoMessage() {}
+
+func (x *GetAnalyticsRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[40]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAnalyticsRequest.ProtoReflect.Descriptor instead.
+func (*GetAnalyticsRequest) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{40}
+}
+
+func (x *GetAnalyticsRequest) GetWindowSeconds() int64 {
+	if x != nil {
+		return x.WindowSeconds
+	}
+	return 0
+}
+
+type GetAnalyticsResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	TotalOperations int64                  `protobuf:"varint,1,opt,name=total_operations,json=totalOperations,proto3" json:"total_operations,omitempty"`
+	TotalErrors     int64                  `protobuf:"varint,2,opt,name=total_errors,json=totalErrors,proto3" json:"total_errors,omitempty"`
+	ErrorRate       float64                `protobuf:"fixed64,3,opt,name=error_rate,json=errorRate,proto3" json:"error_rate,omitempty"`
+	P50LatencyMs    float64                `protobuf:"fixed64,4,opt,name=p50_latency_ms,json=p50LatencyMs,proto3" json:"p50_latency_ms,omitempty"`
+	P95LatencyMs    float64                `protobuf:"fixed64,5,opt,name=p95_latency_ms,json=p95LatencyMs,proto3" json:"p95_latency_ms,omitempty"`
+	P99LatencyMs    float64                `protobuf:"fixed64,6,opt,name=p99_latency_ms,json=p99LatencyMs,proto3" json:"p99_latency_ms,omitempty"`
+	TopOperations   []*OperationCount      `protobuf:"bytes,7,rep,name=top_operations,json=topOperations,proto3" json:"top_operations,omitempty"`
+	TopCollections  []*CollectionCount     `protobuf:"bytes,8,rep,name=top_collections,json=topCollections,proto3" json:"top_collections,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *GetAnalyticsResponse) Reset() {
+	*x = GetAnalyticsResponse{}
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[41]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAnalyticsResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAnalyticsResponse) ProtoMessage() {}
+
+func (x *GetAnalyticsResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[41]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAnalyticsResponse.ProtoReflect.Descriptor instead.
+func (*GetAnalyticsResponse) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{41}
+}
+
+func (x *GetAnalyticsResponse) GetTotalOperations() int64 {
+	if x != nil {
+		return x.TotalOperations
+	}
+	return 0
+}
+
+func (x *GetAnalyticsResponse) GetTotalErrors() int64 {
+	if x != nil {
+		return x.TotalErrors
+	}
+	return 0
+}
+
+func (x *GetAnalyticsResponse) GetErrorRate() float64 {
+	if x != nil {
+		return x.ErrorRate
+	}
+	return 0
+}
+
+func (x *GetAnalyticsResponse) GetP50LatencyMs() float64 {
+	if x != nil {
+		return x.P50LatencyMs
+	}
+	return 0
+}
+
+func (x *GetAnalyticsResponse) GetP95LatencyMs() float64 {
+	if x != nil {
+		return x.P95LatencyMs
+	}
+	return 0
+}
+
+func (x *GetAnalyticsResponse) GetP99LatencyMs() float64 {
+	if x != nil {
+		return x.P99LatencyMs
+	}
+	return 0
+}
+
+func (x *GetAnalyticsResponse) GetTopOperations() []*OperationCount {
+	if x != nil {
+		return x.TopOperations
+	}
+	return nil
+}
+
+func (x *GetAnalyticsResponse) GetTopCollections() []*CollectionCount {
+	if x != nil {
+		return x.TopCollections
+	}
+	return nil
+}
+
+type OperationCount struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Operation     string                 `protobuf:"bytes,1,opt,name=operation,proto3" json:"operation,omitempty"`
+	Count         int64                  `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OperationCount) Reset() {
+	*x = OperationCount{}
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[42]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OperationCount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OperationCount) ProtoMessage() {}
+
+func (x *OperationCount) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[42]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OperationCount.ProtoReflect.Descriptor instead.
+func (*OperationCount) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{42}
+}
+
+func (x *OperationCount) GetOperation() string {
+	if x != nil {
+		return x.Operation
+	}
+	return ""
+}
+
+func (x *OperationCount) GetCount() int64 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
+}
+
+type CollectionCount struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Collection    string                 `protobuf:"bytes,1,opt,name=collection,proto3" json:"collection,omitempty"`
+	Count         int64                  `protobuf:"varint,2,opt,name=count,proto3" json:"count,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CollectionCount) Reset() {
+	*x = CollectionCount{}
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[43]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CollectionCount) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CollectionCount) ProtoMessage() {}
+
+func (x *CollectionCount) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[43]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CollectionCount.ProtoReflect.Descriptor instead.
+func (*CollectionCount) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{43}
+}
+
+func (x *CollectionCount) GetCollection() string {
+	if x != nil {
+		return x.Collection
+	}
+	return ""
+}
+
+func (x *CollectionCount) GetCount() int64 {
+	if x != nil {
+		return x.Count
+	}
+	return 0
 }
 
 var File_mongocore_v1_mongocore_proto protoreflect.FileDescriptor
@@ -2244,7 +2724,18 @@ const file_mongocore_v1_mongocore_proto_rawDesc = "" +
 	"\x16ListCollectionsRequest\x12\x1a\n" +
 	"\bdatabase\x18\x01 \x01(\tR\bdatabase\";\n" +
 	"\x17ListCollectionsResponse\x12 \n" +
-	"\vcollections\x18\x01 \x03(\tR\vcollections\"\x92\x01\n" +
+	"\vcollections\x18\x01 \x03(\tR\vcollections\"w\n" +
+	"\rSearchRequest\x12\x1a\n" +
+	"\bdatabase\x18\x01 \x01(\tR\bdatabase\x12\x1e\n" +
+	"\n" +
+	"collection\x18\x02 \x01(\tR\n" +
+	"collection\x12\x14\n" +
+	"\x05query\x18\x03 \x01(\tR\x05query\x12\x14\n" +
+	"\x05limit\x18\x04 \x01(\x03R\x05limit\"t\n" +
+	"\x0eSearchResponse\x124\n" +
+	"\tdocuments\x18\x01 \x03(\v2\x16.mongocore.v1.DocumentR\tdocuments\x12\x16\n" +
+	"\x06method\x18\x02 \x01(\tR\x06method\x12\x14\n" +
+	"\x05total\x18\x03 \x01(\x03R\x05total\"\x92\x01\n" +
 	"\fWatchRequest\x12\x1a\n" +
 	"\bdatabase\x18\x01 \x01(\tR\bdatabase\x12#\n" +
 	"\n" +
@@ -2274,7 +2765,33 @@ const file_mongocore_v1_mongocore_proto_rawDesc = "" +
 	"INVALIDATE\x10\x04B\v\n" +
 	"\t_documentB\x15\n" +
 	"\x13_update_descriptionB\x0f\n" +
-	"\r_document_key2\xda\v\n" +
+	"\r_document_key\"~\n" +
+	"\x11RunCommandRequest\x12\x1a\n" +
+	"\bdatabase\x18\x01 \x01(\tR\bdatabase\x120\n" +
+	"\acommand\x18\x02 \x01(\v2\x16.mongocore.v1.DocumentR\acommand\x12\x1b\n" +
+	"\tallow_all\x18\x03 \x01(\bR\ballowAll\"D\n" +
+	"\x12RunCommandResponse\x12.\n" +
+	"\x06result\x18\x01 \x01(\v2\x16.mongocore.v1.DocumentR\x06result\"<\n" +
+	"\x13GetAnalyticsRequest\x12%\n" +
+	"\x0ewindow_seconds\x18\x01 \x01(\x03R\rwindowSeconds\"\x82\x03\n" +
+	"\x14GetAnalyticsResponse\x12)\n" +
+	"\x10total_operations\x18\x01 \x01(\x03R\x0ftotalOperations\x12!\n" +
+	"\ftotal_errors\x18\x02 \x01(\x03R\vtotalErrors\x12\x1d\n" +
+	"\n" +
+	"error_rate\x18\x03 \x01(\x01R\terrorRate\x12$\n" +
+	"\x0ep50_latency_ms\x18\x04 \x01(\x01R\fp50LatencyMs\x12$\n" +
+	"\x0ep95_latency_ms\x18\x05 \x01(\x01R\fp95LatencyMs\x12$\n" +
+	"\x0ep99_latency_ms\x18\x06 \x01(\x01R\fp99LatencyMs\x12C\n" +
+	"\x0etop_operations\x18\a \x03(\v2\x1c.mongocore.v1.OperationCountR\rtopOperations\x12F\n" +
+	"\x0ftop_collections\x18\b \x03(\v2\x1d.mongocore.v1.CollectionCountR\x0etopCollections\"D\n" +
+	"\x0eOperationCount\x12\x1c\n" +
+	"\toperation\x18\x01 \x01(\tR\toperation\x12\x14\n" +
+	"\x05count\x18\x02 \x01(\x03R\x05count\"G\n" +
+	"\x0fCollectionCount\x12\x1e\n" +
+	"\n" +
+	"collection\x18\x01 \x01(\tR\n" +
+	"collection\x12\x14\n" +
+	"\x05count\x18\x02 \x01(\x03R\x05count2\xc7\r\n" +
 	"\tMongoCore\x12=\n" +
 	"\x04Find\x12\x19.mongocore.v1.FindRequest\x1a\x1a.mongocore.v1.FindResponse\x12F\n" +
 	"\aFindOne\x12\x1c.mongocore.v1.FindOneRequest\x1a\x1d.mongocore.v1.FindOneResponse\x12C\n" +
@@ -2295,8 +2812,12 @@ const file_mongocore_v1_mongocore_proto_rawDesc = "" +
 	"\x10CreateCollection\x12%.mongocore.v1.CreateCollectionRequest\x1a&.mongocore.v1.CreateCollectionResponse\x12R\n" +
 	"\vCreateIndex\x12 .mongocore.v1.CreateIndexRequest\x1a!.mongocore.v1.CreateIndexResponse\x12X\n" +
 	"\rListDatabases\x12\".mongocore.v1.ListDatabasesRequest\x1a#.mongocore.v1.ListDatabasesResponse\x12^\n" +
-	"\x0fListCollections\x12$.mongocore.v1.ListCollectionsRequest\x1a%.mongocore.v1.ListCollectionsResponse\x12?\n" +
-	"\x05Watch\x12\x1a.mongocore.v1.WatchRequest\x1a\x18.mongocore.v1.WatchEvent0\x01B-Z+github.com/rozza/mongocore/clients/go/protob\x06proto3"
+	"\x0fListCollections\x12$.mongocore.v1.ListCollectionsRequest\x1a%.mongocore.v1.ListCollectionsResponse\x12C\n" +
+	"\x06Search\x12\x1b.mongocore.v1.SearchRequest\x1a\x1c.mongocore.v1.SearchResponse\x12?\n" +
+	"\x05Watch\x12\x1a.mongocore.v1.WatchRequest\x1a\x18.mongocore.v1.WatchEvent0\x01\x12O\n" +
+	"\n" +
+	"RunCommand\x12\x1f.mongocore.v1.RunCommandRequest\x1a .mongocore.v1.RunCommandResponse\x12U\n" +
+	"\fGetAnalytics\x12!.mongocore.v1.GetAnalyticsRequest\x1a\".mongocore.v1.GetAnalyticsResponseB-Z+github.com/rozza/mongocore/clients/go/protob\x06proto3"
 
 var (
 	file_mongocore_v1_mongocore_proto_rawDescOnce sync.Once
@@ -2311,7 +2832,7 @@ func file_mongocore_v1_mongocore_proto_rawDescGZIP() []byte {
 }
 
 var file_mongocore_v1_mongocore_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_mongocore_v1_mongocore_proto_msgTypes = make([]protoimpl.MessageInfo, 36)
+var file_mongocore_v1_mongocore_proto_msgTypes = make([]protoimpl.MessageInfo, 44)
 var file_mongocore_v1_mongocore_proto_goTypes = []any{
 	(WatchEvent_OperationType)(0),     // 0: mongocore.v1.WatchEvent.OperationType
 	(*FindRequest)(nil),               // 1: mongocore.v1.FindRequest
@@ -2348,88 +2869,107 @@ var file_mongocore_v1_mongocore_proto_goTypes = []any{
 	(*ListDatabasesResponse)(nil),     // 32: mongocore.v1.ListDatabasesResponse
 	(*ListCollectionsRequest)(nil),    // 33: mongocore.v1.ListCollectionsRequest
 	(*ListCollectionsResponse)(nil),   // 34: mongocore.v1.ListCollectionsResponse
-	(*WatchRequest)(nil),              // 35: mongocore.v1.WatchRequest
-	(*WatchEvent)(nil),                // 36: mongocore.v1.WatchEvent
-	(*Filter)(nil),                    // 37: mongocore.v1.Filter
-	(*FindOptions)(nil),               // 38: mongocore.v1.FindOptions
-	(*Document)(nil),                  // 39: mongocore.v1.Document
-	(*ResponseMetadata)(nil),          // 40: mongocore.v1.ResponseMetadata
-	(*FindAndModifyOptions)(nil),      // 41: mongocore.v1.FindAndModifyOptions
-	(*Pipeline)(nil),                  // 42: mongocore.v1.Pipeline
-	(*IndexOptions)(nil),              // 43: mongocore.v1.IndexOptions
+	(*SearchRequest)(nil),             // 35: mongocore.v1.SearchRequest
+	(*SearchResponse)(nil),            // 36: mongocore.v1.SearchResponse
+	(*WatchRequest)(nil),              // 37: mongocore.v1.WatchRequest
+	(*WatchEvent)(nil),                // 38: mongocore.v1.WatchEvent
+	(*RunCommandRequest)(nil),         // 39: mongocore.v1.RunCommandRequest
+	(*RunCommandResponse)(nil),        // 40: mongocore.v1.RunCommandResponse
+	(*GetAnalyticsRequest)(nil),       // 41: mongocore.v1.GetAnalyticsRequest
+	(*GetAnalyticsResponse)(nil),      // 42: mongocore.v1.GetAnalyticsResponse
+	(*OperationCount)(nil),            // 43: mongocore.v1.OperationCount
+	(*CollectionCount)(nil),           // 44: mongocore.v1.CollectionCount
+	(*Filter)(nil),                    // 45: mongocore.v1.Filter
+	(*FindOptions)(nil),               // 46: mongocore.v1.FindOptions
+	(*Document)(nil),                  // 47: mongocore.v1.Document
+	(*ResponseMetadata)(nil),          // 48: mongocore.v1.ResponseMetadata
+	(*FindAndModifyOptions)(nil),      // 49: mongocore.v1.FindAndModifyOptions
+	(*Pipeline)(nil),                  // 50: mongocore.v1.Pipeline
+	(*IndexOptions)(nil),              // 51: mongocore.v1.IndexOptions
 }
 var file_mongocore_v1_mongocore_proto_depIdxs = []int32{
-	37, // 0: mongocore.v1.FindRequest.filter:type_name -> mongocore.v1.Filter
-	38, // 1: mongocore.v1.FindRequest.options:type_name -> mongocore.v1.FindOptions
-	39, // 2: mongocore.v1.FindResponse.documents:type_name -> mongocore.v1.Document
-	40, // 3: mongocore.v1.FindResponse.metadata:type_name -> mongocore.v1.ResponseMetadata
-	37, // 4: mongocore.v1.FindOneRequest.filter:type_name -> mongocore.v1.Filter
-	38, // 5: mongocore.v1.FindOneRequest.options:type_name -> mongocore.v1.FindOptions
-	39, // 6: mongocore.v1.FindOneResponse.document:type_name -> mongocore.v1.Document
-	40, // 7: mongocore.v1.FindOneResponse.metadata:type_name -> mongocore.v1.ResponseMetadata
-	39, // 8: mongocore.v1.InsertRequest.document:type_name -> mongocore.v1.Document
-	39, // 9: mongocore.v1.InsertManyRequest.documents:type_name -> mongocore.v1.Document
-	37, // 10: mongocore.v1.UpdateRequest.filter:type_name -> mongocore.v1.Filter
-	39, // 11: mongocore.v1.UpdateRequest.update:type_name -> mongocore.v1.Document
-	37, // 12: mongocore.v1.UpdateManyRequest.filter:type_name -> mongocore.v1.Filter
-	39, // 13: mongocore.v1.UpdateManyRequest.update:type_name -> mongocore.v1.Document
-	37, // 14: mongocore.v1.DeleteRequest.filter:type_name -> mongocore.v1.Filter
-	37, // 15: mongocore.v1.DeleteManyRequest.filter:type_name -> mongocore.v1.Filter
-	37, // 16: mongocore.v1.FindAndModifyRequest.filter:type_name -> mongocore.v1.Filter
-	39, // 17: mongocore.v1.FindAndModifyRequest.update:type_name -> mongocore.v1.Document
-	41, // 18: mongocore.v1.FindAndModifyRequest.options:type_name -> mongocore.v1.FindAndModifyOptions
-	39, // 19: mongocore.v1.FindAndModifyResponse.document:type_name -> mongocore.v1.Document
-	42, // 20: mongocore.v1.AggregateRequest.pipeline:type_name -> mongocore.v1.Pipeline
-	39, // 21: mongocore.v1.AggregateResponse.documents:type_name -> mongocore.v1.Document
-	40, // 22: mongocore.v1.AggregateResponse.metadata:type_name -> mongocore.v1.ResponseMetadata
-	39, // 23: mongocore.v1.CreateIndexRequest.keys:type_name -> mongocore.v1.Document
-	43, // 24: mongocore.v1.CreateIndexRequest.options:type_name -> mongocore.v1.IndexOptions
-	42, // 25: mongocore.v1.WatchRequest.pipeline:type_name -> mongocore.v1.Pipeline
-	0,  // 26: mongocore.v1.WatchEvent.operation_type:type_name -> mongocore.v1.WatchEvent.OperationType
-	39, // 27: mongocore.v1.WatchEvent.document:type_name -> mongocore.v1.Document
-	39, // 28: mongocore.v1.WatchEvent.update_description:type_name -> mongocore.v1.Document
-	39, // 29: mongocore.v1.WatchEvent.document_key:type_name -> mongocore.v1.Document
-	1,  // 30: mongocore.v1.MongoCore.Find:input_type -> mongocore.v1.FindRequest
-	3,  // 31: mongocore.v1.MongoCore.FindOne:input_type -> mongocore.v1.FindOneRequest
-	5,  // 32: mongocore.v1.MongoCore.Insert:input_type -> mongocore.v1.InsertRequest
-	7,  // 33: mongocore.v1.MongoCore.InsertMany:input_type -> mongocore.v1.InsertManyRequest
-	9,  // 34: mongocore.v1.MongoCore.Update:input_type -> mongocore.v1.UpdateRequest
-	11, // 35: mongocore.v1.MongoCore.UpdateMany:input_type -> mongocore.v1.UpdateManyRequest
-	13, // 36: mongocore.v1.MongoCore.Delete:input_type -> mongocore.v1.DeleteRequest
-	15, // 37: mongocore.v1.MongoCore.DeleteMany:input_type -> mongocore.v1.DeleteManyRequest
-	17, // 38: mongocore.v1.MongoCore.FindAndModify:input_type -> mongocore.v1.FindAndModifyRequest
-	19, // 39: mongocore.v1.MongoCore.Aggregate:input_type -> mongocore.v1.AggregateRequest
-	21, // 40: mongocore.v1.MongoCore.BeginTransaction:input_type -> mongocore.v1.BeginTransactionRequest
-	23, // 41: mongocore.v1.MongoCore.CommitTransaction:input_type -> mongocore.v1.CommitTransactionRequest
-	25, // 42: mongocore.v1.MongoCore.AbortTransaction:input_type -> mongocore.v1.AbortTransactionRequest
-	27, // 43: mongocore.v1.MongoCore.CreateCollection:input_type -> mongocore.v1.CreateCollectionRequest
-	29, // 44: mongocore.v1.MongoCore.CreateIndex:input_type -> mongocore.v1.CreateIndexRequest
-	31, // 45: mongocore.v1.MongoCore.ListDatabases:input_type -> mongocore.v1.ListDatabasesRequest
-	33, // 46: mongocore.v1.MongoCore.ListCollections:input_type -> mongocore.v1.ListCollectionsRequest
-	35, // 47: mongocore.v1.MongoCore.Watch:input_type -> mongocore.v1.WatchRequest
-	2,  // 48: mongocore.v1.MongoCore.Find:output_type -> mongocore.v1.FindResponse
-	4,  // 49: mongocore.v1.MongoCore.FindOne:output_type -> mongocore.v1.FindOneResponse
-	6,  // 50: mongocore.v1.MongoCore.Insert:output_type -> mongocore.v1.InsertResponse
-	8,  // 51: mongocore.v1.MongoCore.InsertMany:output_type -> mongocore.v1.InsertManyResponse
-	10, // 52: mongocore.v1.MongoCore.Update:output_type -> mongocore.v1.UpdateResponse
-	12, // 53: mongocore.v1.MongoCore.UpdateMany:output_type -> mongocore.v1.UpdateManyResponse
-	14, // 54: mongocore.v1.MongoCore.Delete:output_type -> mongocore.v1.DeleteResponse
-	16, // 55: mongocore.v1.MongoCore.DeleteMany:output_type -> mongocore.v1.DeleteManyResponse
-	18, // 56: mongocore.v1.MongoCore.FindAndModify:output_type -> mongocore.v1.FindAndModifyResponse
-	20, // 57: mongocore.v1.MongoCore.Aggregate:output_type -> mongocore.v1.AggregateResponse
-	22, // 58: mongocore.v1.MongoCore.BeginTransaction:output_type -> mongocore.v1.BeginTransactionResponse
-	24, // 59: mongocore.v1.MongoCore.CommitTransaction:output_type -> mongocore.v1.CommitTransactionResponse
-	26, // 60: mongocore.v1.MongoCore.AbortTransaction:output_type -> mongocore.v1.AbortTransactionResponse
-	28, // 61: mongocore.v1.MongoCore.CreateCollection:output_type -> mongocore.v1.CreateCollectionResponse
-	30, // 62: mongocore.v1.MongoCore.CreateIndex:output_type -> mongocore.v1.CreateIndexResponse
-	32, // 63: mongocore.v1.MongoCore.ListDatabases:output_type -> mongocore.v1.ListDatabasesResponse
-	34, // 64: mongocore.v1.MongoCore.ListCollections:output_type -> mongocore.v1.ListCollectionsResponse
-	36, // 65: mongocore.v1.MongoCore.Watch:output_type -> mongocore.v1.WatchEvent
-	48, // [48:66] is the sub-list for method output_type
-	30, // [30:48] is the sub-list for method input_type
-	30, // [30:30] is the sub-list for extension type_name
-	30, // [30:30] is the sub-list for extension extendee
-	0,  // [0:30] is the sub-list for field type_name
+	45, // 0: mongocore.v1.FindRequest.filter:type_name -> mongocore.v1.Filter
+	46, // 1: mongocore.v1.FindRequest.options:type_name -> mongocore.v1.FindOptions
+	47, // 2: mongocore.v1.FindResponse.documents:type_name -> mongocore.v1.Document
+	48, // 3: mongocore.v1.FindResponse.metadata:type_name -> mongocore.v1.ResponseMetadata
+	45, // 4: mongocore.v1.FindOneRequest.filter:type_name -> mongocore.v1.Filter
+	46, // 5: mongocore.v1.FindOneRequest.options:type_name -> mongocore.v1.FindOptions
+	47, // 6: mongocore.v1.FindOneResponse.document:type_name -> mongocore.v1.Document
+	48, // 7: mongocore.v1.FindOneResponse.metadata:type_name -> mongocore.v1.ResponseMetadata
+	47, // 8: mongocore.v1.InsertRequest.document:type_name -> mongocore.v1.Document
+	47, // 9: mongocore.v1.InsertManyRequest.documents:type_name -> mongocore.v1.Document
+	45, // 10: mongocore.v1.UpdateRequest.filter:type_name -> mongocore.v1.Filter
+	47, // 11: mongocore.v1.UpdateRequest.update:type_name -> mongocore.v1.Document
+	45, // 12: mongocore.v1.UpdateManyRequest.filter:type_name -> mongocore.v1.Filter
+	47, // 13: mongocore.v1.UpdateManyRequest.update:type_name -> mongocore.v1.Document
+	45, // 14: mongocore.v1.DeleteRequest.filter:type_name -> mongocore.v1.Filter
+	45, // 15: mongocore.v1.DeleteManyRequest.filter:type_name -> mongocore.v1.Filter
+	45, // 16: mongocore.v1.FindAndModifyRequest.filter:type_name -> mongocore.v1.Filter
+	47, // 17: mongocore.v1.FindAndModifyRequest.update:type_name -> mongocore.v1.Document
+	49, // 18: mongocore.v1.FindAndModifyRequest.options:type_name -> mongocore.v1.FindAndModifyOptions
+	47, // 19: mongocore.v1.FindAndModifyResponse.document:type_name -> mongocore.v1.Document
+	50, // 20: mongocore.v1.AggregateRequest.pipeline:type_name -> mongocore.v1.Pipeline
+	47, // 21: mongocore.v1.AggregateResponse.documents:type_name -> mongocore.v1.Document
+	48, // 22: mongocore.v1.AggregateResponse.metadata:type_name -> mongocore.v1.ResponseMetadata
+	47, // 23: mongocore.v1.CreateIndexRequest.keys:type_name -> mongocore.v1.Document
+	51, // 24: mongocore.v1.CreateIndexRequest.options:type_name -> mongocore.v1.IndexOptions
+	47, // 25: mongocore.v1.SearchResponse.documents:type_name -> mongocore.v1.Document
+	50, // 26: mongocore.v1.WatchRequest.pipeline:type_name -> mongocore.v1.Pipeline
+	0,  // 27: mongocore.v1.WatchEvent.operation_type:type_name -> mongocore.v1.WatchEvent.OperationType
+	47, // 28: mongocore.v1.WatchEvent.document:type_name -> mongocore.v1.Document
+	47, // 29: mongocore.v1.WatchEvent.update_description:type_name -> mongocore.v1.Document
+	47, // 30: mongocore.v1.WatchEvent.document_key:type_name -> mongocore.v1.Document
+	47, // 31: mongocore.v1.RunCommandRequest.command:type_name -> mongocore.v1.Document
+	47, // 32: mongocore.v1.RunCommandResponse.result:type_name -> mongocore.v1.Document
+	43, // 33: mongocore.v1.GetAnalyticsResponse.top_operations:type_name -> mongocore.v1.OperationCount
+	44, // 34: mongocore.v1.GetAnalyticsResponse.top_collections:type_name -> mongocore.v1.CollectionCount
+	1,  // 35: mongocore.v1.MongoCore.Find:input_type -> mongocore.v1.FindRequest
+	3,  // 36: mongocore.v1.MongoCore.FindOne:input_type -> mongocore.v1.FindOneRequest
+	5,  // 37: mongocore.v1.MongoCore.Insert:input_type -> mongocore.v1.InsertRequest
+	7,  // 38: mongocore.v1.MongoCore.InsertMany:input_type -> mongocore.v1.InsertManyRequest
+	9,  // 39: mongocore.v1.MongoCore.Update:input_type -> mongocore.v1.UpdateRequest
+	11, // 40: mongocore.v1.MongoCore.UpdateMany:input_type -> mongocore.v1.UpdateManyRequest
+	13, // 41: mongocore.v1.MongoCore.Delete:input_type -> mongocore.v1.DeleteRequest
+	15, // 42: mongocore.v1.MongoCore.DeleteMany:input_type -> mongocore.v1.DeleteManyRequest
+	17, // 43: mongocore.v1.MongoCore.FindAndModify:input_type -> mongocore.v1.FindAndModifyRequest
+	19, // 44: mongocore.v1.MongoCore.Aggregate:input_type -> mongocore.v1.AggregateRequest
+	21, // 45: mongocore.v1.MongoCore.BeginTransaction:input_type -> mongocore.v1.BeginTransactionRequest
+	23, // 46: mongocore.v1.MongoCore.CommitTransaction:input_type -> mongocore.v1.CommitTransactionRequest
+	25, // 47: mongocore.v1.MongoCore.AbortTransaction:input_type -> mongocore.v1.AbortTransactionRequest
+	27, // 48: mongocore.v1.MongoCore.CreateCollection:input_type -> mongocore.v1.CreateCollectionRequest
+	29, // 49: mongocore.v1.MongoCore.CreateIndex:input_type -> mongocore.v1.CreateIndexRequest
+	31, // 50: mongocore.v1.MongoCore.ListDatabases:input_type -> mongocore.v1.ListDatabasesRequest
+	33, // 51: mongocore.v1.MongoCore.ListCollections:input_type -> mongocore.v1.ListCollectionsRequest
+	35, // 52: mongocore.v1.MongoCore.Search:input_type -> mongocore.v1.SearchRequest
+	37, // 53: mongocore.v1.MongoCore.Watch:input_type -> mongocore.v1.WatchRequest
+	39, // 54: mongocore.v1.MongoCore.RunCommand:input_type -> mongocore.v1.RunCommandRequest
+	41, // 55: mongocore.v1.MongoCore.GetAnalytics:input_type -> mongocore.v1.GetAnalyticsRequest
+	2,  // 56: mongocore.v1.MongoCore.Find:output_type -> mongocore.v1.FindResponse
+	4,  // 57: mongocore.v1.MongoCore.FindOne:output_type -> mongocore.v1.FindOneResponse
+	6,  // 58: mongocore.v1.MongoCore.Insert:output_type -> mongocore.v1.InsertResponse
+	8,  // 59: mongocore.v1.MongoCore.InsertMany:output_type -> mongocore.v1.InsertManyResponse
+	10, // 60: mongocore.v1.MongoCore.Update:output_type -> mongocore.v1.UpdateResponse
+	12, // 61: mongocore.v1.MongoCore.UpdateMany:output_type -> mongocore.v1.UpdateManyResponse
+	14, // 62: mongocore.v1.MongoCore.Delete:output_type -> mongocore.v1.DeleteResponse
+	16, // 63: mongocore.v1.MongoCore.DeleteMany:output_type -> mongocore.v1.DeleteManyResponse
+	18, // 64: mongocore.v1.MongoCore.FindAndModify:output_type -> mongocore.v1.FindAndModifyResponse
+	20, // 65: mongocore.v1.MongoCore.Aggregate:output_type -> mongocore.v1.AggregateResponse
+	22, // 66: mongocore.v1.MongoCore.BeginTransaction:output_type -> mongocore.v1.BeginTransactionResponse
+	24, // 67: mongocore.v1.MongoCore.CommitTransaction:output_type -> mongocore.v1.CommitTransactionResponse
+	26, // 68: mongocore.v1.MongoCore.AbortTransaction:output_type -> mongocore.v1.AbortTransactionResponse
+	28, // 69: mongocore.v1.MongoCore.CreateCollection:output_type -> mongocore.v1.CreateCollectionResponse
+	30, // 70: mongocore.v1.MongoCore.CreateIndex:output_type -> mongocore.v1.CreateIndexResponse
+	32, // 71: mongocore.v1.MongoCore.ListDatabases:output_type -> mongocore.v1.ListDatabasesResponse
+	34, // 72: mongocore.v1.MongoCore.ListCollections:output_type -> mongocore.v1.ListCollectionsResponse
+	36, // 73: mongocore.v1.MongoCore.Search:output_type -> mongocore.v1.SearchResponse
+	38, // 74: mongocore.v1.MongoCore.Watch:output_type -> mongocore.v1.WatchEvent
+	40, // 75: mongocore.v1.MongoCore.RunCommand:output_type -> mongocore.v1.RunCommandResponse
+	42, // 76: mongocore.v1.MongoCore.GetAnalytics:output_type -> mongocore.v1.GetAnalyticsResponse
+	56, // [56:77] is the sub-list for method output_type
+	35, // [35:56] is the sub-list for method input_type
+	35, // [35:35] is the sub-list for extension type_name
+	35, // [35:35] is the sub-list for extension extendee
+	0,  // [0:35] is the sub-list for field type_name
 }
 
 func init() { file_mongocore_v1_mongocore_proto_init() }
@@ -2452,15 +2992,15 @@ func file_mongocore_v1_mongocore_proto_init() {
 	file_mongocore_v1_mongocore_proto_msgTypes[16].OneofWrappers = []any{}
 	file_mongocore_v1_mongocore_proto_msgTypes[17].OneofWrappers = []any{}
 	file_mongocore_v1_mongocore_proto_msgTypes[18].OneofWrappers = []any{}
-	file_mongocore_v1_mongocore_proto_msgTypes[34].OneofWrappers = []any{}
-	file_mongocore_v1_mongocore_proto_msgTypes[35].OneofWrappers = []any{}
+	file_mongocore_v1_mongocore_proto_msgTypes[36].OneofWrappers = []any{}
+	file_mongocore_v1_mongocore_proto_msgTypes[37].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_mongocore_v1_mongocore_proto_rawDesc), len(file_mongocore_v1_mongocore_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   36,
+			NumMessages:   44,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

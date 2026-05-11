@@ -56,6 +56,18 @@ class MongoClient:
         response = await stub.ListDatabases(mongocore_pb2.ListDatabasesRequest())
         return list(response.databases)
 
+    async def run_command(self, database: str, command: dict, allow_all: bool = False) -> dict:
+        """Execute an arbitrary MongoDB command via raw passthrough."""
+        from bson import encode, decode
+        from .generated import mongocore_pb2, mongocore_pb2_grpc, types_pb2
+        stub = mongocore_pb2_grpc.MongoCoreStub(self.channel)
+        response = await stub.RunCommand(mongocore_pb2.RunCommandRequest(
+            database=database,
+            command=types_pb2.Document(data=encode(command)),
+            allow_all=allow_all,
+        ))
+        return decode(response.result.data)
+
     async def __aenter__(self):
         await self.connect()
         return self

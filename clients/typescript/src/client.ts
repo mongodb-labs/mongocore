@@ -73,4 +73,20 @@ export class MongoClient {
       });
     });
   }
+
+  async runCommand(database: string, command: Record<string, unknown>, allowAll = false): Promise<Record<string, unknown>> {
+    const { BSON } = await import('bson');
+    return new Promise((resolve, reject) => {
+      const request = {
+        database,
+        command: { data: Buffer.from(BSON.serialize(command)) },
+        allowAll,
+      };
+      this.getGrpcClient().runCommand(request, (err: any, response: any) => {
+        if (err) return reject(err);
+        const result = BSON.deserialize(Buffer.from(response.result.data)) as Record<string, unknown>;
+        resolve(result);
+      });
+    });
+  }
 }
