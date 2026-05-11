@@ -26,6 +26,7 @@ pub async fn get_test_pool() -> ConnectionPool {
         analytics_enabled: false,
         analytics_buffer_size: 10000,
         analytics_flush_interval_secs: 300,
+        ingestion: Default::default(),
     };
 
     ConnectionPool::connect(&config)

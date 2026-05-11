@@ -1,0 +1,6 @@
+name,age,email,score,active
+Alice,30,alice@test.com,95.5,true
+Bob,25,bob@test.com,88.0,true
+Charlie,35,charlie@test.com,72.0,false
+Diana,28,diana@test.com,91.5,true
+Eve,32,eve@test.com,85.0,false

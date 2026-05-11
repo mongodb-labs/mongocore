@@ -30,3 +30,6 @@ mod tenant_test;
 
 #[path = "integration/analytics_test.rs"]
 mod analytics_test;
+
+#[path = "integration/ingestion_test.rs"]
+mod ingestion_test;
