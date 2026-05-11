@@ -1,6 +1,7 @@
 pub mod dedup;
 pub mod dlq;
 pub mod engine;
+pub mod llm_expressions;
 pub mod progress;
 pub mod reader;
 pub mod schema;
