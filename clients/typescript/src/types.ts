@@ -23,3 +23,12 @@ export interface InsertManyResult {
 export interface Document {
   [key: string]: any;
 }
+
+export interface ChangeEvent {
+  operationType: string;
+  database?: string;
+  collection?: string;
+  document?: Document;
+  updateDescription?: Document;
+  documentKey?: Document;
+}

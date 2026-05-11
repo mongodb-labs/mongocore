@@ -142,6 +142,34 @@ describe('CRUD operations', () => {
   });
 });
 
+describe('Change streams', () => {
+  test('watch receives insert events', async () => {
+    const coll = client.db(TEST_DB).collection(uniqueCollection());
+
+    // Create the collection first
+    await coll.insertOne({ setup: true });
+
+    const stream = coll.watch();
+    const events: any[] = [];
+
+    const iterator = stream[Symbol.asyncIterator]();
+
+    // Insert after a short delay
+    setTimeout(async () => {
+      await coll.insertOne({ name: 'watched' });
+    }, 100);
+
+    const result = await iterator.next();
+    events.push(result.value);
+
+    await iterator.return!();
+
+    expect(events).toHaveLength(1);
+    expect(events[0].operationType).toBe('insert');
+    expect(events[0].document.name).toBe('watched');
+  }, 10000);
+});
+
 describe('Database operations', () => {
   test('list databases', async () => {
     const databases = await client.listDatabases();

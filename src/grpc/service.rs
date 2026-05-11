@@ -1,6 +1,8 @@
 use std::pin::Pin;
 
+use bson::Document;
 use dashmap::DashMap;
+use futures::StreamExt;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
@@ -559,8 +561,93 @@ impl MongoCore for MongoCoreService {
 
     async fn watch(
         &self,
-        _request: Request<proto::WatchRequest>,
+        request: Request<proto::WatchRequest>,
     ) -> Result<Response<Self::WatchStream>, Status> {
-        Err(Status::unimplemented("Watch not yet implemented"))
+        let req = request.into_inner();
+
+        let pipeline: Vec<Document> = if let Some(p) = req.pipeline {
+            p.stages
+                .iter()
+                .map(|s| bson::from_slice(s))
+                .collect::<Result<Vec<_>, _>>()
+                .map_err(|e| Status::invalid_argument(format!("Invalid pipeline: {}", e)))?
+        } else {
+            vec![]
+        };
+
+        let mut change_stream = if let Some(ref collection) = req.collection {
+            self.pool
+                .collection(&req.database, collection)
+                .watch()
+                .pipeline(pipeline)
+                .await
+                .map_err(|e| Status::internal(format!("Failed to open change stream: {}", e)))?
+        } else {
+            self.pool
+                .database(&req.database)
+                .watch()
+                .pipeline(pipeline)
+                .await
+                .map_err(|e| Status::internal(format!("Failed to open change stream: {}", e)))?
+        };
+
+        let stream = async_stream::stream! {
+            while let Some(result) = change_stream.next().await {
+                match result {
+                    Ok(event) => {
+                        let op_type = match event.operation_type {
+                            mongodb::change_stream::event::OperationType::Insert => proto::watch_event::OperationType::Insert,
+                            mongodb::change_stream::event::OperationType::Update => proto::watch_event::OperationType::Update,
+                            mongodb::change_stream::event::OperationType::Delete => proto::watch_event::OperationType::Delete,
+                            mongodb::change_stream::event::OperationType::Replace => proto::watch_event::OperationType::Replace,
+                            mongodb::change_stream::event::OperationType::Invalidate => proto::watch_event::OperationType::Invalidate,
+                            _ => proto::watch_event::OperationType::Insert,
+                        };
+
+                        let (database, collection) = match &event.ns {
+                            Some(ns) => (
+                                ns.db.clone(),
+                                ns.coll.clone().unwrap_or_default(),
+                            ),
+                            None => (String::new(), String::new()),
+                        };
+
+                        let document = event.full_document.map(|doc| {
+                            let bytes = bson::to_vec(&doc).unwrap_or_default();
+                            proto::Document { data: bytes }
+                        });
+
+                        let update_description = event.update_description.map(|ud| {
+                            let doc = bson::doc! {
+                                "updatedFields": &ud.updated_fields,
+                                "removedFields": &ud.removed_fields,
+                            };
+                            let bytes = bson::to_vec(&doc).unwrap_or_default();
+                            proto::Document { data: bytes }
+                        });
+
+                        let document_key = event.document_key.map(|dk| {
+                            let bytes = bson::to_vec(&dk).unwrap_or_default();
+                            proto::Document { data: bytes }
+                        });
+
+                        yield Ok(proto::WatchEvent {
+                            operation_type: op_type as i32,
+                            database,
+                            collection,
+                            document,
+                            update_description,
+                            document_key,
+                        });
+                    }
+                    Err(e) => {
+                        yield Err(Status::internal(format!("Change stream error: {}", e)));
+                        break;
+                    }
+                }
+            }
+        };
+
+        Ok(Response::new(Box::pin(stream) as Self::WatchStream))
     }
 }

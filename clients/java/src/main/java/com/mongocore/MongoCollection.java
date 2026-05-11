@@ -13,6 +13,7 @@ import org.bson.BsonBinaryReader;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -192,5 +193,25 @@ public class MongoCollection {
             docs.add(decodeBson(d.getData()));
         }
         return docs;
+    }
+
+    public ChangeStream watch() {
+        return watch(null);
+    }
+
+    public ChangeStream watch(List<Document> pipeline) {
+        Mongocore.WatchRequest.Builder req = Mongocore.WatchRequest.newBuilder()
+                .setDatabase(database)
+                .setCollection(name);
+
+        if (pipeline != null && !pipeline.isEmpty()) {
+            List<ByteString> stages = pipeline.stream()
+                    .map(this::encodeBson)
+                    .collect(Collectors.toList());
+            req.setPipeline(Types.Pipeline.newBuilder().addAllStages(stages).build());
+        }
+
+        Iterator<Mongocore.WatchEvent> stream = getStub().watch(req.build());
+        return new ChangeStream(stream, this);
     }
 }

@@ -186,6 +186,37 @@ func TestAggregate(t *testing.T) {
 	}
 }
 
+func TestWatch(t *testing.T) {
+	client, ctx := setupClient(t)
+	coll := client.Database(testDB).Collection(uniqueCollection() + "_watch")
+
+	// Create collection first
+	coll.InsertOne(ctx, bson.D{{Key: "setup", Value: true}})
+
+	cs, err := coll.Watch(ctx, nil)
+	if err != nil {
+		t.Fatalf("Watch failed: %v", err)
+	}
+	defer cs.Close()
+
+	// Insert in a goroutine
+	go func() {
+		// small delay to let the stream establish
+		<-ctx.Done()
+	}()
+	go func() {
+		coll.InsertOne(ctx, bson.D{{Key: "name", Value: "watched"}})
+	}()
+
+	event, err := cs.Next()
+	if err != nil {
+		t.Fatalf("Next failed: %v", err)
+	}
+	if event.OperationType != "insert" {
+		t.Fatalf("Expected insert, got %s", event.OperationType)
+	}
+}
+
 func TestListDatabases(t *testing.T) {
 	client, ctx := setupClient(t)
 

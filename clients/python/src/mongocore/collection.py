@@ -1,6 +1,6 @@
 """Collection operations."""
 
-from typing import Any, Optional
+from typing import Any, AsyncIterator, Optional
 from bson import encode, decode
 
 
@@ -147,3 +147,63 @@ class Collection:
             pipeline=types_pb2.Pipeline(stages=stages),
         ))
         return [self._decode_doc(doc.data) for doc in response.documents]
+
+    def watch(self, pipeline: Optional[list[dict]] = None) -> "ChangeStream":
+        """Open a change stream on this collection. Returns an async context manager."""
+        return ChangeStream(self, pipeline)
+
+
+class ChangeStream:
+    """An async iterable change stream that auto-closes when exiting the context."""
+
+    def __init__(self, collection: Collection, pipeline: Optional[list[dict]] = None):
+        self._collection = collection
+        self._pipeline = pipeline
+        self._stream = None
+        self._cancelled = False
+
+    async def __aenter__(self) -> "ChangeStream":
+        from .generated import mongocore_pb2, types_pb2
+        stub = self._collection._get_stub()
+
+        stages = [self._collection._encode_doc(s) for s in self._pipeline] if self._pipeline else []
+
+        self._stream = stub.Watch(mongocore_pb2.WatchRequest(
+            database=self._collection._database,
+            collection=self._collection._name,
+            pipeline=types_pb2.Pipeline(stages=stages) if stages else None,
+        ))
+        return self
+
+    async def __aexit__(self, *exc):
+        self._cancelled = True
+        if self._stream is not None:
+            self._stream.cancel()
+        return False
+
+    def __aiter__(self) -> AsyncIterator[dict]:
+        return self
+
+    async def __anext__(self) -> dict:
+        if self._cancelled or self._stream is None:
+            raise StopAsyncIteration
+        try:
+            event = await self._stream.read()
+            if event is None:
+                raise StopAsyncIteration
+            result = {"operation_type": event.operation_type}
+            if event.database:
+                result["database"] = event.database
+            if event.collection:
+                result["collection"] = event.collection
+            if event.document and event.document.data:
+                result["document"] = self._collection._decode_doc(event.document.data)
+            if event.update_description and event.update_description.data:
+                result["update_description"] = self._collection._decode_doc(event.update_description.data)
+            if event.document_key and event.document_key.data:
+                result["document_key"] = self._collection._decode_doc(event.document_key.data)
+            return result
+        except Exception:
+            if self._cancelled:
+                raise StopAsyncIteration
+            raise

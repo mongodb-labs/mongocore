@@ -1,6 +1,7 @@
 import { BSON } from 'bson';
 import { MongoClient } from './client';
-import type { Document, FindOptions, UpdateResult, InsertResult, InsertManyResult } from './types';
+import { EventEmitter } from 'events';
+import type { Document, FindOptions, UpdateResult, InsertResult, InsertManyResult, ChangeEvent } from './types';
 
 export class Collection {
   private client: MongoClient;
@@ -182,5 +183,127 @@ export class Collection {
         resolve(docs);
       });
     });
+  }
+
+  watch(pipeline?: Document[]): ChangeStream {
+    return new ChangeStream(this.client, this.database, this.name, pipeline);
+  }
+}
+
+const OP_TYPE_MAP: Record<string | number, string> = {
+  0: 'insert', INSERT: 'insert',
+  1: 'update', UPDATE: 'update',
+  2: 'delete', DELETE: 'delete',
+  3: 'replace', REPLACE: 'replace',
+  4: 'invalidate', INVALIDATE: 'invalidate',
+};
+
+export class ChangeStream extends EventEmitter implements AsyncIterable<ChangeEvent>, AsyncDisposable {
+  private grpcStream: any = null;
+  private buffer: ChangeEvent[] = [];
+  private waitResolve: ((value: IteratorResult<ChangeEvent>) => void) | null = null;
+  private closed = false;
+  private client: MongoClient;
+  private database: string;
+  private collection: string;
+  private pipeline?: Document[];
+
+  constructor(client: MongoClient, database: string, collection: string, pipeline?: Document[]) {
+    super();
+    this.client = client;
+    this.database = database;
+    this.collection = collection;
+    this.pipeline = pipeline;
+  }
+
+  start(): this {
+    const request: any = {
+      database: this.database,
+      collection: this.collection,
+      pipeline: this.pipeline ? {
+        stages: this.pipeline.map(stage => Buffer.from(BSON.serialize(stage))),
+      } : undefined,
+    };
+
+    this.grpcStream = this.client.getGrpcClient().watch(request);
+
+    this.grpcStream.on('data', (event: any) => {
+      const decoded: ChangeEvent = {
+        operationType: OP_TYPE_MAP[event.operationType] || 'unknown',
+      };
+      if (event.database) decoded.database = event.database;
+      if (event.collection) decoded.collection = event.collection;
+      if (event.document?.data?.length > 0) {
+        decoded.document = BSON.deserialize(Buffer.from(event.document.data)) as Document;
+      }
+      if (event.updateDescription?.data?.length > 0) {
+        decoded.updateDescription = BSON.deserialize(Buffer.from(event.updateDescription.data)) as Document;
+      }
+      if (event.documentKey?.data?.length > 0) {
+        decoded.documentKey = BSON.deserialize(Buffer.from(event.documentKey.data)) as Document;
+      }
+
+      if (this.waitResolve) {
+        const resolve = this.waitResolve;
+        this.waitResolve = null;
+        resolve({ value: decoded, done: false });
+      } else {
+        this.buffer.push(decoded);
+      }
+      this.emit('change', decoded);
+    });
+
+    this.grpcStream.on('end', () => {
+      this.closed = true;
+      if (this.waitResolve) {
+        this.waitResolve({ value: undefined as any, done: true });
+        this.waitResolve = null;
+      }
+      this.emit('end');
+    });
+
+    this.grpcStream.on('error', (err: any) => {
+      if (this.closed) return;
+      this.closed = true;
+      if (this.waitResolve) {
+        this.waitResolve({ value: undefined as any, done: true });
+        this.waitResolve = null;
+      }
+      this.emit('error', err);
+    });
+
+    return this;
+  }
+
+  close(): void {
+    if (!this.closed) {
+      this.closed = true;
+      if (this.grpcStream) {
+        this.grpcStream.cancel();
+      }
+    }
+  }
+
+  async [Symbol.asyncDispose](): Promise<void> {
+    this.close();
+  }
+
+  [Symbol.asyncIterator](): AsyncIterator<ChangeEvent> {
+    if (!this.grpcStream) this.start();
+    return {
+      next: (): Promise<IteratorResult<ChangeEvent>> => {
+        if (this.buffer.length > 0) {
+          return Promise.resolve({ value: this.buffer.shift()!, done: false });
+        }
+        if (this.closed) {
+          return Promise.resolve({ value: undefined as any, done: true });
+        }
+        return new Promise(resolve => { this.waitResolve = resolve; });
+      },
+      return: (): Promise<IteratorResult<ChangeEvent>> => {
+        this.close();
+        return Promise.resolve({ value: undefined as any, done: true });
+      },
+    };
   }
 }

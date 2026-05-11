@@ -157,6 +157,35 @@ async def test_find_with_limit():
 
 
 @pytest.mark.asyncio
+async def test_watch():
+    async with MongoClient("localhost:50051") as client:
+        coll = client[TEST_DB][unique_collection()]
+
+        # Insert a doc first so the collection exists
+        await coll.insert_one({"setup": True})
+
+        events = []
+        async with coll.watch() as stream:
+            # Insert in a separate task while watching
+            async def do_insert():
+                await asyncio.sleep(0.1)
+                await coll.insert_one({"name": "watched"})
+                await asyncio.sleep(0.1)
+
+            insert_task = asyncio.create_task(do_insert())
+
+            async for event in stream:
+                events.append(event)
+                if len(events) >= 1:
+                    break
+
+            await insert_task
+
+        assert len(events) == 1
+        assert events[0]["operation_type"] == 0  # INSERT
+
+
+@pytest.mark.asyncio
 async def test_list_databases():
     async with MongoClient("localhost:50051") as client:
         databases = await client.list_databases()

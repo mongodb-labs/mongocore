@@ -2,6 +2,7 @@ package mongocore
 
 import (
 	"context"
+	"io"
 
 	pb "github.com/rozza/mongocore/clients/go/proto"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -244,6 +245,98 @@ func (c *Collection) DeleteMany(ctx context.Context, filter bson.D) (int64, erro
 	}
 	return resp.DeletedCount, nil
 }
+
+// ChangeEvent represents a single change stream event.
+type ChangeEvent struct {
+	OperationType string
+	Database      string
+	Collection    string
+	Document      bson.D
+	UpdateDesc    bson.D
+	DocumentKey   bson.D
+}
+
+// ChangeStream wraps a server-streaming Watch RPC. It implements io.Closer.
+type ChangeStream struct {
+	stream   pb.MongoCore_WatchClient
+	cancelFn context.CancelFunc
+}
+
+// Next returns the next event from the change stream.
+// Returns io.EOF when the stream is closed.
+func (cs *ChangeStream) Next() (*ChangeEvent, error) {
+	event, err := cs.stream.Recv()
+	if err != nil {
+		return nil, err
+	}
+
+	opNames := []string{"insert", "update", "delete", "replace", "invalidate"}
+	opType := "unknown"
+	if int(event.OperationType) < len(opNames) {
+		opType = opNames[event.OperationType]
+	}
+
+	ce := &ChangeEvent{
+		OperationType: opType,
+		Database:      event.Database,
+		Collection:    event.Collection,
+	}
+
+	if event.Document != nil && len(event.Document.Data) > 0 {
+		doc, err := decodeBsonDoc(event.Document.Data)
+		if err == nil {
+			ce.Document = doc
+		}
+	}
+	if event.UpdateDescription != nil && len(event.UpdateDescription.Data) > 0 {
+		doc, err := decodeBsonDoc(event.UpdateDescription.Data)
+		if err == nil {
+			ce.UpdateDesc = doc
+		}
+	}
+	if event.DocumentKey != nil && len(event.DocumentKey.Data) > 0 {
+		doc, err := decodeBsonDoc(event.DocumentKey.Data)
+		if err == nil {
+			ce.DocumentKey = doc
+		}
+	}
+
+	return ce, nil
+}
+
+// Close terminates the change stream.
+func (cs *ChangeStream) Close() error {
+	cs.cancelFn()
+	return nil
+}
+
+// Watch opens a change stream on this collection. The returned ChangeStream must be closed when done.
+func (c *Collection) Watch(ctx context.Context, pipeline []bson.D) (*ChangeStream, error) {
+	stages := make([][]byte, 0, len(pipeline))
+	for _, stage := range pipeline {
+		stageBytes, err := encodeBson(stage)
+		if err != nil {
+			return nil, err
+		}
+		stages = append(stages, stageBytes)
+	}
+
+	watchCtx, cancel := context.WithCancel(ctx)
+	stream, err := c.client.stub.Watch(watchCtx, &pb.WatchRequest{
+		Database:   c.database,
+		Collection: &c.name,
+		Pipeline:   &pb.Pipeline{Stages: stages},
+	})
+	if err != nil {
+		cancel()
+		return nil, err
+	}
+
+	return &ChangeStream{stream: stream, cancelFn: cancel}, nil
+}
+
+// Ensure ChangeStream implements io.Closer.
+var _ io.Closer = (*ChangeStream)(nil)
 
 // Aggregate executes an aggregation pipeline.
 func (c *Collection) Aggregate(ctx context.Context, pipeline []bson.D) ([]bson.D, error) {
