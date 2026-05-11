@@ -90,7 +90,7 @@ async fn test_mcp_tools_list() {
     let resp = rpc_call(&client, &url, "tools/list", None).await;
     let tools = resp["result"]["tools"].as_array().unwrap();
 
-    assert_eq!(tools.len(), 13);
+    assert_eq!(tools.len(), 21);
 
     let names: Vec<&str> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
     let expected = [
@@ -107,6 +107,14 @@ async fn test_mcp_tools_list() {
         "create_index",
         "list_databases",
         "list_collections",
+        "run_command",
+        "get_analytics",
+        "ingest",
+        "ingest_status",
+        "list_ingest_jobs",
+        "cancel_ingest",
+        "watch_directory",
+        "stop_watch",
     ];
     for name in &expected {
         assert!(names.contains(name), "Missing tool: {}", name);

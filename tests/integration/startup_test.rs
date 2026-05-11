@@ -121,7 +121,7 @@ async fn test_mcp_server_serves_on_configured_port() {
 
     let body: serde_json::Value = resp.json().await.unwrap();
     let tools = body["result"]["tools"].as_array().unwrap();
-    assert_eq!(tools.len(), 13);
+    assert_eq!(tools.len(), 21);
 }
 
 #[tokio::test]
