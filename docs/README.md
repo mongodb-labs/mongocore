@@ -39,9 +39,9 @@ pip install mongocore
 ```
 
 ```python
-from mongocore import MongoCoreClient
+from mongocore import MongoClient
 
-async with MongoCoreClient() as client:
+async with MongoClient() as client:
     users = client["myapp"]["users"]
     await users.insert_one({"name": "Alice", "age": 30})
     docs = await users.find({"age": {"$gte": 25}})
@@ -53,9 +53,9 @@ npm install @mongocore/client
 ```
 
 ```typescript
-import { MongoCoreClient } from '@mongocore/client';
+import { MongoClient } from '@mongocore/client';
 
-const client = new MongoCoreClient();
+const client = new MongoClient();
 await client.connect();
 const users = client.db('myapp').collection('users');
 await users.insertOne({ name: 'Alice', age: 30 });

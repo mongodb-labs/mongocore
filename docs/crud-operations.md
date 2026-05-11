@@ -22,10 +22,10 @@ MongoCore exposes the full MongoDB CRUD surface over gRPC. All operations use ra
 
 ```python
 import asyncio
-from mongocore import MongoCoreClient
+from mongocore import MongoClient
 
 async def main():
-    async with MongoCoreClient("localhost:50051") as client:
+    async with MongoClient("localhost:50051") as client:
         db = client["myapp"]
         users = db["users"]
 
@@ -76,10 +76,10 @@ asyncio.run(main())
 ## TypeScript
 
 ```typescript
-import { MongoCoreClient } from '@mongocore/client';
+import { MongoClient } from '@mongocore/client';
 
 async function main() {
-  const client = new MongoCoreClient('localhost:50051');
+  const client = new MongoClient('localhost:50051');
   await client.connect();
 
   const users = client.db('myapp').collection('users');

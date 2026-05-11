@@ -1,13 +1,13 @@
 import { BSON } from 'bson';
-import { MongoCoreClient } from './client';
+import { MongoClient } from './client';
 import type { Document, FindOptions, UpdateResult, InsertResult, InsertManyResult } from './types';
 
 export class Collection {
-  private client: MongoCoreClient;
+  private client: MongoClient;
   private database: string;
   private name: string;
 
-  constructor(client: MongoCoreClient, database: string, name: string) {
+  constructor(client: MongoClient, database: string, name: string) {
     this.client = client;
     this.database = database;
     this.name = name;

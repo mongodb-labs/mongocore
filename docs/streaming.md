@@ -9,9 +9,9 @@ The `Watch` RPC returns a stream of `WatchEvent` messages. Each event includes t
 ## Python
 
 ```python
-from mongocore import MongoCoreClient
+from mongocore import MongoClient
 
-async with MongoCoreClient() as client:
+async with MongoClient() as client:
     # Watch a specific collection
     async for event in client.watch("myapp", collection="orders"):
         print(f"Operation: {event.operation_type}")

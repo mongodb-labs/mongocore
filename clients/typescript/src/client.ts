@@ -2,7 +2,7 @@ import * as grpc from '@grpc/grpc-js';
 import { Database } from './database';
 import { SidecarManager } from './sidecar';
 
-export class MongoCoreClient {
+export class MongoClient {
   private address: string;
   private autoSpawn: boolean;
   private channel: grpc.Channel | null = null;

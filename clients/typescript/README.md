@@ -11,9 +11,9 @@ npm install @mongocore/client
 ## Quick Start
 
 ```typescript
-import { MongoCoreClient } from '@mongocore/client';
+import { MongoClient } from '@mongocore/client';
 
-const client = new MongoCoreClient('localhost:50051');
+const client = new MongoClient('localhost:50051');
 await client.connect();
 
 const db = client.db('mydb');
@@ -30,7 +30,7 @@ await client.close();
 The client can automatically manage the MongoCore sidecar process:
 
 ```typescript
-const client = new MongoCoreClient('localhost:50051', { autoSpawn: true });
+const client = new MongoClient('localhost:50051', { autoSpawn: true });
 await client.connect(); // Starts sidecar if not running
 ```
 

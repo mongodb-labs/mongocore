@@ -1,11 +1,11 @@
-import { MongoCoreClient } from './client';
+import { MongoClient } from './client';
 import { Collection } from './collection';
 
 export class Database {
-  private client: MongoCoreClient;
+  private client: MongoClient;
   private name: string;
 
-  constructor(client: MongoCoreClient, name: string) {
+  constructor(client: MongoClient, name: string) {
     this.client = client;
     this.name = name;
   }

@@ -59,7 +59,7 @@ Embeds your query using Voyage AI, then runs `$vectorSearch` against an Atlas Ve
 ### Python
 
 ```python
-async with MongoCoreClient() as client:
+async with MongoClient() as client:
     articles = client["content"]["articles"]
 
     # Automatic search (uses best available method)

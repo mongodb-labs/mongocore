@@ -13,7 +13,7 @@ MongoCore manages the MongoDB session lifecycle internally using DashMap for loc
 ## Python
 
 ```python
-from mongocore import MongoCoreClient
+from mongocore import MongoClient
 
 async def transfer_funds(client, from_account, to_account, amount):
     accounts = client["bank"]["accounts"]
@@ -48,10 +48,10 @@ async def transfer_funds(client, from_account, to_account, amount):
 ## TypeScript
 
 ```typescript
-import { MongoCoreClient } from '@mongocore/client';
+import { MongoClient } from '@mongocore/client';
 
 async function transferFunds(
-  client: MongoCoreClient,
+  client: MongoClient,
   fromAccount: string,
   toAccount: string,
   amount: number

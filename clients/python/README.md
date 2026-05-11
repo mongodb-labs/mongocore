@@ -12,10 +12,10 @@ pip install mongocore
 
 ```python
 import asyncio
-from mongocore import MongoCoreClient
+from mongocore import MongoClient
 
 async def main():
-    async with MongoCoreClient("localhost:50051") as client:
+    async with MongoClient("localhost:50051") as client:
         db = client["mydb"]
         coll = db["users"]
         
@@ -38,7 +38,7 @@ asyncio.run(main())
 
 ```python
 # Auto-spawn sidecar in development
-client = MongoCoreClient(auto_spawn=True)
+client = MongoClient(auto_spawn=True)
 await client.connect()
 ```
 

@@ -47,30 +47,30 @@ All clients connect to the MongoCore sidecar over gRPC (default `localhost:50051
 ### Python
 
 ```python
-from mongocore import MongoCoreClient
+from mongocore import MongoClient
 
 # Explicit connection management
-client = MongoCoreClient("localhost:50051")
+client = MongoClient("localhost:50051")
 await client.connect()
 # ... use client ...
 await client.close()
 
 # Context manager (recommended)
-async with MongoCoreClient("localhost:50051") as client:
+async with MongoClient("localhost:50051") as client:
     db = client["mydb"]
     users = db["users"]
 
 # Auto-spawn the sidecar binary
-async with MongoCoreClient(auto_spawn=True) as client:
+async with MongoClient(auto_spawn=True) as client:
     ...
 ```
 
 ### TypeScript
 
 ```typescript
-import { MongoCoreClient } from '@mongocore/client';
+import { MongoClient } from '@mongocore/client';
 
-const client = new MongoCoreClient('localhost:50051');
+const client = new MongoClient('localhost:50051');
 await client.connect();
 
 const db = client.db('mydb');
@@ -80,7 +80,7 @@ const users = db.collection('users');
 await client.close();
 
 // Auto-spawn the sidecar
-const client = new MongoCoreClient('localhost:50051', { autoSpawn: true });
+const client = new MongoClient('localhost:50051', { autoSpawn: true });
 await client.connect();
 ```
 
@@ -145,13 +145,13 @@ Each client library includes a `SidecarManager` that can automatically start and
 
 ```python
 # Python — auto-spawn
-client = MongoCoreClient(auto_spawn=True)
+client = MongoClient(auto_spawn=True)
 await client.connect()  # Starts mongocore binary if not running
 ```
 
 ```typescript
 // TypeScript — auto-spawn
-const client = new MongoCoreClient('localhost:50051', { autoSpawn: true });
+const client = new MongoClient('localhost:50051', { autoSpawn: true });
 await client.connect();
 ```
 
@@ -208,7 +208,7 @@ mvn generate-sources
 clients/
 ├── python/
 │   ├── src/mongocore/
-│   │   ├── client.py          # MongoCoreClient
+│   │   ├── client.py          # MongoClient
 │   │   ├── database.py        # Database handle
 │   │   ├── collection.py      # Collection with CRUD
 │   │   ├── sidecar.py         # SidecarManager
@@ -216,7 +216,7 @@ clients/
 │   └── tests/
 ├── typescript/
 │   └── src/
-│       ├── client.ts          # MongoCoreClient
+│       ├── client.ts          # MongoClient
 │       ├── database.ts        # Database
 │       ├── collection.ts      # Collection with CRUD
 │       ├── sidecar.ts         # SidecarManager

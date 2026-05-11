@@ -7,7 +7,7 @@ MongoCore exposes database administration operations for managing collections, i
 ### Python
 
 ```python
-async with MongoCoreClient() as client:
+async with MongoClient() as client:
     databases = await client.list_databases()
     for db_name in databases:
         print(db_name)

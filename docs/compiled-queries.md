@@ -51,9 +51,9 @@ compiled_cache_sync = true  # Enable L3 Atlas cache
 ### Python
 
 ```python
-from mongocore import MongoCoreClient
+from mongocore import MongoClient
 
-async with MongoCoreClient() as client:
+async with MongoClient() as client:
     users = client["myapp"]["users"]
 
     # Natural language query — first call hits LLM, subsequent calls use cache

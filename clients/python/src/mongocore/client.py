@@ -6,11 +6,11 @@ from .database import Database
 from .sidecar import SidecarManager
 
 
-class MongoCoreClient:
+class MongoClient:
     """Client for connecting to a MongoCore sidecar.
 
     Usage:
-        client = MongoCoreClient("localhost:50051")
+        client = MongoClient("localhost:50051")
         db = client["mydb"]
         result = await db["users"].find({"active": True})
     """

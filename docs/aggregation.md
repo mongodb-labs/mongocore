@@ -5,10 +5,10 @@ MongoCore supports the full MongoDB aggregation framework. Pipeline stages are s
 ## Python
 
 ```python
-from mongocore import MongoCoreClient
+from mongocore import MongoClient
 
 async def main():
-    async with MongoCoreClient() as client:
+    async with MongoClient() as client:
         orders = client["shop"]["orders"]
 
         # Group by status, calculate totals
@@ -29,9 +29,9 @@ async def main():
 ## TypeScript
 
 ```typescript
-import { MongoCoreClient } from '@mongocore/client';
+import { MongoClient } from '@mongocore/client';
 
-const client = new MongoCoreClient();
+const client = new MongoClient();
 await client.connect();
 
 const orders = client.db('shop').collection('orders');
