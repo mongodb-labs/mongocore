@@ -65,3 +65,6 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Local test config (may contain API keys)
+config.test.toml

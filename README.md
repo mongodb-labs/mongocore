@@ -126,6 +126,33 @@ See [Getting Started](./docs/getting-started.md) for full configuration referenc
 
 ## Testing
 
+### Test Configuration
+
+Copy the example config to create your local test configuration:
+
+```bash
+cp config.test.toml.example config.test.toml
+```
+
+Edit `config.test.toml` to enable AI features for testing:
+
+```toml
+# Uncomment and set to test compiled queries
+llm_provider = "anthropic"
+llm_api_key_env = "ANTHROPIC_API_KEY"
+
+# Uncomment and set to test vector search
+voyage_api_key_env = "VOYAGE_API_KEY"
+```
+
+Then run with:
+
+```bash
+cargo run -- --config config.test.toml
+```
+
+> **Note:** `config.test.toml` is gitignored since it may contain API key references. Only the `.example` template is committed.
+
 ### Unit Tests
 
 No external dependencies required:
