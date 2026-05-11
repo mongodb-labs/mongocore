@@ -166,6 +166,7 @@ fn to_status(err: MongoCoreError) -> Status {
         MongoCoreError::OperationError(_) => Status::internal(err.to_string()),
         MongoCoreError::ValidationError(_) => Status::invalid_argument(err.to_string()),
         MongoCoreError::TimeoutError(_) => Status::deadline_exceeded(err.to_string()),
+        MongoCoreError::IngestionError(_) => Status::internal(err.to_string()),
     }
 }
 

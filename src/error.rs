@@ -17,6 +17,9 @@ pub enum MongoCoreError {
 
     #[error("Timeout error: {0}")]
     TimeoutError(String),
+
+    #[error("Ingestion error: {0}")]
+    IngestionError(String),
 }
 
 impl From<mongodb::error::Error> for MongoCoreError {
