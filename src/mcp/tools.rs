@@ -2,7 +2,7 @@ use bson::Document;
 use serde_json::{json, Value};
 
 use crate::connection::pool::ConnectionPool;
-use crate::operations::{FindOptions, IndexOptions, Operations};
+use crate::operations::{FindOptions, IndexOptions, Operations, RawCommandOptions, ValidationMode};
 
 use super::types::{McpContent, McpToolCallResult, McpToolDefinition};
 
@@ -29,7 +29,8 @@ pub fn tool_definitions() -> Vec<McpToolDefinition> {
         },
         McpToolDefinition {
             name: "find_one".to_string(),
-            description: "Find a single document in a MongoDB collection matching a filter".to_string(),
+            description: "Find a single document in a MongoDB collection matching a filter"
+                .to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -72,7 +73,8 @@ pub fn tool_definitions() -> Vec<McpToolDefinition> {
         },
         McpToolDefinition {
             name: "update".to_string(),
-            description: "Update the first document matching a filter in a MongoDB collection".to_string(),
+            description: "Update the first document matching a filter in a MongoDB collection"
+                .to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -86,7 +88,8 @@ pub fn tool_definitions() -> Vec<McpToolDefinition> {
         },
         McpToolDefinition {
             name: "update_many".to_string(),
-            description: "Update all documents matching a filter in a MongoDB collection".to_string(),
+            description: "Update all documents matching a filter in a MongoDB collection"
+                .to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -100,7 +103,8 @@ pub fn tool_definitions() -> Vec<McpToolDefinition> {
         },
         McpToolDefinition {
             name: "delete".to_string(),
-            description: "Delete the first document matching a filter in a MongoDB collection".to_string(),
+            description: "Delete the first document matching a filter in a MongoDB collection"
+                .to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -113,7 +117,8 @@ pub fn tool_definitions() -> Vec<McpToolDefinition> {
         },
         McpToolDefinition {
             name: "delete_many".to_string(),
-            description: "Delete all documents matching a filter in a MongoDB collection".to_string(),
+            description: "Delete all documents matching a filter in a MongoDB collection"
+                .to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -187,6 +192,19 @@ pub fn tool_definitions() -> Vec<McpToolDefinition> {
                 "required": ["database"]
             }),
         },
+        McpToolDefinition {
+            name: "run_command".to_string(),
+            description: "Execute an arbitrary MongoDB command on a database".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "database": { "type": "string", "description": "Database name" },
+                    "command": { "type": "object", "description": "MongoDB command document" },
+                    "allow_all": { "type": "boolean", "description": "Allow all commands including dangerous ones (default: false)" }
+                },
+                "required": ["database", "command"]
+            }),
+        },
     ]
 }
 
@@ -211,6 +229,7 @@ pub async fn execute_tool(
         "create_index" => execute_create_index(operations, arguments).await,
         "list_databases" => execute_list_databases(pool).await,
         "list_collections" => execute_list_collections(pool, arguments).await,
+        "run_command" => execute_run_command(pool, arguments).await,
         _ => error_result(format!("Unknown tool: {}", name)),
     }
 }
@@ -246,10 +265,9 @@ fn get_str<'a>(args: &'a Value, field: &str) -> Result<&'a str, McpToolCallResul
 fn json_to_document(value: &Value) -> Result<Document, McpToolCallResult> {
     let bson_val = bson::to_bson(value)
         .map_err(|e| error_result(format!("Failed to convert to BSON: {}", e)))?;
-    bson_val
-        .as_document()
-        .cloned()
-        .ok_or_else(|| error_result("Expected a JSON object convertible to BSON document".to_string()))
+    bson_val.as_document().cloned().ok_or_else(|| {
+        error_result("Expected a JSON object convertible to BSON document".to_string())
+    })
 }
 
 fn json_to_documents(value: &Value) -> Result<Vec<Document>, McpToolCallResult> {
@@ -303,8 +321,8 @@ async fn execute_find(operations: &Operations, args: &Value) -> McpToolCallResul
                 .iter()
                 .map(|d| serde_json::to_value(d).unwrap_or(Value::Null))
                 .collect();
-            let text = serde_json::to_string_pretty(&json_docs)
-                .unwrap_or_else(|_| "[]".to_string());
+            let text =
+                serde_json::to_string_pretty(&json_docs).unwrap_or_else(|_| "[]".to_string());
             success_result(text)
         }
         Err(e) => error_result(format!("find failed: {}", e)),
@@ -332,8 +350,7 @@ async fn execute_find_one(operations: &Operations, args: &Value) -> McpToolCallR
 
     match operations.find_one(db, coll, filter).await {
         Ok(Some(doc)) => {
-            let text = serde_json::to_string_pretty(&doc)
-                .unwrap_or_else(|_| "null".to_string());
+            let text = serde_json::to_string_pretty(&doc).unwrap_or_else(|_| "null".to_string());
             success_result(text)
         }
         Ok(None) => success_result("null".to_string()),
@@ -569,8 +586,8 @@ async fn execute_aggregate(operations: &Operations, args: &Value) -> McpToolCall
                 .iter()
                 .map(|d| serde_json::to_value(d).unwrap_or(Value::Null))
                 .collect();
-            let text = serde_json::to_string_pretty(&json_docs)
-                .unwrap_or_else(|_| "[]".to_string());
+            let text =
+                serde_json::to_string_pretty(&json_docs).unwrap_or_else(|_| "[]".to_string());
             success_result(text)
         }
         Err(e) => error_result(format!("aggregate failed: {}", e)),
@@ -623,9 +640,7 @@ async fn execute_create_index(operations: &Operations, args: &Value) -> McpToolC
     };
 
     match operations.create_index(db, coll, keys, options).await {
-        Ok(index_name) => {
-            success_result(json!({ "ok": 1, "indexName": index_name }).to_string())
-        }
+        Ok(index_name) => success_result(json!({ "ok": 1, "indexName": index_name }).to_string()),
         Err(e) => error_result(format!("create_index failed: {}", e)),
     }
 }
@@ -655,6 +670,42 @@ async fn execute_list_collections(pool: &ConnectionPool, args: &Value) -> McpToo
     }
 }
 
+async fn execute_run_command(pool: &ConnectionPool, args: &Value) -> McpToolCallResult {
+    let db = match get_str(args, "database") {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+
+    let command = match args.get("command") {
+        Some(c) => match json_to_document(c) {
+            Ok(doc) => doc,
+            Err(e) => return e,
+        },
+        None => return error_result("Missing required field: command".to_string()),
+    };
+
+    // Determine validation mode based on allow_all parameter
+    let allow_all = args.get("allow_all").and_then(|v| v.as_bool()).unwrap_or(false);
+    let validation_mode = if allow_all {
+        ValidationMode::AllowAll
+    } else {
+        ValidationMode::BlockDangerous
+    };
+
+    let options = RawCommandOptions { validation_mode };
+
+    match crate::operations::raw::run_command(pool, db, command, &options).await {
+        Ok(result) => {
+            // Convert BSON Document to JSON Value
+            let json_result = serde_json::to_value(&result).unwrap_or(Value::Null);
+            let text = serde_json::to_string_pretty(&json_result)
+                .unwrap_or_else(|_| "{}".to_string());
+            success_result(text)
+        }
+        Err(e) => error_result(format!("run_command failed: {}", e)),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -662,7 +713,7 @@ mod tests {
     #[test]
     fn test_tool_definitions_count() {
         let tools = tool_definitions();
-        assert_eq!(tools.len(), 13);
+        assert_eq!(tools.len(), 14);
     }
 
     #[test]
@@ -694,6 +745,7 @@ mod tests {
         assert!(names.contains(&"create_index"));
         assert!(names.contains(&"list_databases"));
         assert!(names.contains(&"list_collections"));
+        assert!(names.contains(&"run_command"));
     }
 
     #[test]

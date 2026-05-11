@@ -204,11 +204,7 @@ mod tests {
 
     #[test]
     fn test_tool_not_found_error() {
-        let resp = JsonRpcResponse::error(
-            Some(json!(5)),
-            -32602,
-            "Tool not found: nonexistent",
-        );
+        let resp = JsonRpcResponse::error(Some(json!(5)), -32602, "Tool not found: nonexistent");
         assert_eq!(resp.error.as_ref().unwrap().code, -32602);
         assert!(resp.error.as_ref().unwrap().message.contains("nonexistent"));
     }
@@ -217,6 +213,6 @@ mod tests {
     fn test_tools_list_returns_definitions() {
         let definitions = tools::tool_definitions();
         assert!(!definitions.is_empty());
-        assert_eq!(definitions.len(), 13);
+        assert_eq!(definitions.len(), 14);
     }
 }

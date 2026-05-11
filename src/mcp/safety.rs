@@ -30,6 +30,7 @@ impl SafetyConfig {
                 "delete_many",
                 "create_collection",
                 "create_index",
+                "run_command",
             ];
             if WRITE_TOOLS.contains(&tool_name) {
                 return Err(format!(
@@ -69,6 +70,7 @@ mod tests {
             "delete_many",
             "create_collection",
             "create_index",
+            "run_command",
         ];
 
         for tool in &write_tools {
@@ -85,7 +87,13 @@ mod tests {
             max_documents: 100,
         };
 
-        let read_tools = ["find", "aggregate", "count", "list_collections", "list_databases"];
+        let read_tools = [
+            "find",
+            "aggregate",
+            "count",
+            "list_collections",
+            "list_databases",
+        ];
 
         for tool in &read_tools {
             let result = config.check_tool_allowed(tool);
