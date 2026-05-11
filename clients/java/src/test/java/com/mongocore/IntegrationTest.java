@@ -161,6 +161,33 @@ public class IntegrationTest {
     }
 
     @Test
+    public void testWatch() throws Exception {
+        MongoCollection coll = client.getDatabase(TEST_DB).getCollection(uniqueCollection());
+
+        // Create collection first
+        coll.insertOne(new Document("setup", true));
+
+        try (ChangeStream stream = coll.watch()) {
+            // Insert from a background thread
+            Thread inserter = new Thread(() -> {
+                try { Thread.sleep(100); } catch (InterruptedException e) { return; }
+                coll.insertOne(new Document("name", "watched"));
+            });
+            inserter.start();
+
+            // Read one event
+            java.util.Iterator<ChangeEvent> it = stream.iterator();
+            assertTrue(it.hasNext());
+            ChangeEvent event = it.next();
+            assertEquals("insert", event.getOperationType());
+            assertNotNull(event.getDocument());
+            assertEquals("watched", event.getDocument().getString("name"));
+
+            inserter.join(5000);
+        }
+    }
+
+    @Test
     public void testListDatabases() {
         List<String> databases = client.listDatabases();
         assertNotNull(databases);
