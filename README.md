@@ -36,6 +36,7 @@ Full documentation with language-specific examples is available in the [`docs/`]
 | [Raw Passthrough](./docs/raw-passthrough.md) | Arbitrary MongoDB commands for power users |
 | [Analytics](./docs/analytics.md) | Query performance insights and operation tracking |
 | [Multi-Tenant](./docs/multi-tenant.md) | Shared sidecar with per-tenant isolation |
+| [Ingestion](./docs/ingestion.md) | Polars-powered data ingestion and ETL |
 
 ## Architecture
 
@@ -285,6 +286,7 @@ mongocore/
 │   ├── config.rs            # Layered config (CLI + env + TOML)
 │   ├── connection/          # Connection pool, capability detection
 │   ├── operations/          # CRUD, aggregation, transactions, admin
+│   ├── ingestion/           # Polars-based data ingestion, transforms, dedup
 │   ├── grpc/                # gRPC server (tonic) — 19 RPCs
 │   ├── mcp/                 # MCP server (axum) — JSON-RPC tools & resources
 │   ├── compiled/            # NL→MQL translation, 3-level cache, templates
@@ -322,13 +324,26 @@ mongocore/
 - **Query analytics** — Real-time performance tracking with latency percentiles, error rates, and operation insights
 - **Multi-tenant support** — Shared sidecar with isolated caches, rate limiting, and per-tenant connection pools
 
+## v3 Feature Set
+
+- **Polars-based data ingestion** — CSV, JSON, NDJSON, Parquet file ingestion with parallel processing
+- **Schema inference** — Spark-connector-inspired multi-row sampling with BSON type mapping
+- **Transform engine** — User-provided Polars expressions (rename, filter, cast, drop, select)
+- **LLM expressions (optional)** — llm_classify, llm_extract, llm_normalize, llm_embed when API key configured
+- **Deduplication** — Key-based dedup with skip/overwrite/merge conflict resolution
+- **Dead letter queue** — Failed documents routed to `__mongocore.dead_letter` for inspection
+- **Progress tracking** — Real-time job status with resumability on crash recovery
+- **Directory watching** — Auto-trigger ingestion when new files appear
+- **6 new gRPC RPCs** — Ingest, GetIngestStatus, ListIngestJobs, CancelIngest, WatchDirectory, StopWatch
+- **6 new MCP tools** — Full AI agent support for data ingestion workflows
+
 ## Roadmap
 
 | Version | Focus | Status |
 |---------|-------|--------|
 | **v0.1** | Core sidecar, gRPC + MCP interfaces, compiled queries, Voyage AI, change streams | **Complete** |
 | **v0.2** | Power user features, query analytics, multi-tenant support | **Complete** |
-| **v0.3** | Intelligent data ingestion (LLM-powered ETL) | Planned |
+| **v0.3** | Intelligent data ingestion (Polars-powered ETL) | **Complete** |
 | **v0.4** | Migration paths, framework adapters (Mongoose, Spring Data, etc.) | Planned |
 | **v0.5** | Self-contained AI (local NL-MQL model) | Planned |
 | **v0.6** | WASM, browser client, plugin system | Planned |
