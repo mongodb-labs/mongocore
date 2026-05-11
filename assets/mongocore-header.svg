@@ -1,0 +1,90 @@
+<svg width="1280" height="320" viewBox="0 0 1280 320" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MongoCore">
+<title>MongoCore</title>
+<desc>MongoCore logo: a pointed green leaf with a Rust-orange hexagonal core, wordmark, and tagline.</desc>
+
+<defs>
+<linearGradient id="leafGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+<stop offset="0%" stop-color="#4DB33D"/>
+<stop offset="100%" stop-color="#2E7D32"/>
+</linearGradient>
+<linearGradient id="rustGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+<stop offset="0%" stop-color="#D97706"/>
+<stop offset="100%" stop-color="#A04500"/>
+</linearGradient>
+<clipPath id="leafClip">
+<path d="M220 40 C 290 110, 310 180, 310 220 C 310 270, 270 305, 220 320 C 170 305, 130 270, 130 220 C 130 180, 150 110, 220 40 Z"/>
+</clipPath>
+</defs>
+
+<!-- Pointed leaf -->
+<path d="M220 40 C 290 110, 310 180, 310 220 C 310 270, 270 305, 220 320 C 170 305, 130 270, 130 220 C 130 180, 150 110, 220 40 Z" fill="url(#leafGrad)"/>
+
+<!-- Veins, clipped to leaf -->
+<g clip-path="url(#leafClip)">
+<line x1="220" y1="40" x2="220" y2="320" stroke="#1B5E20" stroke-width="2.5" opacity="0.4"/>
+<path d="M220 110 Q 260 130, 295 165" stroke="#1B5E20" stroke-width="1.5" fill="none" opacity="0.3"/>
+<path d="M220 110 Q 180 130, 145 165" stroke="#1B5E20" stroke-width="1.5" fill="none" opacity="0.3"/>
+<path d="M220 260 Q 250 280, 275 295" stroke="#1B5E20" stroke-width="1.5" fill="none" opacity="0.3"/>
+<path d="M220 260 Q 190 280, 165 295" stroke="#1B5E20" stroke-width="1.5" fill="none" opacity="0.3"/>
+</g>
+
+<!-- Hex core -->
+<g transform="translate(220 200)">
+<g fill="url(#rustGrad)">
+<rect x="-5" y="-78" width="10" height="12" rx="2"/>
+<rect x="-5" y="66" width="10" height="12" rx="2"/>
+<g transform="rotate(60)"><rect x="-5" y="-78" width="10" height="12" rx="2"/><rect x="-5" y="66" width="10" height="12" rx="2"/></g>
+<g transform="rotate(120)"><rect x="-5" y="-78" width="10" height="12" rx="2"/><rect x="-5" y="66" width="10" height="12" rx="2"/></g>
+</g>
+<polygon points="60,0 30,51.96 -30,51.96 -60,0 -30,-51.96 30,-51.96" fill="url(#rustGrad)" stroke="#5A2600" stroke-width="2"/>
+<polygon points="40,0 20,34.64 -20,34.64 -40,0 -20,-34.64 20,-34.64" fill="none" stroke="#FDE68A" stroke-width="2" opacity="0.85"/>
+<circle r="8" fill="#FDE68A"/>
+<circle r="3" fill="#A04500"/>
+<circle cx="60" cy="0" r="4" fill="#FDE68A"/>
+<circle cx="30" cy="51.96" r="4" fill="#FDE68A"/>
+<circle cx="-30" cy="51.96" r="4" fill="#FDE68A"/>
+<circle cx="-60" cy="0" r="4" fill="#FDE68A"/>
+<circle cx="-30" cy="-51.96" r="4" fill="#FDE68A"/>
+<circle cx="30" cy="-51.96" r="4" fill="#FDE68A"/>
+<g stroke="#FDE68A" stroke-width="1.5" opacity="0.55">
+<line x1="0" y1="0" x2="60" y2="0"/>
+<line x1="0" y1="0" x2="30" y2="51.96"/>
+<line x1="0" y1="0" x2="-30" y2="51.96"/>
+<line x1="0" y1="0" x2="-60" y2="0"/>
+<line x1="0" y1="0" x2="-30" y2="-51.96"/>
+<line x1="0" y1="0" x2="30" y2="-51.96"/>
+</g>
+</g>
+
+<line x1="380" y1="100" x2="380" y2="240" stroke="#CBD5E1" stroke-width="1"/>
+
+<!-- Wordmark -->
+<text x="420" y="190" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif" font-size="92" font-weight="500" letter-spacing="-2">
+<tspan fill="#2E7D32">Mongo</tspan><tspan fill="#A04500">Core</tspan>
+</text>
+
+<!-- Tagline -->
+<text x="424" y="232" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif" font-size="22" font-weight="400" fill="#475569" letter-spacing="0.5">
+The fast, correct way to consume MongoDB — for humans and agents.
+</text>
+
+<!-- Pills -->
+<g font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif" font-size="14" font-weight="500">
+<g transform="translate(424 256)">
+<rect width="60" height="26" rx="13" fill="#A04500" fill-opacity="0.12" stroke="#A04500" stroke-width="1"/>
+<text x="30" y="17" text-anchor="middle" fill="#A04500">Rust</text>
+</g>
+<g transform="translate(492 256)">
+<rect width="60" height="26" rx="13" fill="#2E7D32" fill-opacity="0.12" stroke="#2E7D32" stroke-width="1"/>
+<text x="30" y="17" text-anchor="middle" fill="#2E7D32">gRPC</text>
+</g>
+<g transform="translate(560 256)">
+<rect width="56" height="26" rx="13" fill="#1E40AF" fill-opacity="0.12" stroke="#1E40AF" stroke-width="1"/>
+<text x="28" y="17" text-anchor="middle" fill="#1E40AF">MCP</text>
+</g>
+<g transform="translate(624 256)">
+<rect width="92" height="26" rx="13" fill="#6B21A8" fill-opacity="0.12" stroke="#6B21A8" stroke-width="1"/>
+<text x="46" y="17" text-anchor="middle" fill="#6B21A8">Vector search</text>
+</g>
+</g>
+</svg>
