@@ -1,9 +1,11 @@
 pub mod dedup;
 pub mod dlq;
+pub mod engine;
 pub mod progress;
 pub mod reader;
 pub mod schema;
 pub mod transform;
 pub mod types;
 pub mod writer;
+pub use engine::IngestionEngine;
 pub use types::*;
