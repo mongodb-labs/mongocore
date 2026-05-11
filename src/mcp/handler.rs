@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use crate::analytics::AnalyticsCollector;
 use crate::connection::pool::ConnectionPool;
+use crate::ingestion::engine::IngestionEngine;
+use crate::ingestion::watch::DirectoryWatcher;
 use crate::operations::Operations;
 
 use super::resources;
@@ -16,16 +18,27 @@ pub struct McpHandler {
     pool: ConnectionPool,
     safety: SafetyConfig,
     analytics: Option<Arc<AnalyticsCollector>>,
+    ingestion: Option<Arc<IngestionEngine>>,
+    watcher: Option<Arc<DirectoryWatcher>>,
 }
 
 impl McpHandler {
     /// Create a new handler backed by the given operations instance and connection pool.
-    pub fn new(operations: Operations, pool: ConnectionPool, safety: SafetyConfig, analytics: Option<Arc<AnalyticsCollector>>) -> Self {
+    pub fn new(
+        operations: Operations,
+        pool: ConnectionPool,
+        safety: SafetyConfig,
+        analytics: Option<Arc<AnalyticsCollector>>,
+        ingestion: Option<Arc<IngestionEngine>>,
+        watcher: Option<Arc<DirectoryWatcher>>,
+    ) -> Self {
         Self {
             operations,
             pool,
             safety,
             analytics,
+            ingestion,
+            watcher,
         }
     }
 
@@ -108,7 +121,7 @@ impl McpHandler {
             .unwrap_or(json!({}));
 
         let result =
-            tools::execute_tool(&self.operations, &self.pool, self.analytics.as_ref(), &tool_name, &arguments).await;
+            tools::execute_tool(&self.operations, &self.pool, self.analytics.as_ref(), self.ingestion.as_ref(), self.watcher.as_ref(), &tool_name, &arguments).await;
 
         JsonRpcResponse::success(id, serde_json::to_value(&result).unwrap_or(json!(null)))
     }
@@ -217,6 +230,6 @@ mod tests {
     fn test_tools_list_returns_definitions() {
         let definitions = tools::tool_definitions();
         assert!(!definitions.is_empty());
-        assert_eq!(definitions.len(), 15);
+        assert_eq!(definitions.len(), 21);
     }
 }

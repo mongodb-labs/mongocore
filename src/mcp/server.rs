@@ -12,6 +12,8 @@ use tracing::info;
 
 use crate::analytics::AnalyticsCollector;
 use crate::connection::pool::ConnectionPool;
+use crate::ingestion::engine::IngestionEngine;
+use crate::ingestion::watch::DirectoryWatcher;
 use crate::operations::Operations;
 
 use super::handler::McpHandler;
@@ -26,10 +28,16 @@ struct AppState {
 /// Start the MCP HTTP server on the given port.
 ///
 /// Returns a `JoinHandle` that can be used to await or cancel the server.
-pub fn start_mcp_server(pool: ConnectionPool, port: u16, analytics: Option<Arc<AnalyticsCollector>>) -> JoinHandle<()> {
+pub fn start_mcp_server(
+    pool: ConnectionPool,
+    port: u16,
+    analytics: Option<Arc<AnalyticsCollector>>,
+    ingestion: Option<Arc<IngestionEngine>>,
+    watcher: Option<Arc<DirectoryWatcher>>,
+) -> JoinHandle<()> {
     let operations = Operations::new(pool.clone());
     let safety = SafetyConfig::default();
-    let handler = McpHandler::new(operations, pool, safety, analytics);
+    let handler = McpHandler::new(operations, pool, safety, analytics, ingestion, watcher);
     let state = Arc::new(AppState { handler });
 
     let app = Router::new()

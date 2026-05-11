@@ -53,7 +53,7 @@ async fn main() {
     let grpc_handle = start_grpc_server(pool.clone(), config.grpc_port, voyage_api_key.as_deref(), analytics.clone());
 
     // Start MCP server
-    let mcp_handle = start_mcp_server(pool.clone(), config.mcp_port, analytics);
+    let mcp_handle = start_mcp_server(pool.clone(), config.mcp_port, analytics, None, None);
 
     info!("MongoCore started successfully");
 

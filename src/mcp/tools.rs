@@ -1,9 +1,13 @@
 use bson::Document;
 use serde_json::{json, Value};
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::analytics::AnalyticsCollector;
 use crate::connection::pool::ConnectionPool;
+use crate::ingestion::engine::IngestionEngine;
+use crate::ingestion::types::*;
+use crate::ingestion::watch::{DirectoryWatcher, WatchConfig};
 use crate::operations::{FindOptions, IndexOptions, Operations, RawCommandOptions, ValidationMode};
 
 use super::types::{McpContent, McpToolCallResult, McpToolDefinition};
@@ -218,6 +222,96 @@ pub fn tool_definitions() -> Vec<McpToolDefinition> {
                 "required": []
             }),
         },
+        McpToolDefinition {
+            name: "ingest".to_string(),
+            description: "Start a file ingestion job to load data from a file into a MongoDB collection".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string", "description": "Path to the file to ingest" },
+                    "database": { "type": "string", "description": "Target database name" },
+                    "collection": { "type": "string", "description": "Target collection name" },
+                    "format": { "type": "string", "enum": ["auto", "csv", "json", "ndjson", "parquet"], "description": "File format (default: auto-detect)" },
+                    "dedup_key": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Fields to use for deduplication"
+                    },
+                    "conflict_strategy": { "type": "string", "enum": ["skip", "overwrite", "merge"], "description": "How to handle duplicate documents (default: skip)" },
+                    "batch_size": { "type": "integer", "description": "Number of documents per batch (default: 1000)" },
+                    "expressions": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Transform expressions to apply before ingestion"
+                    },
+                    "schema_overrides": { "type": "object", "description": "Field name to BSON type overrides (e.g. {\"age\": \"int32\"})" },
+                    "sample_size": { "type": "integer", "description": "Number of rows to sample for schema inference (default: 1000)" }
+                },
+                "required": ["file_path", "database", "collection"]
+            }),
+        },
+        McpToolDefinition {
+            name: "ingest_status".to_string(),
+            description: "Get the status of an ingestion job".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "job_id": { "type": "string", "description": "The ingestion job ID" }
+                },
+                "required": ["job_id"]
+            }),
+        },
+        McpToolDefinition {
+            name: "list_ingest_jobs".to_string(),
+            description: "List all ingestion jobs".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {},
+                "required": []
+            }),
+        },
+        McpToolDefinition {
+            name: "cancel_ingest".to_string(),
+            description: "Cancel a running ingestion job".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "job_id": { "type": "string", "description": "The ingestion job ID to cancel" }
+                },
+                "required": ["job_id"]
+            }),
+        },
+        McpToolDefinition {
+            name: "watch_directory".to_string(),
+            description: "Start watching a directory for new files and auto-ingest them into a MongoDB collection".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "path": { "type": "string", "description": "Directory path to watch" },
+                    "database": { "type": "string", "description": "Target database name" },
+                    "collection": { "type": "string", "description": "Target collection name" },
+                    "file_pattern": { "type": "string", "description": "Glob pattern for files to watch (default: *)" },
+                    "conflict_strategy": { "type": "string", "enum": ["skip", "overwrite", "merge"], "description": "How to handle duplicate documents (default: skip)" },
+                    "dedup_key": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "Fields to use for deduplication"
+                    }
+                },
+                "required": ["path", "database", "collection"]
+            }),
+        },
+        McpToolDefinition {
+            name: "stop_watch".to_string(),
+            description: "Stop watching a directory".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "watch_id": { "type": "string", "description": "The watch ID to stop" }
+                },
+                "required": ["watch_id"]
+            }),
+        },
     ]
 }
 
@@ -226,6 +320,8 @@ pub async fn execute_tool(
     operations: &Operations,
     pool: &ConnectionPool,
     analytics: Option<&Arc<AnalyticsCollector>>,
+    ingestion: Option<&Arc<IngestionEngine>>,
+    watcher: Option<&Arc<DirectoryWatcher>>,
     name: &str,
     arguments: &Value,
 ) -> McpToolCallResult {
@@ -245,6 +341,12 @@ pub async fn execute_tool(
         "list_collections" => execute_list_collections(pool, arguments).await,
         "run_command" => execute_run_command(pool, arguments).await,
         "get_analytics" => execute_get_analytics(analytics).await,
+        "ingest" => execute_ingest(ingestion, pool, arguments).await,
+        "ingest_status" => execute_ingest_status(ingestion, arguments).await,
+        "list_ingest_jobs" => execute_list_ingest_jobs(ingestion).await,
+        "cancel_ingest" => execute_cancel_ingest(ingestion, arguments).await,
+        "watch_directory" => execute_watch_directory(watcher, arguments).await,
+        "stop_watch" => execute_stop_watch(watcher, arguments).await,
         _ => error_result(format!("Unknown tool: {}", name)),
     }
 }
@@ -759,6 +861,290 @@ async fn execute_get_analytics(analytics: Option<&Arc<AnalyticsCollector>>) -> M
     success_result(text)
 }
 
+// --- Ingestion tool executors ---
+
+fn parse_file_format(s: &str) -> FileFormat {
+    match s.to_lowercase().as_str() {
+        "csv" => FileFormat::Csv,
+        "json" => FileFormat::Json,
+        "ndjson" => FileFormat::NdJson,
+        "parquet" => FileFormat::Parquet,
+        _ => FileFormat::Auto,
+    }
+}
+
+fn parse_conflict_strategy(s: &str) -> ConflictStrategy {
+    match s.to_lowercase().as_str() {
+        "overwrite" => ConflictStrategy::Overwrite,
+        "merge" => ConflictStrategy::Merge,
+        _ => ConflictStrategy::Skip,
+    }
+}
+
+async fn execute_ingest(
+    engine: Option<&Arc<IngestionEngine>>,
+    pool: &ConnectionPool,
+    args: &Value,
+) -> McpToolCallResult {
+    let engine = match engine {
+        Some(e) => e,
+        None => return error_result("Ingestion engine not enabled".to_string()),
+    };
+
+    let file_path = match get_str(args, "file_path") {
+        Ok(v) => v.to_string(),
+        Err(e) => return e,
+    };
+    let database = match get_str(args, "database") {
+        Ok(v) => v.to_string(),
+        Err(e) => return e,
+    };
+    let collection = match get_str(args, "collection") {
+        Ok(v) => v.to_string(),
+        Err(e) => return e,
+    };
+
+    let format = args
+        .get("format")
+        .and_then(|v| v.as_str())
+        .map(parse_file_format)
+        .unwrap_or(FileFormat::Auto);
+
+    let dedup_key: Vec<String> = args
+        .get("dedup_key")
+        .and_then(|v| v.as_array())
+        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        .unwrap_or_default();
+
+    let conflict_strategy = args
+        .get("conflict_strategy")
+        .and_then(|v| v.as_str())
+        .map(parse_conflict_strategy)
+        .unwrap_or_default();
+
+    let batch_size = args
+        .get("batch_size")
+        .and_then(|v| v.as_u64())
+        .map(|v| v as u32)
+        .unwrap_or(1000);
+
+    let expressions: Vec<String> = args
+        .get("expressions")
+        .and_then(|v| v.as_array())
+        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        .unwrap_or_default();
+
+    let schema_overrides: HashMap<String, String> = args
+        .get("schema_overrides")
+        .and_then(|v| v.as_object())
+        .map(|obj| {
+            obj.iter()
+                .filter_map(|(k, v)| v.as_str().map(|s| (k.clone(), s.to_string())))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let sample_size = args
+        .get("sample_size")
+        .and_then(|v| v.as_u64())
+        .map(|v| v as u32)
+        .unwrap_or(1000);
+
+    let options = IngestOptions {
+        file_path,
+        database,
+        collection,
+        format,
+        dedup_key,
+        conflict_strategy,
+        batch_size,
+        expressions,
+        schema_overrides,
+        sample_size,
+        ..Default::default()
+    };
+
+    match engine.ingest(pool.client(), options).await {
+        Ok(job) => {
+            let result = json!({
+                "job_id": job.job_id,
+                "status": format!("{:?}", job.status),
+                "total_rows": job.total_rows,
+                "file_path": job.file_path,
+                "database": job.database,
+                "collection": job.collection
+            });
+            success_result(serde_json::to_string_pretty(&result).unwrap_or_else(|_| "{}".to_string()))
+        }
+        Err(e) => error_result(format!("ingest failed: {}", e)),
+    }
+}
+
+async fn execute_ingest_status(
+    engine: Option<&Arc<IngestionEngine>>,
+    args: &Value,
+) -> McpToolCallResult {
+    let engine = match engine {
+        Some(e) => e,
+        None => return error_result("Ingestion engine not enabled".to_string()),
+    };
+
+    let job_id = match get_str(args, "job_id") {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+
+    match engine.get_status(job_id).await {
+        Ok(Some(job)) => {
+            let result = json!({
+                "job_id": job.job_id,
+                "status": format!("{:?}", job.status),
+                "total_rows": job.total_rows,
+                "rows_processed": job.rows_processed,
+                "rows_inserted": job.rows_inserted,
+                "rows_skipped": job.rows_skipped,
+                "rows_failed": job.rows_failed,
+                "started_at": job.started_at.to_rfc3339(),
+                "completed_at": job.completed_at.map(|t| t.to_rfc3339()),
+                "error": job.error
+            });
+            success_result(serde_json::to_string_pretty(&result).unwrap_or_else(|_| "{}".to_string()))
+        }
+        Ok(None) => error_result(format!("Job not found: {}", job_id)),
+        Err(e) => error_result(format!("ingest_status failed: {}", e)),
+    }
+}
+
+async fn execute_list_ingest_jobs(
+    engine: Option<&Arc<IngestionEngine>>,
+) -> McpToolCallResult {
+    let engine = match engine {
+        Some(e) => e,
+        None => return error_result("Ingestion engine not enabled".to_string()),
+    };
+
+    match engine.list_jobs().await {
+        Ok(jobs) => {
+            let jobs_json: Vec<Value> = jobs
+                .iter()
+                .map(|job| {
+                    json!({
+                        "job_id": job.job_id,
+                        "file_path": job.file_path,
+                        "database": job.database,
+                        "collection": job.collection,
+                        "status": format!("{:?}", job.status),
+                        "total_rows": job.total_rows,
+                        "rows_processed": job.rows_processed,
+                        "started_at": job.started_at.to_rfc3339()
+                    })
+                })
+                .collect();
+            success_result(
+                serde_json::to_string_pretty(&json!({ "jobs": jobs_json }))
+                    .unwrap_or_else(|_| "[]".to_string()),
+            )
+        }
+        Err(e) => error_result(format!("list_ingest_jobs failed: {}", e)),
+    }
+}
+
+async fn execute_cancel_ingest(
+    engine: Option<&Arc<IngestionEngine>>,
+    args: &Value,
+) -> McpToolCallResult {
+    let engine = match engine {
+        Some(e) => e,
+        None => return error_result("Ingestion engine not enabled".to_string()),
+    };
+
+    let job_id = match get_str(args, "job_id") {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+
+    match engine.cancel(job_id).await {
+        Ok(()) => success_result(json!({ "ok": 1, "job_id": job_id, "status": "Cancelled" }).to_string()),
+        Err(e) => error_result(format!("cancel_ingest failed: {}", e)),
+    }
+}
+
+async fn execute_watch_directory(
+    watcher: Option<&Arc<DirectoryWatcher>>,
+    args: &Value,
+) -> McpToolCallResult {
+    let watcher = match watcher {
+        Some(w) => w,
+        None => return error_result("Directory watcher not enabled".to_string()),
+    };
+
+    let path = match get_str(args, "path") {
+        Ok(v) => v.to_string(),
+        Err(e) => return e,
+    };
+    let database = match get_str(args, "database") {
+        Ok(v) => v.to_string(),
+        Err(e) => return e,
+    };
+    let collection = match get_str(args, "collection") {
+        Ok(v) => v.to_string(),
+        Err(e) => return e,
+    };
+
+    let file_pattern = args
+        .get("file_pattern")
+        .and_then(|v| v.as_str())
+        .unwrap_or("*")
+        .to_string();
+
+    let conflict_strategy = args
+        .get("conflict_strategy")
+        .and_then(|v| v.as_str())
+        .map(parse_conflict_strategy)
+        .unwrap_or_default();
+
+    let dedup_key: Vec<String> = args
+        .get("dedup_key")
+        .and_then(|v| v.as_array())
+        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+        .unwrap_or_default();
+
+    let config = WatchConfig {
+        path: std::path::PathBuf::from(path),
+        file_pattern,
+        database,
+        collection,
+        conflict_strategy,
+        dedup_key,
+        debounce_ms: 2000,
+    };
+
+    match watcher.start_watch(config).await {
+        Ok(watch_id) => success_result(json!({ "ok": 1, "watch_id": watch_id }).to_string()),
+        Err(e) => error_result(format!("watch_directory failed: {}", e)),
+    }
+}
+
+async fn execute_stop_watch(
+    watcher: Option<&Arc<DirectoryWatcher>>,
+    args: &Value,
+) -> McpToolCallResult {
+    let watcher = match watcher {
+        Some(w) => w,
+        None => return error_result("Directory watcher not enabled".to_string()),
+    };
+
+    let watch_id = match get_str(args, "watch_id") {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+
+    match watcher.stop_watch(watch_id).await {
+        Ok(()) => success_result(json!({ "ok": 1, "watch_id": watch_id, "status": "stopped" }).to_string()),
+        Err(e) => error_result(format!("stop_watch failed: {}", e)),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -766,7 +1152,7 @@ mod tests {
     #[test]
     fn test_tool_definitions_count() {
         let tools = tool_definitions();
-        assert_eq!(tools.len(), 15);
+        assert_eq!(tools.len(), 21);
     }
 
     #[test]
@@ -800,6 +1186,12 @@ mod tests {
         assert!(names.contains(&"list_collections"));
         assert!(names.contains(&"run_command"));
         assert!(names.contains(&"get_analytics"));
+        assert!(names.contains(&"ingest"));
+        assert!(names.contains(&"ingest_status"));
+        assert!(names.contains(&"list_ingest_jobs"));
+        assert!(names.contains(&"cancel_ingest"));
+        assert!(names.contains(&"watch_directory"));
+        assert!(names.contains(&"stop_watch"));
     }
 
     #[test]
