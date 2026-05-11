@@ -70,9 +70,8 @@ impl ConnectionPool {
 
         options.write_concern = Some(default_write_concern());
         options.read_concern = Some(default_read_concern());
-        options.selection_criteria = Some(SelectionCriteria::ReadPreference(
-            default_read_preference(),
-        ));
+        options.selection_criteria =
+            Some(SelectionCriteria::ReadPreference(default_read_preference()));
         options.retry_writes = Some(DEFAULT_RETRYABLE_WRITES);
         options.retry_reads = Some(DEFAULT_RETRYABLE_READS);
 
@@ -140,10 +139,7 @@ impl ConnectionPool {
             cross
         };
 
-        info!(
-            "MongoCore v{} connected to {}",
-            version, self.host
-        );
+        info!("MongoCore v{} connected to {}", version, self.host);
         info!(
             "  {} Wire protocol (MongoDB {})",
             check, self.capabilities.server_version
@@ -197,6 +193,11 @@ mod tests {
             voyage_api_key_env: None,
             compiled_cache_sync: true,
             log_level: "info".to_string(),
+            multi_tenant_enabled: false,
+            tenants: vec![],
+            analytics_enabled: true,
+            analytics_buffer_size: 10000,
+            analytics_flush_interval_secs: 300,
         };
 
         let options = ConnectionPool::build_client_options(&config).await.unwrap();
@@ -215,9 +216,10 @@ mod tests {
             .expect("selection_criteria should be set");
         match sel {
             SelectionCriteria::ReadPreference(rp) => {
-                assert!(
-                    matches!(rp, mongodb::options::ReadPreference::PrimaryPreferred { .. })
-                );
+                assert!(matches!(
+                    rp,
+                    mongodb::options::ReadPreference::PrimaryPreferred { .. }
+                ));
             }
             _ => panic!("Expected ReadPreference selection criteria"),
         }
@@ -238,6 +240,11 @@ mod tests {
             voyage_api_key_env: None,
             compiled_cache_sync: true,
             log_level: "info".to_string(),
+            multi_tenant_enabled: false,
+            tenants: vec![],
+            analytics_enabled: true,
+            analytics_buffer_size: 10000,
+            analytics_flush_interval_secs: 300,
         };
 
         let options = ConnectionPool::build_client_options(&config).await.unwrap();
@@ -259,6 +266,11 @@ mod tests {
             voyage_api_key_env: None,
             compiled_cache_sync: true,
             log_level: "info".to_string(),
+            multi_tenant_enabled: false,
+            tenants: vec![],
+            analytics_enabled: true,
+            analytics_buffer_size: 10000,
+            analytics_flush_interval_secs: 300,
         };
 
         let options = ConnectionPool::build_client_options(&config).await.unwrap();

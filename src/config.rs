@@ -49,6 +49,16 @@ pub struct CliArgs {
     pub log_level: Option<String>,
 }
 
+/// Per-tenant configuration structure.
+#[derive(Debug, Deserialize, Clone, Default)]
+pub struct TenantFileConfig {
+    pub tenant_id: Option<String>,
+    pub max_connections: Option<usize>,
+    pub max_cache_entries: Option<usize>,
+    pub rate_limit_ops_per_sec: Option<u64>,
+    pub connection_uri: Option<String>,
+}
+
 /// TOML file configuration structure.
 #[derive(Debug, Deserialize, Default)]
 pub struct FileConfig {
@@ -60,6 +70,11 @@ pub struct FileConfig {
     pub voyage_api_key_env: Option<String>,
     pub compiled_cache_sync: Option<bool>,
     pub log_level: Option<String>,
+    pub multi_tenant_enabled: Option<bool>,
+    pub tenants: Option<Vec<TenantFileConfig>>,
+    pub analytics_enabled: Option<bool>,
+    pub analytics_buffer_size: Option<usize>,
+    pub analytics_flush_interval_secs: Option<u64>,
 }
 
 /// Resolved configuration for MongoCore.
@@ -73,6 +88,11 @@ pub struct Config {
     pub voyage_api_key_env: Option<String>,
     pub compiled_cache_sync: bool,
     pub log_level: String,
+    pub multi_tenant_enabled: bool,
+    pub tenants: Vec<TenantFileConfig>,
+    pub analytics_enabled: bool,
+    pub analytics_buffer_size: usize,
+    pub analytics_flush_interval_secs: u64,
 }
 
 impl Config {
@@ -123,6 +143,13 @@ impl Config {
             .or(file_config.log_level)
             .unwrap_or_else(|| DEFAULT_LOG_LEVEL.to_string());
 
+        let multi_tenant_enabled = file_config.multi_tenant_enabled.unwrap_or(false);
+        let tenants = file_config.tenants.unwrap_or_default();
+
+        let analytics_enabled = file_config.analytics_enabled.unwrap_or(true);
+        let analytics_buffer_size = file_config.analytics_buffer_size.unwrap_or(10000);
+        let analytics_flush_interval_secs = file_config.analytics_flush_interval_secs.unwrap_or(300);
+
         Ok(Config {
             connection_uri,
             grpc_port,
@@ -132,6 +159,11 @@ impl Config {
             voyage_api_key_env,
             compiled_cache_sync,
             log_level,
+            multi_tenant_enabled,
+            tenants,
+            analytics_enabled,
+            analytics_buffer_size,
+            analytics_flush_interval_secs,
         })
     }
 }
@@ -255,5 +287,59 @@ log_level = "debug"
 
         let result = Config::load(&cli);
         assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_tenant_config_parsing() {
+        let toml_content = r#"
+connection_uri = "mongodb://localhost:27017"
+multi_tenant_enabled = true
+
+[[tenants]]
+tenant_id = "acme"
+max_connections = 20
+rate_limit_ops_per_sec = 500
+
+[[tenants]]
+tenant_id = "beta"
+max_connections = 5
+connection_uri = "mongodb://other:27017"
+"#;
+
+        let mut tmp = NamedTempFile::new().unwrap();
+        tmp.write_all(toml_content.as_bytes()).unwrap();
+
+        let cli = CliArgs {
+            config: Some(tmp.path().to_path_buf()),
+            connection_uri: None,
+            grpc_port: None,
+            mcp_port: None,
+            llm_provider: None,
+            llm_api_key_env: None,
+            voyage_api_key_env: None,
+            compiled_cache_sync: None,
+            log_level: None,
+        };
+
+        let config = Config::load(&cli).unwrap();
+        assert!(config.multi_tenant_enabled);
+        assert_eq!(config.tenants.len(), 2);
+
+        // Check first tenant
+        assert_eq!(config.tenants[0].tenant_id.as_deref(), Some("acme"));
+        assert_eq!(config.tenants[0].max_connections, Some(20));
+        assert_eq!(config.tenants[0].rate_limit_ops_per_sec, Some(500));
+        assert!(config.tenants[0].connection_uri.is_none());
+        assert!(config.tenants[0].max_cache_entries.is_none());
+
+        // Check second tenant
+        assert_eq!(config.tenants[1].tenant_id.as_deref(), Some("beta"));
+        assert_eq!(config.tenants[1].max_connections, Some(5));
+        assert_eq!(
+            config.tenants[1].connection_uri.as_deref(),
+            Some("mongodb://other:27017")
+        );
+        assert!(config.tenants[1].rate_limit_ops_per_sec.is_none());
+        assert!(config.tenants[1].max_cache_entries.is_none());
     }
 }
