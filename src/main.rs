@@ -1,7 +1,9 @@
 use clap::Parser;
+use std::sync::Arc;
 use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
 
+use mongocore::analytics::AnalyticsCollector;
 use mongocore::config::{CliArgs, Config};
 use mongocore::connection::ConnectionPool;
 use mongocore::grpc::start_grpc_server;
@@ -19,8 +21,7 @@ async fn main() {
     // Initialize tracing/logging
     tracing_subscriber::fmt()
         .with_env_filter(
-            EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| EnvFilter::new(&config.log_level)),
+            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(&config.log_level)),
         )
         .init();
 
@@ -41,8 +42,15 @@ async fn main() {
         .as_deref()
         .and_then(|env_var| std::env::var(env_var).ok());
 
+    // Create analytics collector if enabled
+    let analytics = if config.analytics_enabled {
+        Some(Arc::new(AnalyticsCollector::new(config.analytics_buffer_size)))
+    } else {
+        None
+    };
+
     // Start gRPC server
-    let grpc_handle = start_grpc_server(pool.clone(), config.grpc_port, voyage_api_key.as_deref());
+    let grpc_handle = start_grpc_server(pool.clone(), config.grpc_port, voyage_api_key.as_deref(), analytics);
 
     // Start MCP server
     let mcp_handle = start_mcp_server(pool.clone(), config.mcp_port);

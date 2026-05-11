@@ -7,6 +7,7 @@ use futures::StreamExt;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
+use crate::analytics::{AnalyticsCollector, AnalyticsEvent, OperationKind};
 use crate::connection::pool::ConnectionPool;
 use crate::error::MongoCoreError;
 use crate::operations::{
@@ -25,11 +26,12 @@ pub struct MongoCoreService {
     pool: ConnectionPool,
     transactions: DashMap<String, Transaction>,
     search_engine: SearchEngine,
+    analytics: Option<Arc<AnalyticsCollector>>,
 }
 
 impl MongoCoreService {
     /// Create a new MongoCoreService from a ConnectionPool.
-    pub fn new(pool: ConnectionPool) -> Self {
+    pub fn new(pool: ConnectionPool, analytics: Option<Arc<AnalyticsCollector>>) -> Self {
         let operations = Operations::new(pool.clone());
         let search_engine = SearchEngine::new(pool.clone(), None);
         Self {
@@ -37,11 +39,12 @@ impl MongoCoreService {
             pool,
             transactions: DashMap::new(),
             search_engine,
+            analytics,
         }
     }
 
     /// Create a new MongoCoreService with Voyage AI enabled for vector search.
-    pub fn with_voyage(pool: ConnectionPool, voyage_api_key: &str) -> Self {
+    pub fn with_voyage(pool: ConnectionPool, voyage_api_key: &str, analytics: Option<Arc<AnalyticsCollector>>) -> Self {
         let operations = Operations::new(pool.clone());
         let voyage_client = Arc::new(VoyageClient::new(voyage_api_key.to_string()));
         let search_engine = SearchEngine::new(pool.clone(), Some(voyage_client));
@@ -50,6 +53,14 @@ impl MongoCoreService {
             pool,
             transactions: DashMap::new(),
             search_engine,
+            analytics,
+        }
+    }
+
+    /// Record an analytics event if analytics is enabled.
+    fn record_analytics(&self, op: OperationKind, db: &str, coll: &str, latency: std::time::Duration, success: bool) {
+        if let Some(ref analytics) = self.analytics {
+            analytics.record(AnalyticsEvent::new(op, db.to_string(), coll.to_string(), latency, success));
         }
     }
 }
@@ -132,25 +143,27 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::FindRequest>,
     ) -> Result<Response<proto::FindResponse>, Status> {
+        let start = std::time::Instant::now();
         let req = request.into_inner();
         let filter = proto_filter_to_bson(&req.filter)?;
         let options = convert_find_options(&req.options)?;
 
         // Check if this is a transactional operation
-        let docs = if let Some(ref txn_id) = req.transaction_id {
+        let result = if let Some(ref txn_id) = req.transaction_id {
             let mut txn = self
                 .transactions
                 .get_mut(txn_id)
                 .ok_or_else(|| Status::not_found(format!("Transaction not found: {}", txn_id)))?;
             txn.find(&req.database, &req.collection, filter)
                 .await
-                .map_err(to_status)?
         } else {
             self.operations
                 .find(&req.database, &req.collection, filter, options)
                 .await
-                .map_err(to_status)?
         };
+
+        self.record_analytics(OperationKind::Find, &req.database, &req.collection, start.elapsed(), result.is_ok());
+        let docs = result.map_err(to_status)?;
 
         let documents: Result<Vec<proto::Document>, Status> =
             docs.iter().map(bson_to_proto_doc).collect();
@@ -167,14 +180,17 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::FindOneRequest>,
     ) -> Result<Response<proto::FindOneResponse>, Status> {
+        let start = std::time::Instant::now();
         let req = request.into_inner();
         let filter = proto_filter_to_bson(&req.filter)?;
 
-        let doc = self
+        let result = self
             .operations
             .find_one(&req.database, &req.collection, filter)
-            .await
-            .map_err(to_status)?;
+            .await;
+
+        self.record_analytics(OperationKind::FindOne, &req.database, &req.collection, start.elapsed(), result.is_ok());
+        let doc = result.map_err(to_status)?;
 
         let document = match doc {
             Some(ref d) => Some(bson_to_proto_doc(d)?),
@@ -193,6 +209,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::InsertRequest>,
     ) -> Result<Response<proto::InsertResponse>, Status> {
+        let start = std::time::Instant::now();
         let req = request.into_inner();
         let doc = req
             .document
@@ -201,24 +218,22 @@ impl MongoCore for MongoCoreService {
         let bson_doc = proto_doc_to_bson(doc)?;
 
         // Check if this is a transactional operation
-        let inserted_id = if let Some(ref txn_id) = req.transaction_id {
+        let result = if let Some(ref txn_id) = req.transaction_id {
             let mut txn = self
                 .transactions
                 .get_mut(txn_id)
                 .ok_or_else(|| Status::not_found(format!("Transaction not found: {}", txn_id)))?;
-            let result = txn
-                .insert(&req.database, &req.collection, bson_doc)
+            txn.insert(&req.database, &req.collection, bson_doc)
                 .await
-                .map_err(to_status)?;
-            result.inserted_id.to_string()
         } else {
-            let result = self
-                .operations
+            self.operations
                 .insert(&req.database, &req.collection, bson_doc)
                 .await
-                .map_err(to_status)?;
-            result.inserted_id.to_string()
         };
+
+        self.record_analytics(OperationKind::Insert, &req.database, &req.collection, start.elapsed(), result.is_ok());
+        let insert_result = result.map_err(to_status)?;
+        let inserted_id = insert_result.inserted_id.to_string();
 
         Ok(Response::new(proto::InsertResponse { inserted_id }))
     }
@@ -227,6 +242,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::InsertManyRequest>,
     ) -> Result<Response<proto::InsertManyResponse>, Status> {
+        let start = std::time::Instant::now();
         let req = request.into_inner();
         let docs: Result<Vec<bson::Document>, Status> =
             req.documents.iter().map(proto_doc_to_bson).collect();
@@ -235,10 +251,12 @@ impl MongoCore for MongoCoreService {
         let result = self
             .operations
             .insert_many(&req.database, &req.collection, docs)
-            .await
-            .map_err(to_status)?;
+            .await;
 
-        let inserted_ids: Vec<String> = result
+        self.record_analytics(OperationKind::InsertMany, &req.database, &req.collection, start.elapsed(), result.is_ok());
+        let insert_result = result.map_err(to_status)?;
+
+        let inserted_ids: Vec<String> = insert_result
             .inserted_ids
             .values()
             .map(|id| id.to_string())
@@ -255,6 +273,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::UpdateRequest>,
     ) -> Result<Response<proto::UpdateResponse>, Status> {
+        let start = std::time::Instant::now();
         let req = request.into_inner();
         let filter = proto_filter_to_bson(&req.filter)?;
         let update_doc = req
@@ -264,37 +283,25 @@ impl MongoCore for MongoCoreService {
         let update = proto_doc_to_bson(update_doc)?;
 
         // Check if this is a transactional operation
-        let (matched_count, modified_count, upserted_id) =
-            if let Some(ref txn_id) = req.transaction_id {
-                let mut txn = self.transactions.get_mut(txn_id).ok_or_else(|| {
-                    Status::not_found(format!("Transaction not found: {}", txn_id))
-                })?;
-                let result = txn
-                    .update(&req.database, &req.collection, filter, update)
-                    .await
-                    .map_err(to_status)?;
-                (
-                    result.matched_count as i64,
-                    result.modified_count as i64,
-                    result.upserted_id.map(|id| id.to_string()),
-                )
-            } else {
-                let result = self
-                    .operations
-                    .update(&req.database, &req.collection, filter, update)
-                    .await
-                    .map_err(to_status)?;
-                (
-                    result.matched_count as i64,
-                    result.modified_count as i64,
-                    result.upserted_id.map(|id| id.to_string()),
-                )
-            };
+        let result = if let Some(ref txn_id) = req.transaction_id {
+            let mut txn = self.transactions.get_mut(txn_id).ok_or_else(|| {
+                Status::not_found(format!("Transaction not found: {}", txn_id))
+            })?;
+            txn.update(&req.database, &req.collection, filter, update)
+                .await
+        } else {
+            self.operations
+                .update(&req.database, &req.collection, filter, update)
+                .await
+        };
+
+        self.record_analytics(OperationKind::Update, &req.database, &req.collection, start.elapsed(), result.is_ok());
+        let update_result = result.map_err(to_status)?;
 
         Ok(Response::new(proto::UpdateResponse {
-            matched_count,
-            modified_count,
-            upserted_id,
+            matched_count: update_result.matched_count as i64,
+            modified_count: update_result.modified_count as i64,
+            upserted_id: update_result.upserted_id.map(|id| id.to_string()),
         }))
     }
 
@@ -302,6 +309,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::UpdateManyRequest>,
     ) -> Result<Response<proto::UpdateManyResponse>, Status> {
+        let start = std::time::Instant::now();
         let req = request.into_inner();
         let filter = proto_filter_to_bson(&req.filter)?;
         let update_doc = req
@@ -313,13 +321,15 @@ impl MongoCore for MongoCoreService {
         let result = self
             .operations
             .update_many(&req.database, &req.collection, filter, update)
-            .await
-            .map_err(to_status)?;
+            .await;
+
+        self.record_analytics(OperationKind::UpdateMany, &req.database, &req.collection, start.elapsed(), result.is_ok());
+        let update_result = result.map_err(to_status)?;
 
         Ok(Response::new(proto::UpdateManyResponse {
-            matched_count: result.matched_count as i64,
-            modified_count: result.modified_count as i64,
-            upserted_id: result.upserted_id.map(|id| id.to_string()),
+            matched_count: update_result.matched_count as i64,
+            modified_count: update_result.modified_count as i64,
+            upserted_id: update_result.upserted_id.map(|id| id.to_string()),
         }))
     }
 
@@ -327,47 +337,50 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::DeleteRequest>,
     ) -> Result<Response<proto::DeleteResponse>, Status> {
+        let start = std::time::Instant::now();
         let req = request.into_inner();
         let filter = proto_filter_to_bson(&req.filter)?;
 
         // Check if this is a transactional operation
-        let deleted_count = if let Some(ref txn_id) = req.transaction_id {
+        let result = if let Some(ref txn_id) = req.transaction_id {
             let mut txn = self
                 .transactions
                 .get_mut(txn_id)
                 .ok_or_else(|| Status::not_found(format!("Transaction not found: {}", txn_id)))?;
-            let result = txn
-                .delete(&req.database, &req.collection, filter)
+            txn.delete(&req.database, &req.collection, filter)
                 .await
-                .map_err(to_status)?;
-            result.deleted_count as i64
         } else {
-            let result = self
-                .operations
+            self.operations
                 .delete(&req.database, &req.collection, filter)
                 .await
-                .map_err(to_status)?;
-            result.deleted_count as i64
         };
 
-        Ok(Response::new(proto::DeleteResponse { deleted_count }))
+        self.record_analytics(OperationKind::Delete, &req.database, &req.collection, start.elapsed(), result.is_ok());
+        let delete_result = result.map_err(to_status)?;
+
+        Ok(Response::new(proto::DeleteResponse {
+            deleted_count: delete_result.deleted_count as i64
+        }))
     }
 
     async fn delete_many(
         &self,
         request: Request<proto::DeleteManyRequest>,
     ) -> Result<Response<proto::DeleteManyResponse>, Status> {
+        let start = std::time::Instant::now();
         let req = request.into_inner();
         let filter = proto_filter_to_bson(&req.filter)?;
 
         let result = self
             .operations
             .delete_many(&req.database, &req.collection, filter)
-            .await
-            .map_err(to_status)?;
+            .await;
+
+        self.record_analytics(OperationKind::DeleteMany, &req.database, &req.collection, start.elapsed(), result.is_ok());
+        let delete_result = result.map_err(to_status)?;
 
         Ok(Response::new(proto::DeleteManyResponse {
-            deleted_count: result.deleted_count as i64,
+            deleted_count: delete_result.deleted_count as i64,
         }))
     }
 
@@ -375,6 +388,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::FindAndModifyRequest>,
     ) -> Result<Response<proto::FindAndModifyResponse>, Status> {
+        let start = std::time::Instant::now();
         let req = request.into_inner();
         let filter = proto_filter_to_bson(&req.filter)?;
         let update_doc = req
@@ -404,10 +418,12 @@ impl MongoCore for MongoCoreService {
         let result = self
             .operations
             .find_and_modify(&req.database, &req.collection, filter, update, options)
-            .await
-            .map_err(to_status)?;
+            .await;
 
-        let document = match result {
+        self.record_analytics(OperationKind::FindAndModify, &req.database, &req.collection, start.elapsed(), result.is_ok());
+        let doc_result = result.map_err(to_status)?;
+
+        let document = match doc_result {
             Some(ref d) => Some(bson_to_proto_doc(d)?),
             None => None,
         };
@@ -421,6 +437,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::AggregateRequest>,
     ) -> Result<Response<proto::AggregateResponse>, Status> {
+        let start = std::time::Instant::now();
         let req = request.into_inner();
 
         let pipeline: Vec<bson::Document> = match req.pipeline {
@@ -432,11 +449,13 @@ impl MongoCore for MongoCoreService {
             None => Vec::new(),
         };
 
-        let docs = self
+        let result = self
             .operations
             .aggregate(&req.database, &req.collection, pipeline)
-            .await
-            .map_err(to_status)?;
+            .await;
+
+        self.record_analytics(OperationKind::Aggregate, &req.database, &req.collection, start.elapsed(), result.is_ok());
+        let docs = result.map_err(to_status)?;
 
         let documents: Result<Vec<proto::Document>, Status> =
             docs.iter().map(bson_to_proto_doc).collect();
@@ -455,6 +474,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::SearchRequest>,
     ) -> Result<Response<proto::SearchResponse>, Status> {
+        let start = std::time::Instant::now();
         let req = request.into_inner();
 
         let limit = if req.limit > 0 { req.limit } else { 10 };
@@ -462,13 +482,15 @@ impl MongoCore for MongoCoreService {
         let result = self
             .search_engine
             .search(&req.database, &req.collection, &req.query, limit)
-            .await
-            .map_err(|e| Status::internal(format!("Search error: {}", e)))?;
+            .await;
+
+        self.record_analytics(OperationKind::Search, &req.database, &req.collection, start.elapsed(), result.is_ok());
+        let search_result = result.map_err(|e| Status::internal(format!("Search error: {}", e)))?;
 
         let documents: Result<Vec<proto::Document>, Status> =
-            result.documents.iter().map(bson_to_proto_doc).collect();
+            search_result.documents.iter().map(bson_to_proto_doc).collect();
 
-        let method = match result.method {
+        let method = match search_result.method {
             crate::search::SearchMethod::Vector => "vector",
             crate::search::SearchMethod::Fulltext => "fulltext",
             crate::search::SearchMethod::Filter => "filter",
@@ -477,7 +499,7 @@ impl MongoCore for MongoCoreService {
         Ok(Response::new(proto::SearchResponse {
             documents: documents?,
             method: method.to_string(),
-            total: result.total as i64,
+            total: search_result.total as i64,
         }))
     }
 
@@ -710,6 +732,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::RunCommandRequest>,
     ) -> Result<Response<proto::RunCommandResponse>, Status> {
+        let start = std::time::Instant::now();
         let req = request.into_inner();
 
         // Decode the command from proto format
@@ -730,11 +753,13 @@ impl MongoCore for MongoCoreService {
 
         // Execute the command
         let result = run_command(&self.pool, &req.database, command, &options)
-            .await
-            .map_err(to_status)?;
+            .await;
+
+        self.record_analytics(OperationKind::RunCommand, &req.database, "", start.elapsed(), result.is_ok());
+        let cmd_result = result.map_err(to_status)?;
 
         // Encode the result back to proto format
-        let result_doc = bson_to_proto_doc(&result)?;
+        let result_doc = bson_to_proto_doc(&cmd_result)?;
 
         Ok(Response::new(proto::RunCommandResponse {
             result: Some(result_doc),

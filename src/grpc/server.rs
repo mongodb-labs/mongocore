@@ -1,7 +1,9 @@
+use std::sync::Arc;
 use tokio::task::JoinHandle;
 use tonic::transport::Server;
 use tracing::info;
 
+use crate::analytics::AnalyticsCollector;
 use crate::connection::pool::ConnectionPool;
 
 use super::proto::mongo_core_server::MongoCoreServer;
@@ -14,11 +16,12 @@ pub fn start_grpc_server(
     pool: ConnectionPool,
     port: u16,
     voyage_api_key: Option<&str>,
+    analytics: Option<Arc<AnalyticsCollector>>,
 ) -> JoinHandle<Result<(), tonic::transport::Error>> {
     let addr = format!("[::]:{}", port).parse().expect("Invalid address");
     let service = match voyage_api_key {
-        Some(key) => MongoCoreService::with_voyage(pool, key, None),
-        None => MongoCoreService::new(pool, None),
+        Some(key) => MongoCoreService::with_voyage(pool, key, analytics),
+        None => MongoCoreService::new(pool, analytics),
     };
 
     info!("gRPC server listening on {}", addr);
