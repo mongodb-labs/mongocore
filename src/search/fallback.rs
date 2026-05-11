@@ -57,8 +57,8 @@ impl SearchEngine {
                     .vector_search_internal(client, database, collection, query, limit)
                     .await
                 {
-                    Ok(result) => return Ok(result),
-                    Err(_) => {} // Fall through to next method
+                    Ok(result) if !result.documents.is_empty() => return Ok(result),
+                    _ => {} // Fall through if error or empty results
                 }
             }
         }
@@ -69,8 +69,8 @@ impl SearchEngine {
                 .fulltext_search_internal(database, collection, query, limit)
                 .await
             {
-                Ok(result) => return Ok(result),
-                Err(_) => {} // Fall through
+                Ok(result) if !result.documents.is_empty() => return Ok(result),
+                _ => {} // Fall through if error or empty results
             }
         }
 

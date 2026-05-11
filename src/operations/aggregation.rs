@@ -1,9 +1,16 @@
 use bson::Document;
+use mongodb::options::{CollectionOptions, ReadConcern};
 use tokio::time::timeout;
 
 use super::crud::{Operations, Result};
 use crate::defaults::DEFAULT_AGGREGATION_TIMEOUT;
 use crate::error::MongoCoreError;
+
+fn requires_local_read_concern(pipeline: &[Document]) -> bool {
+    pipeline.first().map_or(false, |stage| {
+        stage.contains_key("$search") || stage.contains_key("$vectorSearch")
+    })
+}
 
 impl Operations {
     /// Execute an aggregation pipeline and return results.
@@ -13,7 +20,16 @@ impl Operations {
         collection: &str,
         pipeline: Vec<Document>,
     ) -> Result<Vec<Document>> {
-        let coll = self.pool.collection(db, collection);
+        let coll = if requires_local_read_concern(&pipeline) {
+            self.pool.database(db).collection_with_options::<Document>(
+                collection,
+                CollectionOptions::builder()
+                    .read_concern(ReadConcern::local())
+                    .build(),
+            )
+        } else {
+            self.pool.collection(db, collection)
+        };
 
         let docs = timeout(DEFAULT_AGGREGATION_TIMEOUT, async {
             let mut cursor = coll.aggregate(pipeline).await?;
