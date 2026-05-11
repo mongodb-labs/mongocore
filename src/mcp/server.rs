@@ -10,6 +10,7 @@ use tokio::task::JoinHandle;
 use tower_http::cors::CorsLayer;
 use tracing::info;
 
+use crate::analytics::AnalyticsCollector;
 use crate::connection::pool::ConnectionPool;
 use crate::operations::Operations;
 
@@ -25,10 +26,10 @@ struct AppState {
 /// Start the MCP HTTP server on the given port.
 ///
 /// Returns a `JoinHandle` that can be used to await or cancel the server.
-pub fn start_mcp_server(pool: ConnectionPool, port: u16) -> JoinHandle<()> {
+pub fn start_mcp_server(pool: ConnectionPool, port: u16, analytics: Option<Arc<AnalyticsCollector>>) -> JoinHandle<()> {
     let operations = Operations::new(pool.clone());
     let safety = SafetyConfig::default();
-    let handler = McpHandler::new(operations, pool, safety);
+    let handler = McpHandler::new(operations, pool, safety, analytics);
     let state = Arc::new(AppState { handler });
 
     let app = Router::new()

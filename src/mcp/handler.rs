@@ -1,5 +1,7 @@
 use serde_json::{json, Value};
+use std::sync::Arc;
 
+use crate::analytics::AnalyticsCollector;
 use crate::connection::pool::ConnectionPool;
 use crate::operations::Operations;
 
@@ -13,15 +15,17 @@ pub struct McpHandler {
     operations: Operations,
     pool: ConnectionPool,
     safety: SafetyConfig,
+    analytics: Option<Arc<AnalyticsCollector>>,
 }
 
 impl McpHandler {
     /// Create a new handler backed by the given operations instance and connection pool.
-    pub fn new(operations: Operations, pool: ConnectionPool, safety: SafetyConfig) -> Self {
+    pub fn new(operations: Operations, pool: ConnectionPool, safety: SafetyConfig, analytics: Option<Arc<AnalyticsCollector>>) -> Self {
         Self {
             operations,
             pool,
             safety,
+            analytics,
         }
     }
 
@@ -104,7 +108,7 @@ impl McpHandler {
             .unwrap_or(json!({}));
 
         let result =
-            tools::execute_tool(&self.operations, &self.pool, &tool_name, &arguments).await;
+            tools::execute_tool(&self.operations, &self.pool, self.analytics.as_ref(), &tool_name, &arguments).await;
 
         JsonRpcResponse::success(id, serde_json::to_value(&result).unwrap_or(json!(null)))
     }
@@ -213,6 +217,6 @@ mod tests {
     fn test_tools_list_returns_definitions() {
         let definitions = tools::tool_definitions();
         assert!(!definitions.is_empty());
-        assert_eq!(definitions.len(), 14);
+        assert_eq!(definitions.len(), 15);
     }
 }

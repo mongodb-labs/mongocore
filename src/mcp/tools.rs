@@ -1,6 +1,8 @@
 use bson::Document;
 use serde_json::{json, Value};
+use std::sync::Arc;
 
+use crate::analytics::AnalyticsCollector;
 use crate::connection::pool::ConnectionPool;
 use crate::operations::{FindOptions, IndexOptions, Operations, RawCommandOptions, ValidationMode};
 
@@ -205,6 +207,17 @@ pub fn tool_definitions() -> Vec<McpToolDefinition> {
                 "required": ["database", "command"]
             }),
         },
+        McpToolDefinition {
+            name: "get_analytics".to_string(),
+            description: "Get analytics summary including operation counts, error rates, and latency percentiles".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "window_seconds": { "type": "integer", "description": "Time window in seconds (optional)" }
+                },
+                "required": []
+            }),
+        },
     ]
 }
 
@@ -212,6 +225,7 @@ pub fn tool_definitions() -> Vec<McpToolDefinition> {
 pub async fn execute_tool(
     operations: &Operations,
     pool: &ConnectionPool,
+    analytics: Option<&Arc<AnalyticsCollector>>,
     name: &str,
     arguments: &Value,
 ) -> McpToolCallResult {
@@ -230,6 +244,7 @@ pub async fn execute_tool(
         "list_databases" => execute_list_databases(pool).await,
         "list_collections" => execute_list_collections(pool, arguments).await,
         "run_command" => execute_run_command(pool, arguments).await,
+        "get_analytics" => execute_get_analytics(analytics).await,
         _ => error_result(format!("Unknown tool: {}", name)),
     }
 }
@@ -706,6 +721,44 @@ async fn execute_run_command(pool: &ConnectionPool, args: &Value) -> McpToolCall
     }
 }
 
+async fn execute_get_analytics(analytics: Option<&Arc<AnalyticsCollector>>) -> McpToolCallResult {
+    let analytics = match analytics {
+        Some(a) => a,
+        None => return error_result("Analytics not enabled".to_string()),
+    };
+
+    let events = analytics.snapshot();
+    let summary = crate::analytics::aggregator::aggregate(&events);
+
+    let top_operations: Vec<Value> = summary.top_operations.iter().map(|(op, count)| {
+        json!({
+            "operation": format!("{:?}", op),
+            "count": count
+        })
+    }).collect();
+
+    let top_collections: Vec<Value> = summary.top_collections.iter().map(|(coll, count)| {
+        json!({
+            "collection": coll,
+            "count": count
+        })
+    }).collect();
+
+    let result = json!({
+        "total_operations": summary.total_operations,
+        "total_errors": summary.total_errors,
+        "error_rate": summary.error_rate,
+        "p50_latency_ms": summary.p50_latency_ms,
+        "p95_latency_ms": summary.p95_latency_ms,
+        "p99_latency_ms": summary.p99_latency_ms,
+        "top_operations": top_operations,
+        "top_collections": top_collections
+    });
+
+    let text = serde_json::to_string_pretty(&result).unwrap_or_else(|_| "{}".to_string());
+    success_result(text)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -713,7 +766,7 @@ mod tests {
     #[test]
     fn test_tool_definitions_count() {
         let tools = tool_definitions();
-        assert_eq!(tools.len(), 14);
+        assert_eq!(tools.len(), 15);
     }
 
     #[test]
@@ -746,6 +799,7 @@ mod tests {
         assert!(names.contains(&"list_databases"));
         assert!(names.contains(&"list_collections"));
         assert!(names.contains(&"run_command"));
+        assert!(names.contains(&"get_analytics"));
     }
 
     #[test]

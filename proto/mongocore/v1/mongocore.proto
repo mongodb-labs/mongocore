@@ -40,6 +40,9 @@ service MongoCore {
 
   // Raw Passthrough
   rpc RunCommand(RunCommandRequest) returns (RunCommandResponse);
+
+  // Analytics
+  rpc GetAnalytics(GetAnalyticsRequest) returns (GetAnalyticsResponse);
 }
 
 // ==================== CRUD Requests/Responses ====================
@@ -279,4 +282,31 @@ message RunCommandRequest {
 
 message RunCommandResponse {
   Document result = 1;
+}
+
+// ==================== Analytics ====================
+
+message GetAnalyticsRequest {
+  int64 window_seconds = 1;
+}
+
+message GetAnalyticsResponse {
+  int64 total_operations = 1;
+  int64 total_errors = 2;
+  double error_rate = 3;
+  double p50_latency_ms = 4;
+  double p95_latency_ms = 5;
+  double p99_latency_ms = 6;
+  repeated OperationCount top_operations = 7;
+  repeated CollectionCount top_collections = 8;
+}
+
+message OperationCount {
+  string operation = 1;
+  int64 count = 2;
+}
+
+message CollectionCount {
+  string collection = 1;
+  int64 count = 2;
 }

@@ -16,6 +16,8 @@ use crate::operations::{
 use crate::operations::raw::{run_command, RawCommandOptions};
 use crate::operations::raw_validator::ValidationMode;
 use crate::search::SearchEngine;
+use crate::tenant::{TenantContext, TenantRegistry};
+use crate::tenant::quota::QuotaManager;
 use crate::voyage::VoyageClient;
 
 use super::proto::{self, mongo_core_server::MongoCore};
@@ -27,11 +29,18 @@ pub struct MongoCoreService {
     transactions: DashMap<String, Transaction>,
     search_engine: SearchEngine,
     analytics: Option<Arc<AnalyticsCollector>>,
+    tenant_registry: Option<Arc<TenantRegistry>>,
+    quota_manager: Option<Arc<QuotaManager>>,
 }
 
 impl MongoCoreService {
     /// Create a new MongoCoreService from a ConnectionPool.
-    pub fn new(pool: ConnectionPool, analytics: Option<Arc<AnalyticsCollector>>) -> Self {
+    pub fn new(
+        pool: ConnectionPool,
+        analytics: Option<Arc<AnalyticsCollector>>,
+        tenant_registry: Option<Arc<TenantRegistry>>,
+        quota_manager: Option<Arc<QuotaManager>>,
+    ) -> Self {
         let operations = Operations::new(pool.clone());
         let search_engine = SearchEngine::new(pool.clone(), None);
         Self {
@@ -40,11 +49,19 @@ impl MongoCoreService {
             transactions: DashMap::new(),
             search_engine,
             analytics,
+            tenant_registry,
+            quota_manager,
         }
     }
 
     /// Create a new MongoCoreService with Voyage AI enabled for vector search.
-    pub fn with_voyage(pool: ConnectionPool, voyage_api_key: &str, analytics: Option<Arc<AnalyticsCollector>>) -> Self {
+    pub fn with_voyage(
+        pool: ConnectionPool,
+        voyage_api_key: &str,
+        analytics: Option<Arc<AnalyticsCollector>>,
+        tenant_registry: Option<Arc<TenantRegistry>>,
+        quota_manager: Option<Arc<QuotaManager>>,
+    ) -> Self {
         let operations = Operations::new(pool.clone());
         let voyage_client = Arc::new(VoyageClient::new(voyage_api_key.to_string()));
         let search_engine = SearchEngine::new(pool.clone(), Some(voyage_client));
@@ -54,6 +71,8 @@ impl MongoCoreService {
             transactions: DashMap::new(),
             search_engine,
             analytics,
+            tenant_registry,
+            quota_manager,
         }
     }
 
@@ -62,6 +81,21 @@ impl MongoCoreService {
         if let Some(ref analytics) = self.analytics {
             analytics.record(AnalyticsEvent::new(op, db.to_string(), coll.to_string(), latency, success));
         }
+    }
+
+    /// Check tenant quota before processing request.
+    fn check_tenant_quota(&self, metadata: &tonic::metadata::MetadataMap) -> Result<(), Status> {
+        if let Some(ref quota) = self.quota_manager {
+            let tenant = TenantContext::from_grpc_metadata(metadata);
+            if let Some(tid) = tenant.tenant_id() {
+                if !quota.try_acquire(tid) {
+                    return Err(Status::resource_exhausted(
+                        format!("Rate limit exceeded for tenant '{}'", tid)
+                    ));
+                }
+            }
+        }
+        Ok(())
     }
 }
 
@@ -143,6 +177,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::FindRequest>,
     ) -> Result<Response<proto::FindResponse>, Status> {
+        self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
         let filter = proto_filter_to_bson(&req.filter)?;
@@ -180,6 +215,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::FindOneRequest>,
     ) -> Result<Response<proto::FindOneResponse>, Status> {
+        self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
         let filter = proto_filter_to_bson(&req.filter)?;
@@ -209,6 +245,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::InsertRequest>,
     ) -> Result<Response<proto::InsertResponse>, Status> {
+        self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
         let doc = req
@@ -242,6 +279,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::InsertManyRequest>,
     ) -> Result<Response<proto::InsertManyResponse>, Status> {
+        self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
         let docs: Result<Vec<bson::Document>, Status> =
@@ -273,6 +311,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::UpdateRequest>,
     ) -> Result<Response<proto::UpdateResponse>, Status> {
+        self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
         let filter = proto_filter_to_bson(&req.filter)?;
@@ -309,6 +348,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::UpdateManyRequest>,
     ) -> Result<Response<proto::UpdateManyResponse>, Status> {
+        self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
         let filter = proto_filter_to_bson(&req.filter)?;
@@ -337,6 +377,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::DeleteRequest>,
     ) -> Result<Response<proto::DeleteResponse>, Status> {
+        self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
         let filter = proto_filter_to_bson(&req.filter)?;
@@ -367,6 +408,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::DeleteManyRequest>,
     ) -> Result<Response<proto::DeleteManyResponse>, Status> {
+        self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
         let filter = proto_filter_to_bson(&req.filter)?;
@@ -388,6 +430,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::FindAndModifyRequest>,
     ) -> Result<Response<proto::FindAndModifyResponse>, Status> {
+        self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
         let filter = proto_filter_to_bson(&req.filter)?;
@@ -437,6 +480,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::AggregateRequest>,
     ) -> Result<Response<proto::AggregateResponse>, Status> {
+        self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
 
@@ -474,6 +518,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::SearchRequest>,
     ) -> Result<Response<proto::SearchResponse>, Status> {
+        self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
 
@@ -732,6 +777,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::RunCommandRequest>,
     ) -> Result<Response<proto::RunCommandResponse>, Status> {
+        self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
 
@@ -763,6 +809,44 @@ impl MongoCore for MongoCoreService {
 
         Ok(Response::new(proto::RunCommandResponse {
             result: Some(result_doc),
+        }))
+    }
+
+    // === Analytics ===
+
+    async fn get_analytics(
+        &self,
+        _request: Request<proto::GetAnalyticsRequest>,
+    ) -> Result<Response<proto::GetAnalyticsResponse>, Status> {
+        let analytics = self.analytics.as_ref()
+            .ok_or_else(|| Status::unavailable("Analytics not enabled"))?;
+
+        let events = analytics.snapshot();
+        let summary = crate::analytics::aggregator::aggregate(&events);
+
+        let top_operations = summary.top_operations.iter().map(|(op, count)| {
+            proto::OperationCount {
+                operation: format!("{:?}", op),
+                count: *count as i64,
+            }
+        }).collect();
+
+        let top_collections = summary.top_collections.iter().map(|(coll, count)| {
+            proto::CollectionCount {
+                collection: coll.clone(),
+                count: *count as i64,
+            }
+        }).collect();
+
+        Ok(Response::new(proto::GetAnalyticsResponse {
+            total_operations: summary.total_operations as i64,
+            total_errors: summary.total_errors as i64,
+            error_rate: summary.error_rate,
+            p50_latency_ms: summary.p50_latency_ms,
+            p95_latency_ms: summary.p95_latency_ms,
+            p99_latency_ms: summary.p99_latency_ms,
+            top_operations,
+            top_collections,
         }))
     }
 }
