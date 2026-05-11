@@ -1,3 +1,4 @@
+pub mod dedup;
 pub mod dlq;
 pub mod progress;
 pub mod reader;
