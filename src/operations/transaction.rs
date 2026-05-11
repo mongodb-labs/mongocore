@@ -38,10 +38,7 @@ impl Transaction {
     ) -> Result<Vec<Document>> {
         let coll = self.pool.collection(db, collection);
 
-        let mut cursor = coll
-            .find(filter)
-            .session(&mut self.session)
-            .await?;
+        let mut cursor = coll.find(filter).session(&mut self.session).await?;
 
         let mut results = Vec::new();
         while cursor.advance(&mut self.session).await? {
@@ -60,10 +57,7 @@ impl Transaction {
     ) -> Result<InsertOneResult> {
         let coll = self.pool.collection(db, collection);
 
-        let result = coll
-            .insert_one(document)
-            .session(&mut self.session)
-            .await?;
+        let result = coll.insert_one(document).session(&mut self.session).await?;
 
         Ok(result)
     }
@@ -95,10 +89,7 @@ impl Transaction {
     ) -> Result<DeleteResult> {
         let coll = self.pool.collection(db, collection);
 
-        let result = coll
-            .delete_one(filter)
-            .session(&mut self.session)
-            .await?;
+        let result = coll.delete_one(filter).session(&mut self.session).await?;
 
         Ok(result)
     }
@@ -152,7 +143,9 @@ mod tests {
     fn test_operations_has_begin_transaction() {
         // Verify the method exists on Operations at compile time.
         // We cannot call it without a real connection, but we confirm the API shape.
-        fn _check_method(ops: &Operations) -> impl std::future::Future<Output = Result<Transaction>> + '_ {
+        fn _check_method(
+            ops: &Operations,
+        ) -> impl std::future::Future<Output = Result<Transaction>> + '_ {
             ops.begin_transaction()
         }
     }

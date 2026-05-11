@@ -17,12 +17,24 @@ async fn test_transaction_commit() {
     let coll = unique_collection();
 
     let mut txn = ops.begin_transaction().await.unwrap();
-    txn.insert(harness::TEST_DB, &coll, doc! { "name": "committed_doc", "value": 42 })
-        .await
-        .unwrap();
+    txn.insert(
+        harness::TEST_DB,
+        &coll,
+        doc! { "name": "committed_doc", "value": 42 },
+    )
+    .await
+    .unwrap();
     txn.commit().await.unwrap();
 
-    let results = ops.find(harness::TEST_DB, &coll, doc! { "name": "committed_doc" }, None).await.unwrap();
+    let results = ops
+        .find(
+            harness::TEST_DB,
+            &coll,
+            doc! { "name": "committed_doc" },
+            None,
+        )
+        .await
+        .unwrap();
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].get_i32("value").unwrap(), 42);
 }
@@ -34,11 +46,23 @@ async fn test_transaction_abort() {
     let coll = unique_collection();
 
     let mut txn = ops.begin_transaction().await.unwrap();
-    txn.insert(harness::TEST_DB, &coll, doc! { "name": "aborted_doc", "value": 99 })
-        .await
-        .unwrap();
+    txn.insert(
+        harness::TEST_DB,
+        &coll,
+        doc! { "name": "aborted_doc", "value": 99 },
+    )
+    .await
+    .unwrap();
     txn.abort().await.unwrap();
 
-    let results = ops.find(harness::TEST_DB, &coll, doc! { "name": "aborted_doc" }, None).await.unwrap();
+    let results = ops
+        .find(
+            harness::TEST_DB,
+            &coll,
+            doc! { "name": "aborted_doc" },
+            None,
+        )
+        .await
+        .unwrap();
     assert_eq!(results.len(), 0);
 }

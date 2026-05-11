@@ -108,8 +108,7 @@ impl CompiledQueryTranslator {
                 let pipeline: Vec<Document> = pipeline_val
                     .iter()
                     .map(|v| {
-                        bson::to_document(v)
-                            .map_err(|e| TranslateError::ParseError(e.to_string()))
+                        bson::to_document(v).map_err(|e| TranslateError::ParseError(e.to_string()))
                     })
                     .collect::<Result<_, _>>()?;
                 Ok(CompiledMql::Aggregate { pipeline })

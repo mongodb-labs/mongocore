@@ -31,7 +31,8 @@ impl TemplateExtractor {
         for cap in number_re.captures_iter(&current_pattern) {
             let full_match = cap.get(0).unwrap().as_str();
             // Skip if already replaced (inside a placeholder like {price_0})
-            if pattern.contains(full_match) && !current_pattern.contains(&format!("{{{}", full_match))
+            if pattern.contains(full_match)
+                && !current_pattern.contains(&format!("{{{}", full_match))
             {
                 let param_name = format!("num_{}", parameters.len());
                 let placeholder = format!("{{{}}}", param_name);
@@ -81,7 +82,10 @@ mod tests {
         let result = TemplateExtractor::extract("headphones under $50").unwrap();
         assert!(result.pattern.contains("{price_0}"));
         assert_eq!(result.parameters.len(), 1);
-        assert!(matches!(result.parameters[0].value_type, ParameterType::Number));
+        assert!(matches!(
+            result.parameters[0].value_type,
+            ParameterType::Number
+        ));
     }
 
     #[test]
@@ -89,7 +93,10 @@ mod tests {
         let result = TemplateExtractor::extract("find items with score above 90").unwrap();
         assert!(result.pattern.contains("{num_"));
         assert_eq!(result.parameters.len(), 1);
-        assert!(matches!(result.parameters[0].value_type, ParameterType::Number));
+        assert!(matches!(
+            result.parameters[0].value_type,
+            ParameterType::Number
+        ));
     }
 
     #[test]
@@ -97,7 +104,10 @@ mod tests {
         let result = TemplateExtractor::extract("find 'electronics' category").unwrap();
         assert!(result.pattern.contains("{str_"));
         assert_eq!(result.parameters.len(), 1);
-        assert!(matches!(result.parameters[0].value_type, ParameterType::String));
+        assert!(matches!(
+            result.parameters[0].value_type,
+            ParameterType::String
+        ));
     }
 
     #[test]
@@ -108,8 +118,7 @@ mod tests {
 
     #[test]
     fn multiple_parameters_in_one_intent() {
-        let result =
-            TemplateExtractor::extract("find 'electronics' items under $100").unwrap();
+        let result = TemplateExtractor::extract("find 'electronics' items under $100").unwrap();
         assert!(result.parameters.len() >= 2);
     }
 }

@@ -73,14 +73,20 @@ impl BatchEmbedder {
         match result {
             Ok(embedding_result) => {
                 for (i, pending) in batch.into_iter().enumerate() {
-                    let embedding = embedding_result.embeddings.get(i).cloned().unwrap_or_default();
+                    let embedding = embedding_result
+                        .embeddings
+                        .get(i)
+                        .cloned()
+                        .unwrap_or_default();
                     let _ = pending.sender.send(Ok(embedding));
                 }
             }
             Err(e) => {
                 let err_msg = e.to_string();
                 for pending in batch {
-                    let _ = pending.sender.send(Err(VoyageError::ApiError(err_msg.clone())));
+                    let _ = pending
+                        .sender
+                        .send(Err(VoyageError::ApiError(err_msg.clone())));
                 }
             }
         }

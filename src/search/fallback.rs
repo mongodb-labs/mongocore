@@ -153,7 +153,11 @@ impl SearchEngine {
             ))?;
 
         let pipeline = super::vector::VectorSearchBuilder::build_pipeline(
-            "default", "embedding", vector, limit * 10, limit,
+            "default",
+            "embedding",
+            vector,
+            limit * 10,
+            limit,
         );
 
         let docs = self

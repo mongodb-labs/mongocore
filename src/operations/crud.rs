@@ -82,7 +82,9 @@ impl Operations {
 
         let doc = timeout(DEFAULT_QUERY_TIMEOUT, coll.find_one(filter))
             .await
-            .map_err(|_| MongoCoreError::TimeoutError("find_one operation timed out".to_string()))??;
+            .map_err(|_| {
+                MongoCoreError::TimeoutError("find_one operation timed out".to_string())
+            })??;
 
         Ok(doc)
     }
@@ -98,7 +100,9 @@ impl Operations {
 
         let result = timeout(DEFAULT_QUERY_TIMEOUT, coll.insert_one(document))
             .await
-            .map_err(|_| MongoCoreError::TimeoutError("insert operation timed out".to_string()))??;
+            .map_err(|_| {
+                MongoCoreError::TimeoutError("insert operation timed out".to_string())
+            })??;
 
         Ok(result)
     }
@@ -133,7 +137,9 @@ impl Operations {
 
         let result = timeout(DEFAULT_QUERY_TIMEOUT, coll.update_one(filter, update))
             .await
-            .map_err(|_| MongoCoreError::TimeoutError("update operation timed out".to_string()))??;
+            .map_err(|_| {
+                MongoCoreError::TimeoutError("update operation timed out".to_string())
+            })??;
 
         Ok(result)
     }
@@ -168,7 +174,9 @@ impl Operations {
 
         let result = timeout(DEFAULT_QUERY_TIMEOUT, coll.delete_one(filter))
             .await
-            .map_err(|_| MongoCoreError::TimeoutError("delete operation timed out".to_string()))??;
+            .map_err(|_| {
+                MongoCoreError::TimeoutError("delete operation timed out".to_string())
+            })??;
 
         Ok(result)
     }

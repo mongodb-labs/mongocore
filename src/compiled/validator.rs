@@ -44,10 +44,7 @@ impl MqlValidator {
                 .ok_or_else(|| format!("Stage {} is empty", i))?;
 
             if BLOCKED_STAGES.contains(&stage_name.as_str()) {
-                return Err(format!(
-                    "Blocked stage '{}' at position {}",
-                    stage_name, i
-                ));
+                return Err(format!("Blocked stage '{}' at position {}", stage_name, i));
             }
 
             if !ALLOWED_STAGES.contains(&stage_name.as_str()) {
@@ -63,9 +60,7 @@ impl MqlValidator {
     fn check_dangerous_operators(doc: &Document) -> Result<(), String> {
         for (key, value) in doc.iter() {
             if key == "$where" {
-                return Err(
-                    "$where operator is not allowed (code injection risk)".to_string()
-                );
+                return Err("$where operator is not allowed (code injection risk)".to_string());
             }
             // Recursively check nested documents
             if let Some(nested) = value.as_document() {

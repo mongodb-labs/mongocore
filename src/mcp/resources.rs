@@ -10,7 +10,9 @@ pub fn resource_definitions(_pool: &ConnectionPool) -> Vec<McpResourceDefinition
         McpResourceDefinition {
             uri: "mongocore://capabilities".to_string(),
             name: "Server Capabilities".to_string(),
-            description: "MongoDB server capabilities including version and Atlas feature availability".to_string(),
+            description:
+                "MongoDB server capabilities including version and Atlas feature availability"
+                    .to_string(),
             mime_type: "application/json".to_string(),
         },
         McpResourceDefinition {
@@ -39,8 +41,7 @@ pub async fn read_resource(pool: &ConnectionPool, uri: &str) -> Result<String, S
                 "atlas_search": caps.atlas_search,
                 "mongocore_version": env!("CARGO_PKG_VERSION"),
             });
-            serde_json::to_string_pretty(&value)
-                .map_err(|e| format!("Serialization error: {}", e))
+            serde_json::to_string_pretty(&value).map_err(|e| format!("Serialization error: {}", e))
         }
         "mongocore://databases" => {
             let names = pool
@@ -48,8 +49,7 @@ pub async fn read_resource(pool: &ConnectionPool, uri: &str) -> Result<String, S
                 .list_database_names()
                 .await
                 .map_err(|e| format!("Failed to list databases: {}", e))?;
-            serde_json::to_string_pretty(&names)
-                .map_err(|e| format!("Serialization error: {}", e))
+            serde_json::to_string_pretty(&names).map_err(|e| format!("Serialization error: {}", e))
         }
         _ if uri.starts_with("mongocore://collections/") => {
             let db_name = uri.strip_prefix("mongocore://collections/").unwrap();
@@ -61,8 +61,7 @@ pub async fn read_resource(pool: &ConnectionPool, uri: &str) -> Result<String, S
                 .list_collection_names()
                 .await
                 .map_err(|e| format!("Failed to list collections: {}", e))?;
-            serde_json::to_string_pretty(&names)
-                .map_err(|e| format!("Serialization error: {}", e))
+            serde_json::to_string_pretty(&names).map_err(|e| format!("Serialization error: {}", e))
         }
         _ => Err(format!("Resource not found: {}", uri)),
     }

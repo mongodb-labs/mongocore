@@ -55,9 +55,7 @@ impl LlmProvider for MockLlmProvider {
             i if i.contains("expensive") => {
                 r#"{"type": "find", "filter": {"price": {"$gt": 100}}}"#
             }
-            i if i.contains("under") => {
-                r#"{"type": "find", "filter": {"price": {"$lt": 50}}}"#
-            }
+            i if i.contains("under") => r#"{"type": "find", "filter": {"price": {"$lt": 50}}}"#,
             _ => r#"{"type": "find", "filter": {}}"#,
         };
         Ok(response.to_string())
@@ -145,7 +143,12 @@ async fn test_compiled_query_aggregate_translation() {
     let context = TranslationContext::default();
 
     let result = translator
-        .translate("average salary by department", "testdb", "employees", &context)
+        .translate(
+            "average salary by department",
+            "testdb",
+            "employees",
+            &context,
+        )
         .await
         .expect("translation should succeed");
 
@@ -166,11 +169,8 @@ async fn test_compiled_query_with_atlas_cache() {
     harness::mongodb::clean_collection(&pool, "compiled_queries").await;
 
     let provider = MockLlmProvider::new();
-    let translator = CompiledQueryTranslator::new(
-        Some(pool.clone()),
-        Some(Box::new(provider)),
-        None,
-    );
+    let translator =
+        CompiledQueryTranslator::new(Some(pool.clone()), Some(Box::new(provider)), None);
     let context = TranslationContext::default();
 
     // Translate - stores in L1 and L3 (Atlas)

@@ -41,12 +41,8 @@ mod tests {
 
     #[test]
     fn test_build_pipeline_structure() {
-        let pipeline = FulltextSearchBuilder::build_pipeline(
-            "default",
-            "hello world",
-            &["title", "body"],
-            10,
-        );
+        let pipeline =
+            FulltextSearchBuilder::build_pipeline("default", "hello world", &["title", "body"], 10);
 
         assert_eq!(pipeline.len(), 3);
 
@@ -64,12 +60,7 @@ mod tests {
 
     #[test]
     fn test_build_pipeline_add_fields_stage() {
-        let pipeline = FulltextSearchBuilder::build_pipeline(
-            "idx",
-            "test",
-            &["field1"],
-            5,
-        );
+        let pipeline = FulltextSearchBuilder::build_pipeline("idx", "test", &["field1"], 5);
 
         let add_fields = &pipeline[1];
         let fields = add_fields.get_document("$addFields").unwrap();
@@ -79,12 +70,7 @@ mod tests {
 
     #[test]
     fn test_build_pipeline_limit_stage() {
-        let pipeline = FulltextSearchBuilder::build_pipeline(
-            "idx",
-            "query",
-            &["*"],
-            25,
-        );
+        let pipeline = FulltextSearchBuilder::build_pipeline("idx", "query", &["*"], 25);
 
         let limit_stage = &pipeline[2];
         assert_eq!(limit_stage.get_i64("$limit").unwrap(), 25);
@@ -92,12 +78,8 @@ mod tests {
 
     #[test]
     fn test_build_pipeline_single_field() {
-        let pipeline = FulltextSearchBuilder::build_pipeline(
-            "my_index",
-            "search term",
-            &["content"],
-            10,
-        );
+        let pipeline =
+            FulltextSearchBuilder::build_pipeline("my_index", "search term", &["content"], 10);
 
         let search = pipeline[0].get_document("$search").unwrap();
         let text = search.get_document("text").unwrap();

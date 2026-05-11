@@ -13,7 +13,10 @@ use mongocore::search::{SearchEngine, SearchError, SearchMethod};
 mod harness;
 
 fn unique_collection() -> String {
-    format!("test_search_{}", Uuid::new_v4().to_string().replace('-', ""))
+    format!(
+        "test_search_{}",
+        Uuid::new_v4().to_string().replace('-', "")
+    )
 }
 
 #[tokio::test]
@@ -46,7 +49,8 @@ async fn test_search_fallback_to_filter() {
     // On plain MongoDB: falls back to filter
     assert!(
         result.method == SearchMethod::Fulltext || result.method == SearchMethod::Filter,
-        "Expected Fulltext or Filter, got {:?}", result.method
+        "Expected Fulltext or Filter, got {:?}",
+        result.method
     );
     // Documents may or may not be returned depending on index readiness
 }
@@ -94,9 +98,14 @@ async fn test_search_with_text_index() {
     // so it falls through to filter which uses $text with our text index
     assert!(
         result.method == SearchMethod::Fulltext || result.method == SearchMethod::Filter,
-        "Expected Fulltext or Filter, got {:?}", result.method
+        "Expected Fulltext or Filter, got {:?}",
+        result.method
     );
-    assert!(result.total >= 2, "Expected at least 2 results matching 'rust', got {}", result.total);
+    assert!(
+        result.total >= 2,
+        "Expected at least 2 results matching 'rust', got {}",
+        result.total
+    );
     for d in &result.documents {
         let title = d.get_str("title").unwrap_or("");
         let content = d.get_str("content").unwrap_or("");
@@ -116,13 +125,24 @@ async fn test_vector_search_requires_voyage() {
     // SearchEngine without Voyage client
     let engine = SearchEngine::new(pool, None);
     let result = engine
-        .vector_search(harness::TEST_DB, &coll, "test query", "default", "embedding", 10)
+        .vector_search(
+            harness::TEST_DB,
+            &coll,
+            "test query",
+            "default",
+            "embedding",
+            10,
+        )
         .await;
 
     assert!(result.is_err());
     match result.unwrap_err() {
         SearchError::NotConfigured(msg) => {
-            assert!(msg.contains("Voyage AI"), "Error should mention Voyage AI: {}", msg);
+            assert!(
+                msg.contains("Voyage AI"),
+                "Error should mention Voyage AI: {}",
+                msg
+            );
         }
         other => panic!("Expected NotConfigured error, got: {:?}", other),
     }
@@ -223,12 +243,15 @@ async fn test_search_engine_creation() {
         .unwrap();
     assert!(
         result.method == SearchMethod::Fulltext || result.method == SearchMethod::Filter,
-        "Expected Fulltext or Filter, got {:?}", result.method
+        "Expected Fulltext or Filter, got {:?}",
+        result.method
     );
     assert_eq!(result.total, 0); // Empty collection
 
     // Create with a (fake) Voyage client - just verify construction works
-    let voyage_client = Arc::new(mongocore::voyage::VoyageClient::new("fake-api-key".to_string()));
+    let voyage_client = Arc::new(mongocore::voyage::VoyageClient::new(
+        "fake-api-key".to_string(),
+    ));
     let _engine_with_voyage = SearchEngine::new(pool, Some(voyage_client));
     // We can't test actual vector search without real credentials,
     // but the engine is created successfully
@@ -262,21 +285,23 @@ async fn test_atlas_vector_search_end_to_end() {
 
     // Create a vector search index
     let db = pool.database(harness::TEST_DB);
-    let create_result = db.run_command(doc! {
-        "createSearchIndexes": &coll,
-        "indexes": [{
-            "name": "vector_test_idx",
-            "type": "vectorSearch",
-            "definition": {
-                "fields": [{
-                    "type": "vector",
-                    "path": "embedding",
-                    "numDimensions": 3,
-                    "similarity": "cosine"
-                }]
-            }
-        }]
-    }).await;
+    let create_result = db
+        .run_command(doc! {
+            "createSearchIndexes": &coll,
+            "indexes": [{
+                "name": "vector_test_idx",
+                "type": "vectorSearch",
+                "definition": {
+                    "fields": [{
+                        "type": "vector",
+                        "path": "embedding",
+                        "numDimensions": 3,
+                        "similarity": "cosine"
+                    }]
+                }
+            }]
+        })
+        .await;
 
     if create_result.is_err() {
         eprintln!("Skipping: Could not create vector search index");
@@ -295,7 +320,10 @@ async fn test_atlas_vector_search_end_to_end() {
         3,
     );
 
-    let results = ops.aggregate(harness::TEST_DB, &coll, pipeline).await.unwrap();
+    let results = ops
+        .aggregate(harness::TEST_DB, &coll, pipeline)
+        .await
+        .unwrap();
 
     assert!(!results.is_empty(), "Expected vector search results");
     assert!(results.len() <= 3, "Expected at most 3 results");
@@ -333,16 +361,18 @@ async fn test_atlas_fulltext_search_end_to_end() {
 
     // Create an Atlas Search index with dynamic mappings
     let db = pool.database(harness::TEST_DB);
-    let create_result = db.run_command(doc! {
-        "createSearchIndexes": &coll,
-        "indexes": [{
-            "name": "fulltext_test_idx",
-            "type": "search",
-            "definition": {
-                "mappings": { "dynamic": true }
-            }
-        }]
-    }).await;
+    let create_result = db
+        .run_command(doc! {
+            "createSearchIndexes": &coll,
+            "indexes": [{
+                "name": "fulltext_test_idx",
+                "type": "search",
+                "definition": {
+                    "mappings": { "dynamic": true }
+                }
+            }]
+        })
+        .await;
 
     if create_result.is_err() {
         eprintln!("Skipping: Could not create Atlas Search index");
@@ -353,22 +383,27 @@ async fn test_atlas_fulltext_search_end_to_end() {
     tokio::time::sleep(std::time::Duration::from_secs(2)).await;
 
     // Run $search pipeline
-    let pipeline = FulltextSearchBuilder::build_pipeline(
-        "fulltext_test_idx",
-        "rust",
-        &["title", "body"],
-        10,
+    let pipeline =
+        FulltextSearchBuilder::build_pipeline("fulltext_test_idx", "rust", &["title", "body"], 10);
+
+    let results = ops
+        .aggregate(harness::TEST_DB, &coll, pipeline)
+        .await
+        .unwrap();
+
+    assert!(
+        results.len() >= 2,
+        "Expected at least 2 documents mentioning 'rust', got {}",
+        results.len()
     );
-
-    let results = ops.aggregate(harness::TEST_DB, &coll, pipeline).await.unwrap();
-
-    assert!(results.len() >= 2, "Expected at least 2 documents mentioning 'rust', got {}", results.len());
     for d in &results {
         let title = d.get_str("title").unwrap_or("");
         let body = d.get_str("body").unwrap_or("");
         assert!(
             title.to_lowercase().contains("rust") || body.to_lowercase().contains("rust"),
-            "Document should match 'rust': title={}, body={}", title, body
+            "Document should match 'rust': title={}, body={}",
+            title,
+            body
         );
     }
 }
@@ -403,8 +438,13 @@ async fn test_search_fallback_chain_with_atlas() {
 
     assert!(
         result.method == SearchMethod::Fulltext || result.method == SearchMethod::Filter,
-        "Expected Fulltext or Filter, got {:?}", result.method
+        "Expected Fulltext or Filter, got {:?}",
+        result.method
     );
     // Should find documents containing "atlas"
-    assert!(result.total >= 2, "Expected at least 2 results for 'atlas', got {}", result.total);
+    assert!(
+        result.total >= 2,
+        "Expected at least 2 results for 'atlas', got {}",
+        result.total
+    );
 }
