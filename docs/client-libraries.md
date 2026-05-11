@@ -128,6 +128,7 @@ MongoClient client = MongoClient.create(); // localhost:50051
 | Delete one | `await coll.delete_one(filter)` | `await coll.deleteOne(filter)` | `coll.DeleteOne(ctx, filter)` | `coll.deleteOne(filter)` |
 | Delete many | `await coll.delete_many(filter)` | `await coll.deleteMany(filter)` | `coll.DeleteMany(ctx, filter)` | `coll.deleteMany(filter)` |
 | Aggregate | `await coll.aggregate(pipeline)` | `await coll.aggregate(pipeline)` | `coll.Aggregate(ctx, pipeline)` | `coll.aggregate(pipeline)` |
+| Search | `await coll.search(q, limit=N)` | `await coll.search(q, N)` | `coll.Search(ctx, q, N)` | `coll.search(q, N)` |
 | Watch | `async with coll.watch()` | `coll.watch()` | `coll.Watch(ctx, opts)` | `coll.watch()` |
 
 ## Change Streams (Watch)

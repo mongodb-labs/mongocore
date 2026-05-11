@@ -30,6 +30,13 @@ type UpdateResult struct {
 	UpsertedID    string
 }
 
+// SearchResult contains the results of a search operation.
+type SearchResult struct {
+	Documents []bson.D
+	Method    string
+	Total     int64
+}
+
 func encodeBson(doc bson.D) ([]byte, error) {
 	return bson.Marshal(doc)
 }
@@ -367,4 +374,31 @@ func (c *Collection) Aggregate(ctx context.Context, pipeline []bson.D) ([]bson.D
 		docs = append(docs, doc)
 	}
 	return docs, nil
+}
+
+// Search performs a unified search using the best available method (vector → fulltext → filter).
+func (c *Collection) Search(ctx context.Context, query string, limit int64) (*SearchResult, error) {
+	resp, err := c.client.stub.Search(ctx, &pb.SearchRequest{
+		Database:   c.database,
+		Collection: c.name,
+		Query:      query,
+		Limit:      limit,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	docs := make([]bson.D, 0, len(resp.Documents))
+	for _, d := range resp.Documents {
+		doc, err := decodeBsonDoc(d.Data)
+		if err != nil {
+			return nil, err
+		}
+		docs = append(docs, doc)
+	}
+	return &SearchResult{
+		Documents: docs,
+		Method:    resp.Method,
+		Total:     resp.Total,
+	}, nil
 }

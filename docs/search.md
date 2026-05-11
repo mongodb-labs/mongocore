@@ -59,23 +59,16 @@ Embeds your query using Voyage AI, then runs `$vectorSearch` against an Atlas Ve
 ### Python
 
 ```python
-async with MongoClient() as client:
+async with MongoClient("localhost:50051") as client:
     articles = client["content"]["articles"]
 
-    # Automatic search (uses best available method)
-    results = await articles.search("machine learning optimization techniques", limit=10)
-    print(f"Method used: {results.method}")  # "vector", "fulltext", or "filter"
+    # Unified search (uses best available method)
+    result = await articles.search("machine learning optimization techniques", limit=10)
+    print(f"Method used: {result['method']}")  # "vector", "fulltext", or "filter"
+    print(f"Total results: {result['total']}")
 
-    for doc in results.documents:
+    for doc in result["documents"]:
         print(doc["title"])
-
-    # Explicit vector search with custom index/field
-    results = await articles.vector_search(
-        query="neural network architectures",
-        index_name="article_vectors",
-        field_path="content_embedding",
-        limit=5
-    )
 ```
 
 ### TypeScript
@@ -83,17 +76,14 @@ async with MongoClient() as client:
 ```typescript
 const articles = client.db('content').collection('articles');
 
-// Automatic search
-const results = await articles.search('machine learning optimization', { limit: 10 });
-console.log(`Method: ${results.method}`);
+// Unified search
+const result = await articles.search('machine learning optimization', 10);
+console.log(`Method: ${result.method}`);
+console.log(`Total: ${result.total}`);
 
-// Explicit vector search
-const vectorResults = await articles.vectorSearch({
-  query: 'neural network architectures',
-  indexName: 'article_vectors',
-  fieldPath: 'content_embedding',
-  limit: 5,
-});
+for (const doc of result.documents) {
+  console.log(doc.title);
+}
 ```
 
 ### Go
@@ -101,17 +91,31 @@ const vectorResults = await articles.vectorSearch({
 ```go
 articles := client.Database("content").Collection("articles")
 
-// Automatic search
-results, err := articles.Search(ctx, "machine learning optimization", 10)
-fmt.Printf("Method: %s\n", results.Method)
+// Unified search
+result, err := articles.Search(ctx, "machine learning optimization", 10)
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Printf("Method: %s, Total: %d\n", result.Method, result.Total)
 
-// Explicit vector search
-results, err = articles.VectorSearch(ctx, &mongocore.VectorSearchOptions{
-    Query:     "neural network architectures",
-    IndexName: "article_vectors",
-    FieldPath: "content_embedding",
-    Limit:     5,
-})
+for _, doc := range result.Documents {
+    fmt.Println(doc)
+}
+```
+
+### Java
+
+```java
+MongoCollection articles = client.getDatabase("content").getCollection("articles");
+
+// Unified search
+SearchResult result = articles.search("machine learning optimization", 10);
+System.out.println("Method: " + result.getMethod());
+System.out.println("Total: " + result.getTotal());
+
+for (Document doc : result.getDocuments()) {
+    System.out.println(doc.getString("title"));
+}
 ```
 
 ## Full-Text Search

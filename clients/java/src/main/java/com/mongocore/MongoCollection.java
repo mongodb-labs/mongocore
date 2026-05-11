@@ -195,6 +195,26 @@ public class MongoCollection {
         return docs;
     }
 
+    public SearchResult search(String query) {
+        return search(query, 10);
+    }
+
+    public SearchResult search(String query, long limit) {
+        Mongocore.SearchResponse resp = getStub().search(
+                Mongocore.SearchRequest.newBuilder()
+                        .setDatabase(database)
+                        .setCollection(name)
+                        .setQuery(query)
+                        .setLimit(limit)
+                        .build());
+
+        List<Document> docs = new ArrayList<>(resp.getDocumentsCount());
+        for (Types.Document d : resp.getDocumentsList()) {
+            docs.add(decodeBson(d.getData()));
+        }
+        return new SearchResult(docs, resp.getMethod(), resp.getTotal());
+    }
+
     public ChangeStream watch() {
         return watch(null);
     }

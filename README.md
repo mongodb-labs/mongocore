@@ -282,12 +282,12 @@ mongocore/
 │   ├── config.rs            # Layered config (CLI + env + TOML)
 │   ├── connection/          # Connection pool, capability detection
 │   ├── operations/          # CRUD, aggregation, transactions, admin
-│   ├── grpc/                # gRPC server (tonic) — 18 RPCs
+│   ├── grpc/                # gRPC server (tonic) — 19 RPCs
 │   ├── mcp/                 # MCP server (axum) — JSON-RPC tools & resources
 │   ├── compiled/            # NL→MQL translation, 3-level cache, templates
 │   ├── search/              # Vector search, full-text, fallback chain
 │   └── voyage/              # Voyage AI REST client, batch embeddings
-├── proto/                   # Protobuf service definitions (18 RPCs)
+├── proto/                   # Protobuf service definitions (19 RPCs)
 ├── clients/
 │   ├── python/              # Python client (async, BSON-native, change streams)
 │   ├── typescript/          # TypeScript/Node.js client (AsyncDisposable streams)
@@ -302,7 +302,7 @@ mongocore/
 
 ## v1 Feature Set
 
-- **18 gRPC RPCs** — Find, FindOne, Insert, InsertMany, Update, UpdateMany, Delete, DeleteMany, FindAndModify, Aggregate, BeginTransaction, CommitTransaction, AbortTransaction, CreateCollection, CreateIndex, ListDatabases, ListCollections, Watch
+- **19 gRPC RPCs** — Find, FindOne, Insert, InsertMany, Update, UpdateMany, Delete, DeleteMany, FindAndModify, Aggregate, Search, BeginTransaction, CommitTransaction, AbortTransaction, CreateCollection, CreateIndex, ListDatabases, ListCollections, Watch
 - **Change streams (Watch)** — Server-streaming RPC with auto-close in all clients (Python `async with`, TypeScript `AsyncDisposable`, Go `io.Closer`, Java `AutoCloseable`)
 - **Search fallback chain** — Vector search → Atlas full-text → `$text` filter, with automatic fallthrough on empty results
 - **Atlas Vector Search** — `$vectorSearch` with Voyage AI embeddings, tested end-to-end against Atlas Local

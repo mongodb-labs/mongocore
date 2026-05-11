@@ -24,6 +24,12 @@ export interface Document {
   [key: string]: any;
 }
 
+export interface SearchResult {
+  documents: Document[];
+  method: string;
+  total: number;
+}
+
 export interface ChangeEvent {
   operationType: string;
   database?: string;

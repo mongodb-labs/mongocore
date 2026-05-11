@@ -10,9 +10,16 @@ use super::service::MongoCoreService;
 /// Start the gRPC server on the specified port.
 ///
 /// Returns a `JoinHandle` so the server can be spawned alongside other tasks.
-pub fn start_grpc_server(pool: ConnectionPool, port: u16) -> JoinHandle<Result<(), tonic::transport::Error>> {
+pub fn start_grpc_server(
+    pool: ConnectionPool,
+    port: u16,
+    voyage_api_key: Option<&str>,
+) -> JoinHandle<Result<(), tonic::transport::Error>> {
     let addr = format!("[::]:{}", port).parse().expect("Invalid address");
-    let service = MongoCoreService::new(pool);
+    let service = match voyage_api_key {
+        Some(key) => MongoCoreService::with_voyage(pool, key),
+        None => MongoCoreService::new(pool),
+    };
 
     info!("gRPC server listening on {}", addr);
 

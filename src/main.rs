@@ -35,8 +35,14 @@ async fn main() {
         }
     };
 
+    // Resolve Voyage AI API key if configured
+    let voyage_api_key = config
+        .voyage_api_key_env
+        .as_deref()
+        .and_then(|env_var| std::env::var(env_var).ok());
+
     // Start gRPC server
-    let grpc_handle = start_grpc_server(pool.clone(), config.grpc_port);
+    let grpc_handle = start_grpc_server(pool.clone(), config.grpc_port, voyage_api_key.as_deref());
 
     // Start MCP server
     let mcp_handle = start_mcp_server(pool.clone(), config.mcp_port);

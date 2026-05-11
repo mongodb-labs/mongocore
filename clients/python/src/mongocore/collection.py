@@ -148,6 +148,22 @@ class Collection:
         ))
         return [self._decode_doc(doc.data) for doc in response.documents]
 
+    async def search(self, query: str, *, limit: int = 10) -> dict:
+        """Search documents using the best available method (vector → fulltext → filter)."""
+        from .generated import mongocore_pb2
+        stub = self._get_stub()
+        response = await stub.Search(mongocore_pb2.SearchRequest(
+            database=self._database,
+            collection=self._name,
+            query=query,
+            limit=limit,
+        ))
+        return {
+            "documents": [self._decode_doc(doc.data) for doc in response.documents],
+            "method": response.method,
+            "total": response.total,
+        }
+
     def watch(self, pipeline: Optional[list[dict]] = None) -> "ChangeStream":
         """Open a change stream on this collection. Returns an async context manager."""
         return ChangeStream(self, pipeline)

@@ -188,6 +188,22 @@ public class IntegrationTest {
     }
 
     @Test
+    public void testSearch() {
+        MongoCollection coll = client.getDatabase(TEST_DB).getCollection(uniqueCollection() + "_search");
+        coll.insertMany(List.of(
+                new Document("title", "rust programming guide").append("content", "learn rust basics"),
+                new Document("title", "python basics").append("content", "learn python programming"),
+                new Document("title", "rust advanced patterns").append("content", "advanced rust techniques")
+        ));
+
+        SearchResult result = coll.search("rust", 10);
+        assertNotNull(result);
+        assertTrue("Expected at least 2 results for 'rust'", result.getTotal() >= 2);
+        assertTrue("Expected valid search method", List.of("vector", "fulltext", "filter").contains(result.getMethod()));
+        assertTrue("Expected at least 2 documents", result.getDocuments().size() >= 2);
+    }
+
+    @Test
     public void testListDatabases() {
         List<String> databases = client.listDatabases();
         assertNotNull(databases);

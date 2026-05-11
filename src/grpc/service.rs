@@ -1,4 +1,5 @@
 use std::pin::Pin;
+use std::sync::Arc;
 
 use bson::Document;
 use dashmap::DashMap;
@@ -11,6 +12,8 @@ use crate::error::MongoCoreError;
 use crate::operations::{
     FindAndModifyOptions, FindOptions, IndexOptions, Operations, ReturnDocumentOption, Transaction,
 };
+use crate::search::SearchEngine;
+use crate::voyage::VoyageClient;
 
 use super::proto::{self, mongo_core_server::MongoCore};
 
@@ -19,16 +22,32 @@ pub struct MongoCoreService {
     operations: Operations,
     pool: ConnectionPool,
     transactions: DashMap<String, Transaction>,
+    search_engine: SearchEngine,
 }
 
 impl MongoCoreService {
     /// Create a new MongoCoreService from a ConnectionPool.
     pub fn new(pool: ConnectionPool) -> Self {
         let operations = Operations::new(pool.clone());
+        let search_engine = SearchEngine::new(pool.clone(), None);
         Self {
             operations,
             pool,
             transactions: DashMap::new(),
+            search_engine,
+        }
+    }
+
+    /// Create a new MongoCoreService with Voyage AI enabled for vector search.
+    pub fn with_voyage(pool: ConnectionPool, voyage_api_key: &str) -> Self {
+        let operations = Operations::new(pool.clone());
+        let voyage_client = Arc::new(VoyageClient::new(voyage_api_key.to_string()));
+        let search_engine = SearchEngine::new(pool.clone(), Some(voyage_client));
+        Self {
+            operations,
+            pool,
+            transactions: DashMap::new(),
+            search_engine,
         }
     }
 }
@@ -425,6 +444,38 @@ impl MongoCore for MongoCoreService {
             metadata: Some(proto::ResponseMetadata {
                 search_method: String::new(),
             }),
+        }))
+    }
+
+    // === Search ===
+
+    async fn search(
+        &self,
+        request: Request<proto::SearchRequest>,
+    ) -> Result<Response<proto::SearchResponse>, Status> {
+        let req = request.into_inner();
+
+        let limit = if req.limit > 0 { req.limit } else { 10 };
+
+        let result = self
+            .search_engine
+            .search(&req.database, &req.collection, &req.query, limit)
+            .await
+            .map_err(|e| Status::internal(format!("Search error: {}", e)))?;
+
+        let documents: Result<Vec<proto::Document>, Status> =
+            result.documents.iter().map(bson_to_proto_doc).collect();
+
+        let method = match result.method {
+            crate::search::SearchMethod::Vector => "vector",
+            crate::search::SearchMethod::Fulltext => "fulltext",
+            crate::search::SearchMethod::Filter => "filter",
+        };
+
+        Ok(Response::new(proto::SearchResponse {
+            documents: documents?,
+            method: method.to_string(),
+            total: result.total as i64,
         }))
     }
 

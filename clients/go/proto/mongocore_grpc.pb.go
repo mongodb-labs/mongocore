@@ -36,6 +36,7 @@ const (
 	MongoCore_CreateIndex_FullMethodName       = "/mongocore.v1.MongoCore/CreateIndex"
 	MongoCore_ListDatabases_FullMethodName     = "/mongocore.v1.MongoCore/ListDatabases"
 	MongoCore_ListCollections_FullMethodName   = "/mongocore.v1.MongoCore/ListCollections"
+	MongoCore_Search_FullMethodName            = "/mongocore.v1.MongoCore/Search"
 	MongoCore_Watch_FullMethodName             = "/mongocore.v1.MongoCore/Watch"
 )
 
@@ -65,6 +66,8 @@ type MongoCoreClient interface {
 	// Introspection
 	ListDatabases(ctx context.Context, in *ListDatabasesRequest, opts ...grpc.CallOption) (*ListDatabasesResponse, error)
 	ListCollections(ctx context.Context, in *ListCollectionsRequest, opts ...grpc.CallOption) (*ListCollectionsResponse, error)
+	// Search
+	Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error)
 	// Streaming
 	Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WatchEvent], error)
 }
@@ -247,6 +250,16 @@ func (c *mongoCoreClient) ListCollections(ctx context.Context, in *ListCollectio
 	return out, nil
 }
 
+func (c *mongoCoreClient) Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SearchResponse)
+	err := c.cc.Invoke(ctx, MongoCore_Search_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *mongoCoreClient) Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WatchEvent], error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	stream, err := c.cc.NewStream(ctx, &MongoCore_ServiceDesc.Streams[0], MongoCore_Watch_FullMethodName, cOpts...)
@@ -292,6 +305,8 @@ type MongoCoreServer interface {
 	// Introspection
 	ListDatabases(context.Context, *ListDatabasesRequest) (*ListDatabasesResponse, error)
 	ListCollections(context.Context, *ListCollectionsRequest) (*ListCollectionsResponse, error)
+	// Search
+	Search(context.Context, *SearchRequest) (*SearchResponse, error)
 	// Streaming
 	Watch(*WatchRequest, grpc.ServerStreamingServer[WatchEvent]) error
 	mustEmbedUnimplementedMongoCoreServer()
@@ -354,6 +369,9 @@ func (UnimplementedMongoCoreServer) ListDatabases(context.Context, *ListDatabase
 }
 func (UnimplementedMongoCoreServer) ListCollections(context.Context, *ListCollectionsRequest) (*ListCollectionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListCollections not implemented")
+}
+func (UnimplementedMongoCoreServer) Search(context.Context, *SearchRequest) (*SearchResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Search not implemented")
 }
 func (UnimplementedMongoCoreServer) Watch(*WatchRequest, grpc.ServerStreamingServer[WatchEvent]) error {
 	return status.Error(codes.Unimplemented, "method Watch not implemented")
@@ -685,6 +703,24 @@ func _MongoCore_ListCollections_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MongoCore_Search_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MongoCoreServer).Search(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MongoCore_Search_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MongoCoreServer).Search(ctx, req.(*SearchRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _MongoCore_Watch_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(WatchRequest)
 	if err := stream.RecvMsg(m); err != nil {
@@ -770,6 +806,10 @@ var MongoCore_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ListCollections",
 			Handler:    _MongoCore_ListCollections_Handler,
+		},
+		{
+			MethodName: "Search",
+			Handler:    _MongoCore_Search_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

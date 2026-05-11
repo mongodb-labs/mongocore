@@ -260,6 +260,28 @@ func TestWatch(t *testing.T) {
 	}
 }
 
+func TestSearch(t *testing.T) {
+	client, ctx := setupClient(t)
+	coll := client.Database(testDB).Collection(uniqueCollection() + "_search")
+
+	coll.InsertMany(ctx, []bson.D{
+		{{Key: "title", Value: "rust programming guide"}, {Key: "content", Value: "learn rust basics"}},
+		{{Key: "title", Value: "python basics"}, {Key: "content", Value: "learn python programming"}},
+		{{Key: "title", Value: "rust advanced patterns"}, {Key: "content", Value: "advanced rust techniques"}},
+	})
+
+	result, err := coll.Search(ctx, "rust", 10)
+	if err != nil {
+		t.Fatalf("Search failed: %v", err)
+	}
+	if result.Total < 2 {
+		t.Fatalf("Expected at least 2 results for 'rust', got %d", result.Total)
+	}
+	if result.Method == "" {
+		t.Fatal("Expected non-empty search method")
+	}
+}
+
 func TestListDatabases(t *testing.T) {
 	client, ctx := setupClient(t)
 

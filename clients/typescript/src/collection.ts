@@ -1,7 +1,7 @@
 import { BSON } from 'bson';
 import { MongoClient } from './client';
 import { EventEmitter } from 'events';
-import type { Document, FindOptions, UpdateResult, InsertResult, InsertManyResult, ChangeEvent } from './types';
+import type { Document, FindOptions, UpdateResult, InsertResult, InsertManyResult, SearchResult, ChangeEvent } from './types';
 
 export class Collection {
   private client: MongoClient;
@@ -181,6 +181,26 @@ export class Collection {
         if (err) return reject(err);
         const docs = (response.documents || []).map((d: any) => this.decodeBson(d.data));
         resolve(docs);
+      });
+    });
+  }
+
+  async search(query: string, limit: number = 10): Promise<SearchResult> {
+    return new Promise((resolve, reject) => {
+      const request = {
+        database: this.database,
+        collection: this.name,
+        query,
+        limit,
+      };
+      this.client.getGrpcClient().search(request, (err: any, response: any) => {
+        if (err) return reject(err);
+        const docs = (response.documents || []).map((d: any) => this.decodeBson(d.data));
+        resolve({
+          documents: docs,
+          method: response.method,
+          total: response.total,
+        });
       });
     });
   }

@@ -32,6 +32,9 @@ service MongoCore {
   rpc ListDatabases(ListDatabasesRequest) returns (ListDatabasesResponse);
   rpc ListCollections(ListCollectionsRequest) returns (ListCollectionsResponse);
 
+  // Search
+  rpc Search(SearchRequest) returns (SearchResponse);
+
   // Streaming
   rpc Watch(WatchRequest) returns (stream WatchEvent);
 }
@@ -222,6 +225,21 @@ message ListCollectionsRequest {
 
 message ListCollectionsResponse {
   repeated string collections = 1;
+}
+
+// ==================== Search ====================
+
+message SearchRequest {
+  string database = 1;
+  string collection = 2;
+  string query = 3;
+  int64 limit = 4;
+}
+
+message SearchResponse {
+  repeated Document documents = 1;
+  string method = 2;  // "vector", "fulltext", or "filter"
+  int64 total = 3;
 }
 
 // ==================== Streaming ====================

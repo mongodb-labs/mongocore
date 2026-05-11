@@ -186,6 +186,21 @@ async def test_watch():
 
 
 @pytest.mark.asyncio
+async def test_search():
+    async with MongoClient("localhost:50051") as client:
+        coll = client["mongocore_client_test"]["py_test_search"]
+        await coll.insert_many([
+            {"title": "rust programming guide", "content": "learn rust basics"},
+            {"title": "python basics", "content": "learn python programming"},
+            {"title": "rust advanced patterns", "content": "advanced rust techniques"},
+        ])
+        result = await coll.search("rust", limit=10)
+        assert result["method"] in ("vector", "fulltext", "filter")
+        assert result["total"] >= 2
+        assert len(result["documents"]) >= 2
+
+
+@pytest.mark.asyncio
 async def test_list_databases():
     async with MongoClient("localhost:50051") as client:
         databases = await client.list_databases()

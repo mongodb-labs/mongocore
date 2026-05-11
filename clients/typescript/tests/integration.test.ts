@@ -170,6 +170,21 @@ describe('Change streams', () => {
   }, 10000);
 });
 
+describe('Search operations', () => {
+  test('search', async () => {
+    const coll = client.db(TEST_DB).collection(uniqueCollection() + '_search');
+    await coll.insertMany([
+      { title: 'rust programming guide', content: 'learn rust basics' },
+      { title: 'python basics', content: 'learn python programming' },
+      { title: 'rust advanced patterns', content: 'advanced rust techniques' },
+    ]);
+    const result = await coll.search('rust', 10);
+    expect(['vector', 'fulltext', 'filter']).toContain(result.method);
+    expect(result.total).toBeGreaterThanOrEqual(2);
+    expect(result.documents.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
 describe('Database operations', () => {
   test('list databases', async () => {
     const databases = await client.listDatabases();
