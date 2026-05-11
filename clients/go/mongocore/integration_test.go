@@ -161,6 +161,49 @@ func TestDeleteOne(t *testing.T) {
 	}
 }
 
+func TestDeleteMany(t *testing.T) {
+	client, ctx := setupClient(t)
+	coll := client.Database(testDB).Collection(uniqueCollection() + "_delete_many")
+
+	coll.InsertMany(ctx, []bson.D{
+		{{Key: "group", Value: "A"}},
+		{{Key: "group", Value: "A"}},
+		{{Key: "group", Value: "B"}},
+	})
+
+	count, err := coll.DeleteMany(ctx, bson.D{{Key: "group", Value: "A"}})
+	if err != nil {
+		t.Fatalf("DeleteMany failed: %v", err)
+	}
+	if count != 2 {
+		t.Fatalf("Expected 2 deleted, got %d", count)
+	}
+
+	docs, _ := coll.Find(ctx, bson.D{}, nil)
+	if len(docs) != 1 {
+		t.Fatalf("Expected 1 remaining, got %d", len(docs))
+	}
+}
+
+func TestFindWithLimit(t *testing.T) {
+	client, ctx := setupClient(t)
+	coll := client.Database(testDB).Collection(uniqueCollection() + "_find_limit")
+
+	docs := make([]bson.D, 10)
+	for i := range docs {
+		docs[i] = bson.D{{Key: "i", Value: i}}
+	}
+	coll.InsertMany(ctx, docs)
+
+	results, err := coll.Find(ctx, bson.D{}, &mongocore.FindOptions{Limit: 3})
+	if err != nil {
+		t.Fatalf("Find with limit failed: %v", err)
+	}
+	if len(results) != 3 {
+		t.Fatalf("Expected 3 documents, got %d", len(results))
+	}
+}
+
 func TestAggregate(t *testing.T) {
 	client, ctx := setupClient(t)
 	coll := client.Database(testDB).Collection(uniqueCollection() + "_aggregate")
