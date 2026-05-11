@@ -65,7 +65,7 @@ Subsystem 7: Deployment & Packaging (binaries, containers, auto-download)
 
 **Testing approach:**
 - Unit tests for config parsing, BSON helpers, default application.
-- Integration tests require a running MongoDB instance (use `docker compose` with a replica set for transaction support).
+- Integration tests use the `mongodb/atlas` Docker image (`docker compose`) which provides a local Atlas-like environment with replica set, vector search, and Atlas Search support.
 - Each operation tested with golden-path + error cases.
 
 **Startup capability logging:**
@@ -273,7 +273,7 @@ service MongoCore {
 
 **Files to create:**
 - `Dockerfile` — multi-stage build (Rust build → minimal runtime image, ~20MB)
-- `docker-compose.yml` — local development (sidecar + MongoDB replica set)
+- `docker-compose.yml` — local development (sidecar + `mongodb/atlas` container for full Atlas feature parity)
 - `.github/workflows/build.yml` — CI: test + build for linux/mac/windows × amd64/arm64
 - `.github/workflows/release.yml` — release: build binaries, publish container image, update client packages
 - `config/default.toml` — default configuration with comments
@@ -289,7 +289,7 @@ service MongoCore {
 - Structured JSON logging to stdout.
 
 **Testing approach:**
-- CI runs integration tests against a containerized MongoDB replica set.
+- CI runs integration tests against the `mongodb/atlas` Docker container (full Atlas feature set locally).
 - Release workflow builds all platform binaries, runs smoke tests, then publishes.
 
 ---
@@ -307,7 +307,7 @@ service MongoCore {
 - `tests/harness/mock_llm.rs` — mock LLM server (returns deterministic MQL for known intents)
 - `tests/harness/mock_voyage.rs` — mock Voyage AI server (returns deterministic embeddings)
 - `tests/harness/fixtures/` — test data (sample documents, expected query results, compiled query snapshots)
-- `docker-compose.test.yml` — MongoDB 7.0 replica set (3 nodes) + Atlas Search emulation
+- `docker-compose.test.yml` — `mongodb/atlas` local container (provides Atlas features: vector search, Atlas Search, change streams)
 - `Makefile` or `justfile` — test runner commands (`test-unit`, `test-integration`, `test-e2e`, `test-perf`)
 
 ### Test Tiers
@@ -315,7 +315,7 @@ service MongoCore {
 | Tier | What | Dependencies | Speed | When to Run |
 |------|------|-------------|-------|-------------|
 | **Unit** | Pure logic: config parsing, hash determinism, BSON helpers, MQL validation, template extraction, fallback logic | None | <5s total | Every commit |
-| **Integration** | Each subsystem against real MongoDB: CRUD, transactions, gRPC endpoints, MCP tools, cache hierarchy | MongoDB container | <60s total | Every PR |
+| **Integration** | Each subsystem against real MongoDB: CRUD, transactions, gRPC endpoints, MCP tools, cache hierarchy, vector search, Atlas Search | `mongodb/atlas` container | <60s total | Every PR |
 | **End-to-End** | Full flow: language client → gRPC → sidecar → MongoDB. MCP agent → tool call → result. NL query → LLM → compiled → cached → re-executed | MongoDB + sidecar process + mock LLM + mock Voyage | <120s total | Every PR |
 | **Performance** | Latency benchmarks, throughput under load, cache hit/miss ratios, connection pool behavior | MongoDB + sidecar process | ~5min | Nightly / pre-release |
 
@@ -323,7 +323,7 @@ service MongoCore {
 
 | Component | Unit Tests | Integration Tests | E2E Tests | Performance Tests |
 |-----------|-----------|-------------------|-----------|-------------------|
-| MongoDB | Mock (in-memory ops) | Real (container) | Real (container) | Real (container) |
+| MongoDB | Mock (in-memory ops) | Real (`mongodb/atlas` container) | Real (`mongodb/atlas` container) | Real (`mongodb/atlas` container) |
 | Sidecar | N/A (testing internals) | In-process (library mode) | Separate process | Separate process |
 | LLM Provider | N/A | Mock server | Mock server | Mock server |
 | Voyage AI | N/A | Mock server | Mock server | Mock server (or real, optional) |
@@ -521,4 +521,4 @@ Phases 2's subsystems can be built in parallel. Phase 4's subsystems can be buil
 - [ ] Python and TypeScript clients ship with dev-mode sidecar management
 - [ ] Container image and multi-platform binaries available
 - [ ] Startup logs available capabilities
-- [ ] Integration test suite passes against MongoDB 7.0+ replica set
+- [ ] Integration test suite passes against `mongodb/atlas` local container (vector search, Atlas Search, transactions)
