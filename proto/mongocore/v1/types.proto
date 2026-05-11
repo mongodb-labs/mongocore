@@ -1,0 +1,43 @@
+syntax = "proto3";
+package mongocore.v1;
+
+// A BSON document represented as raw bytes (avoids double-serialization)
+message Document {
+  bytes data = 1;
+}
+
+message Filter {
+  bytes data = 1;  // BSON filter document
+}
+
+message Pipeline {
+  repeated bytes stages = 1;  // Each stage is a BSON document
+}
+
+message FindOptions {
+  optional int64 limit = 1;
+  optional int64 skip = 2;
+  optional bytes sort = 3;       // BSON document
+  optional bytes projection = 4; // BSON document
+}
+
+message IndexOptions {
+  optional string name = 1;
+  optional bool unique = 2;
+  optional bool sparse = 3;
+}
+
+message FindAndModifyOptions {
+  enum ReturnDocument {
+    BEFORE = 0;
+    AFTER = 1;
+  }
+  ReturnDocument return_document = 1;
+  bool upsert = 2;
+  optional bytes sort = 3;  // BSON document
+}
+
+// Common metadata in responses
+message ResponseMetadata {
+  string search_method = 1;  // "vector", "fulltext", "compiled_query", ""
+}

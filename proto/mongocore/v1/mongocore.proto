@@ -1,0 +1,248 @@
+syntax = "proto3";
+package mongocore.v1;
+
+import "mongocore/v1/types.proto";
+
+service MongoCore {
+  // CRUD
+  rpc Find(FindRequest) returns (FindResponse);
+  rpc FindOne(FindOneRequest) returns (FindOneResponse);
+  rpc Insert(InsertRequest) returns (InsertResponse);
+  rpc InsertMany(InsertManyRequest) returns (InsertManyResponse);
+  rpc Update(UpdateRequest) returns (UpdateResponse);
+  rpc UpdateMany(UpdateManyRequest) returns (UpdateManyResponse);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  rpc DeleteMany(DeleteManyRequest) returns (DeleteManyResponse);
+  rpc FindAndModify(FindAndModifyRequest) returns (FindAndModifyResponse);
+
+  // Aggregation
+  rpc Aggregate(AggregateRequest) returns (AggregateResponse);
+
+  // Transactions
+  rpc BeginTransaction(BeginTransactionRequest) returns (BeginTransactionResponse);
+  rpc CommitTransaction(CommitTransactionRequest) returns (CommitTransactionResponse);
+  rpc AbortTransaction(AbortTransactionRequest) returns (AbortTransactionResponse);
+
+  // Admin
+  rpc CreateCollection(CreateCollectionRequest) returns (CreateCollectionResponse);
+  rpc CreateIndex(CreateIndexRequest) returns (CreateIndexResponse);
+
+  // Introspection
+  rpc ListDatabases(ListDatabasesRequest) returns (ListDatabasesResponse);
+  rpc ListCollections(ListCollectionsRequest) returns (ListCollectionsResponse);
+
+  // Streaming
+  rpc Watch(WatchRequest) returns (stream WatchEvent);
+}
+
+// ==================== CRUD Requests/Responses ====================
+
+message FindRequest {
+  string database = 1;
+  string collection = 2;
+  Filter filter = 3;
+  FindOptions options = 4;
+  optional string transaction_id = 5;
+}
+
+message FindResponse {
+  repeated Document documents = 1;
+  ResponseMetadata metadata = 2;
+}
+
+message FindOneRequest {
+  string database = 1;
+  string collection = 2;
+  Filter filter = 3;
+  FindOptions options = 4;
+  optional string transaction_id = 5;
+}
+
+message FindOneResponse {
+  optional Document document = 1;
+  ResponseMetadata metadata = 2;
+}
+
+message InsertRequest {
+  string database = 1;
+  string collection = 2;
+  Document document = 3;
+  optional string transaction_id = 4;
+}
+
+message InsertResponse {
+  string inserted_id = 1;  // Stringified ObjectId or equivalent
+}
+
+message InsertManyRequest {
+  string database = 1;
+  string collection = 2;
+  repeated Document documents = 3;
+  optional string transaction_id = 4;
+}
+
+message InsertManyResponse {
+  repeated string inserted_ids = 1;
+  int64 inserted_count = 2;
+}
+
+message UpdateRequest {
+  string database = 1;
+  string collection = 2;
+  Filter filter = 3;
+  Document update = 4;  // BSON update document (e.g. {$set: {...}})
+  bool upsert = 5;
+  optional string transaction_id = 6;
+}
+
+message UpdateResponse {
+  int64 matched_count = 1;
+  int64 modified_count = 2;
+  optional string upserted_id = 3;
+}
+
+message UpdateManyRequest {
+  string database = 1;
+  string collection = 2;
+  Filter filter = 3;
+  Document update = 4;
+  bool upsert = 5;
+  optional string transaction_id = 6;
+}
+
+message UpdateManyResponse {
+  int64 matched_count = 1;
+  int64 modified_count = 2;
+  optional string upserted_id = 3;
+}
+
+message DeleteRequest {
+  string database = 1;
+  string collection = 2;
+  Filter filter = 3;
+  optional string transaction_id = 4;
+}
+
+message DeleteResponse {
+  int64 deleted_count = 1;
+}
+
+message DeleteManyRequest {
+  string database = 1;
+  string collection = 2;
+  Filter filter = 3;
+  optional string transaction_id = 4;
+}
+
+message DeleteManyResponse {
+  int64 deleted_count = 1;
+}
+
+message FindAndModifyRequest {
+  string database = 1;
+  string collection = 2;
+  Filter filter = 3;
+  Document update = 4;
+  FindAndModifyOptions options = 5;
+  optional string transaction_id = 6;
+}
+
+message FindAndModifyResponse {
+  optional Document document = 1;  // The document before or after modification
+}
+
+// ==================== Aggregation ====================
+
+message AggregateRequest {
+  string database = 1;
+  string collection = 2;
+  Pipeline pipeline = 3;
+  optional string transaction_id = 4;
+}
+
+message AggregateResponse {
+  repeated Document documents = 1;
+  ResponseMetadata metadata = 2;
+}
+
+// ==================== Transactions ====================
+
+message BeginTransactionRequest {
+  string database = 1;
+}
+
+message BeginTransactionResponse {
+  string transaction_id = 1;
+}
+
+message CommitTransactionRequest {
+  string transaction_id = 1;
+}
+
+message CommitTransactionResponse {}
+
+message AbortTransactionRequest {
+  string transaction_id = 1;
+}
+
+message AbortTransactionResponse {}
+
+// ==================== Admin ====================
+
+message CreateCollectionRequest {
+  string database = 1;
+  string collection = 2;
+}
+
+message CreateCollectionResponse {}
+
+message CreateIndexRequest {
+  string database = 1;
+  string collection = 2;
+  Document keys = 3;  // BSON document specifying index keys
+  IndexOptions options = 4;
+}
+
+message CreateIndexResponse {
+  string index_name = 1;
+}
+
+// ==================== Introspection ====================
+
+message ListDatabasesRequest {}
+
+message ListDatabasesResponse {
+  repeated string databases = 1;
+}
+
+message ListCollectionsRequest {
+  string database = 1;
+}
+
+message ListCollectionsResponse {
+  repeated string collections = 1;
+}
+
+// ==================== Streaming ====================
+
+message WatchRequest {
+  string database = 1;
+  optional string collection = 2;  // If empty, watch whole database
+  Pipeline pipeline = 3;           // Optional aggregation pipeline to filter events
+}
+
+message WatchEvent {
+  enum OperationType {
+    INSERT = 0;
+    UPDATE = 1;
+    DELETE = 2;
+    REPLACE = 3;
+    INVALIDATE = 4;
+  }
+  OperationType operation_type = 1;
+  string database = 2;
+  string collection = 3;
+  optional Document document = 4;       // Full document (for insert/update/replace)
+  optional Document update_description = 5; // For update events: {updatedFields, removedFields}
+  optional Document document_key = 6;   // The _id of the affected document
+}
