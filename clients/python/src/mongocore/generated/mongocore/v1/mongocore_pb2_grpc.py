@@ -3,7 +3,7 @@
 import grpc
 import warnings
 
-from mongocore.v1 import mongocore_pb2 as mongocore_dot_v1_dot_mongocore__pb2
+from . import mongocore_pb2 as mongocore_dot_v1_dot_mongocore__pb2
 
 GRPC_GENERATED_VERSION = '1.80.0'
 GRPC_VERSION = grpc.__version__

@@ -4,6 +4,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import mongocore.v1.MongoCoreGrpc;
 import mongocore.v1.Mongocore;
+import mongocore.v1.Ingestion;
 import org.bson.Document;
 
 import java.util.List;
@@ -77,84 +78,80 @@ public class MongoClient implements AutoCloseable {
 
     // --- Ingestion Methods ---
 
-    public record IngestOptions(String source, String database, String collection, String format) {
-        public IngestOptions(String source, String database, String collection) {
-            this(source, database, collection, "auto");
+    public record IngestOptions(String filePath, String database, String collection, Ingestion.FileFormat format) {
+        public IngestOptions(String filePath, String database, String collection) {
+            this(filePath, database, collection, Ingestion.FileFormat.FILE_FORMAT_AUTO);
         }
     }
 
-    public record IngestResult(String jobId, String status) {}
+    public record IngestResult(String jobId, Ingestion.IngestJobStatus status, long totalRows) {}
 
-    public record IngestJob(String jobId, String status, String source, String database, String collection) {}
+    public record IngestJob(String jobId, String filePath, String database, String collection,
+                            Ingestion.IngestJobStatus status, long totalRows, long rowsProcessed) {}
 
-    public record WatchOptions(String directory, String database, String collection, String format) {
-        public WatchOptions(String directory, String database, String collection) {
-            this(directory, database, collection, "auto");
-        }
-    }
+    public record WatchOptions(String path, String database, String collection) {}
 
-    public record WatchResult(String watchId, String status) {}
+    public record WatchResult(String watchId, boolean success) {}
 
     public IngestResult ingest(IngestOptions options) {
         MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
-        Mongocore.IngestResponse resp = stub.ingest(
-                Mongocore.IngestRequest.newBuilder()
-                        .setSource(options.source())
+        Ingestion.IngestResponse resp = stub.ingest(
+                Ingestion.IngestRequest.newBuilder()
+                        .setFilePath(options.filePath())
                         .setDatabase(options.database())
                         .setCollection(options.collection())
                         .setFormat(options.format())
                         .build());
-        return new IngestResult(resp.getJobId(), resp.getStatus());
+        return new IngestResult(resp.getJobId(), resp.getStatus(), resp.getTotalRows());
     }
 
     public IngestJob ingestStatus(String jobId) {
         MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
-        Mongocore.IngestStatusResponse resp = stub.ingestStatus(
-                Mongocore.IngestStatusRequest.newBuilder()
+        Ingestion.GetIngestStatusResponse resp = stub.getIngestStatus(
+                Ingestion.GetIngestStatusRequest.newBuilder()
                         .setJobId(jobId)
                         .build());
-        return new IngestJob(resp.getJobId(), resp.getStatus(), resp.getSource(),
-                resp.getDatabase(), resp.getCollection());
+        return new IngestJob(resp.getJobId(), "", "", "",
+                resp.getStatus(), resp.getTotalRows(), resp.getRowsProcessed());
     }
 
     public List<IngestJob> listIngestJobs() {
         MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
-        Mongocore.ListIngestJobsResponse resp = stub.listIngestJobs(
-                Mongocore.ListIngestJobsRequest.newBuilder().build());
+        Ingestion.ListIngestJobsResponse resp = stub.listIngestJobs(
+                Ingestion.ListIngestJobsRequest.newBuilder().build());
         return resp.getJobsList().stream()
-                .map(j -> new IngestJob(j.getJobId(), j.getStatus(), j.getSource(),
-                        j.getDatabase(), j.getCollection()))
+                .map(j -> new IngestJob(j.getJobId(), j.getFilePath(), j.getDatabase(),
+                        j.getCollection(), j.getStatus(), j.getTotalRows(), j.getRowsProcessed()))
                 .toList();
     }
 
-    public IngestResult cancelIngest(String jobId) {
+    public boolean cancelIngest(String jobId) {
         MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
-        Mongocore.CancelIngestResponse resp = stub.cancelIngest(
-                Mongocore.CancelIngestRequest.newBuilder()
+        Ingestion.CancelIngestResponse resp = stub.cancelIngest(
+                Ingestion.CancelIngestRequest.newBuilder()
                         .setJobId(jobId)
                         .build());
-        return new IngestResult(resp.getJobId(), resp.getStatus());
+        return resp.getSuccess();
     }
 
     public WatchResult watchDirectory(WatchOptions options) {
         MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
-        Mongocore.WatchDirectoryResponse resp = stub.watchDirectory(
-                Mongocore.WatchDirectoryRequest.newBuilder()
-                        .setDirectory(options.directory())
+        Ingestion.WatchDirectoryResponse resp = stub.watchDirectory(
+                Ingestion.WatchDirectoryRequest.newBuilder()
+                        .setPath(options.path())
                         .setDatabase(options.database())
                         .setCollection(options.collection())
-                        .setFormat(options.format())
                         .build());
-        return new WatchResult(resp.getWatchId(), resp.getStatus());
+        return new WatchResult(resp.getWatchId(), true);
     }
 
     public WatchResult stopWatch(String watchId) {
         MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
-        Mongocore.StopWatchResponse resp = stub.stopWatch(
-                Mongocore.StopWatchRequest.newBuilder()
+        Ingestion.StopWatchResponse resp = stub.stopWatch(
+                Ingestion.StopWatchRequest.newBuilder()
                         .setWatchId(watchId)
                         .build());
-        return new WatchResult(resp.getWatchId(), resp.getStatus());
+        return new WatchResult(watchId, resp.getSuccess());
     }
 
     ManagedChannel getChannel() {
