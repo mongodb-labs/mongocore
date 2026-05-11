@@ -6,6 +6,8 @@ pub mod reader;
 pub mod schema;
 pub mod transform;
 pub mod types;
+pub mod watch;
 pub mod writer;
 pub use engine::IngestionEngine;
 pub use types::*;
+pub use watch::DirectoryWatcher;
