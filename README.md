@@ -11,7 +11,9 @@ An AI-native MongoDB driver implemented as a lightweight Rust sidecar. MongoCore
 - **Rust sidecar architecture** - One fast core serves every language via gRPC
 - **AI-native from the outset** - MCP interface for AI agents alongside gRPC for applications
 - **Compiled queries** - Natural language queries translated once by an LLM, cached and reused at native speed
-- **Voyage AI integration** - Auto-embed on write, semantic vector search, reranking
+- **Voyage AI integration** - Embeddings, semantic vector search, and automatic fallback chain
+- **Atlas Search & Vector Search** - Full-text and vector search with `readConcern:local` handled automatically
+- **Change streams** - Real-time Watch with auto-close semantics in all languages
 - **Polyglot clients** - Python, TypeScript, Go, and Java libraries with idiomatic APIs
 - **Opinionated defaults** - Majority write/read concern, retryable operations, sensible timeouts
 
@@ -74,6 +76,11 @@ async with MongoClient("localhost:50051") as client:
     users = client["myapp"]["users"]
     await users.insert_one({"name": "Alice", "age": 30})
     docs = await users.find({"age": {"$gte": 25}})
+
+    # Change streams with auto-close
+    async with users.watch() as stream:
+        async for event in stream:
+            print(event["operation_type"], event["document"])
 ```
 
 **TypeScript:**
@@ -84,6 +91,12 @@ const client = new MongoClient('localhost:50051');
 await client.connect();
 const users = client.db('myapp').collection('users');
 await users.insertOne({ name: 'Alice', age: 30 });
+
+// Change streams with auto-dispose
+await using stream = users.watch();
+for await (const event of stream) {
+  console.log(event.operationType, event.document);
+}
 ```
 
 **Go:**
@@ -92,6 +105,15 @@ client := mongocore.NewClient("localhost:50051")
 client.Connect(ctx)
 users := client.Database("myapp").Collection("users")
 users.InsertOne(ctx, bson.D{{Key: "name", Value: "Alice"}, {Key: "age", Value: 30}})
+
+// Change streams with io.Closer
+cs, _ := users.Watch(ctx, nil)
+defer cs.Close()
+for {
+    event, err := cs.Next()
+    if err != nil { break }
+    fmt.Println(event.OperationType, event.Document)
+}
 ```
 
 **Java:**
@@ -99,6 +121,13 @@ users.InsertOne(ctx, bson.D{{Key: "name", Value: "Alice"}, {Key: "age", Value: 3
 try (MongoClient client = MongoClient.create("localhost:50051")) {
     MongoCollection users = client.getDatabase("myapp").getCollection("users");
     users.insertOne(new Document("name", "Alice").append("age", 30));
+
+    // Change streams with AutoCloseable
+    try (ChangeStream stream = users.watch()) {
+        for (ChangeEvent event : stream) {
+            System.out.println(event.getOperationType() + ": " + event.getDocument());
+        }
+    }
 }
 ```
 
@@ -168,11 +197,11 @@ just test-unit
 Integration tests run against `mongodb/mongodb-atlas-local`, which provides Atlas Vector Search, Atlas Search, and replica set support locally:
 
 ```bash
-# Start test MongoDB
+# Start test MongoDB (Atlas Local with vector search, Atlas Search, replica set)
 just docker-up
 # or: docker compose -f docker-compose.test.yml up -d
 
-# Run Rust integration tests
+# Run Rust integration tests (CRUD, search, transactions, admin)
 just test-integration
 # or: cargo test --test integration
 
@@ -180,6 +209,14 @@ just test-integration
 just docker-down
 # or: docker compose -f docker-compose.test.yml down
 ```
+
+The Rust integration suite includes:
+- CRUD operations, aggregation, transactions
+- Atlas Vector Search end-to-end (with pre-computed embeddings)
+- Atlas Full-Text Search end-to-end
+- Search fallback chain (vector → fulltext → filter)
+- Change streams (Watch)
+- Admin operations (indexes, collections, databases)
 
 ### Client Integration Tests
 
@@ -199,10 +236,12 @@ just test-go
 just test-java
 ```
 
+Each client has 10 integration tests covering: insert, insertMany, findOne, updateOne, deleteOne, deleteMany, aggregate, findWithLimit, watch (change streams), and listDatabases.
+
 ### Run Everything
 
 ```bash
-# Rust tests + all client integration tests
+# Rust tests (94 unit + 53 integration) + all client tests (40 total)
 just test-all
 ```
 
@@ -232,6 +271,7 @@ MongoCore enforces safe defaults that eliminate common footguns:
 | Read preference | `primaryPreferred` | Balances freshness and availability |
 | Query timeout | 30s | Prevents runaway queries |
 | Aggregation timeout | 60s | Allows complex pipelines |
+| Search read concern | `local` | Required by `$search`/`$vectorSearch` (auto-detected) |
 
 ## Project Structure
 
@@ -247,41 +287,42 @@ mongocore/
 │   ├── compiled/            # NL→MQL translation, 3-level cache, templates
 │   ├── search/              # Vector search, full-text, fallback chain
 │   └── voyage/              # Voyage AI REST client, batch embeddings
-├── proto/                   # Protobuf service definitions
+├── proto/                   # Protobuf service definitions (18 RPCs)
 ├── clients/
-│   ├── python/              # Python client (async, BSON-native)
-│   ├── typescript/          # TypeScript/Node.js client
-│   ├── go/                  # Go client
-│   └── java/                # Java client (AutoCloseable, builder pattern)
+│   ├── python/              # Python client (async, BSON-native, change streams)
+│   ├── typescript/          # TypeScript/Node.js client (AsyncDisposable streams)
+│   ├── go/                  # Go client (io.Closer streams)
+│   └── java/                # Java client (AutoCloseable, try-with-resources)
 ├── docs/                    # Comprehensive documentation
-├── tests/                   # Integration tests + harness
-├── docker-compose.test.yml  # Atlas Local for testing
+├── tests/                   # Integration tests (search, CRUD, transactions, watch)
+├── docker-compose.test.yml  # Atlas Local for testing (vector search, Atlas Search)
 ├── Dockerfile               # Multi-stage production build
-└── justfile                 # Task runner commands
+└── justfile                 # Task runner (test-all, test-clients, docker-up/down)
 ```
 
-## Recent Changes
+## v1 Feature Set
 
-- **gRPC client wiring** — All four clients fully functional end-to-end with integration tests
-- **Unified test runner** — `just test-all` runs Rust + Python + TypeScript + Go + Java tests
-- **Polyglot client libraries** — Python, TypeScript, Go, and Java wrappers with `MongoClient` API
-- **Comprehensive documentation** — Full docs with examples in all four languages
-- **MCP server** — 13 tools for AI agent interaction with safety controls
+- **18 gRPC RPCs** — Find, FindOne, Insert, InsertMany, Update, UpdateMany, Delete, DeleteMany, FindAndModify, Aggregate, BeginTransaction, CommitTransaction, AbortTransaction, CreateCollection, CreateIndex, ListDatabases, ListCollections, Watch
+- **Change streams (Watch)** — Server-streaming RPC with auto-close in all clients (Python `async with`, TypeScript `AsyncDisposable`, Go `io.Closer`, Java `AutoCloseable`)
+- **Search fallback chain** — Vector search → Atlas full-text → `$text` filter, with automatic fallthrough on empty results
+- **Atlas Vector Search** — `$vectorSearch` with Voyage AI embeddings, tested end-to-end against Atlas Local
+- **Atlas Full-Text Search** — `$search` with dynamic mappings, tested end-to-end against Atlas Local
 - **Compiled queries** — NL→MQL with in-memory, disk, and Atlas caching
-- **Voyage AI integration** — Embeddings + vector search with automatic fallback
-- **Change streams** — Real-time Watch via server-streaming gRPC
+- **MCP server** — 13 tools for AI agent interaction with safety controls
+- **Polyglot clients** — Python, TypeScript, Go, and Java with full CRUD + Watch
+- **Unified test runner** — `just test-all` runs 94 unit + 53 integration + 40 client tests
 - **Deployment infrastructure** — Dockerfile, GitHub Actions CI/CD, installer script
 
 ## Roadmap
 
-| Version | Focus |
-|---------|-------|
-| **v1** | Core sidecar, gRPC + MCP interfaces, compiled queries, Voyage AI integration |
-| **v2** | Power user features, query analytics, multi-tenant support |
-| **v3** | Intelligent data ingestion (LLM-powered ETL) |
-| **v4** | Migration paths, framework adapters (Mongoose, Spring Data, etc.) |
-| **v5** | Self-contained AI (local NL-MQL model) |
-| **v6** | WASM, browser client, plugin system |
+| Version | Focus | Status |
+|---------|-------|--------|
+| **v1** | Core sidecar, gRPC + MCP interfaces, compiled queries, Voyage AI, change streams | **Complete** |
+| **v2** | Power user features, query analytics, multi-tenant support | Planned |
+| **v3** | Intelligent data ingestion (LLM-powered ETL) | Planned |
+| **v4** | Migration paths, framework adapters (Mongoose, Spring Data, etc.) | Planned |
+| **v5** | Self-contained AI (local NL-MQL model) | Planned |
+| **v6** | WASM, browser client, plugin system | Planned |
 
 ## License
 
