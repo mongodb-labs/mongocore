@@ -4,6 +4,8 @@ use tracing_subscriber::EnvFilter;
 
 use mongocore::config::{CliArgs, Config};
 use mongocore::connection::ConnectionPool;
+use mongocore::grpc::start_grpc_server;
+use mongocore::mcp::start_mcp_server;
 
 #[tokio::main]
 async fn main() {
@@ -25,16 +27,38 @@ async fn main() {
     print_banner(&config);
 
     // Connect to MongoDB and detect capabilities
-    let _pool = match ConnectionPool::connect(&config).await {
-        Ok(pool) => {
-            info!("MongoCore started successfully");
-            pool
-        }
+    let pool = match ConnectionPool::connect(&config).await {
+        Ok(pool) => pool,
         Err(e) => {
             error!("Failed to connect to MongoDB: {e}");
             std::process::exit(1);
         }
     };
+
+    // Start gRPC server
+    let grpc_handle = start_grpc_server(pool.clone(), config.grpc_port);
+
+    // Start MCP server
+    let mcp_handle = start_mcp_server(pool.clone(), config.mcp_port);
+
+    info!("MongoCore started successfully");
+
+    // Wait for either server to exit (they run forever unless something fails)
+    tokio::select! {
+        result = grpc_handle => {
+            match result {
+                Ok(Ok(())) => info!("gRPC server shut down"),
+                Ok(Err(e)) => error!("gRPC server error: {e}"),
+                Err(e) => error!("gRPC server task panicked: {e}"),
+            }
+        }
+        result = mcp_handle => {
+            match result {
+                Ok(()) => info!("MCP server shut down"),
+                Err(e) => error!("MCP server task panicked: {e}"),
+            }
+        }
+    }
 }
 
 fn print_banner(config: &Config) {
