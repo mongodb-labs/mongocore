@@ -1,12 +1,13 @@
 use clap::Parser;
 use std::sync::Arc;
-use tracing::{error, info};
+use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
 
 use mongocore::analytics::AnalyticsCollector;
 use mongocore::config::{CliArgs, Config};
 use mongocore::connection::ConnectionPool;
 use mongocore::grpc::start_grpc_server;
+use mongocore::ingestion::{DirectoryWatcher, IngestionEngine};
 use mongocore::mcp::start_mcp_server;
 
 #[tokio::main]
@@ -49,11 +50,56 @@ async fn main() {
         None
     };
 
+    // Initialize ingestion engine if enabled
+    let (ingestion_engine, directory_watcher) = if config.ingestion.enabled {
+        let engine = Arc::new(IngestionEngine::new(pool.client(), "__mongocore"));
+        let watcher = Arc::new(DirectoryWatcher::new(engine.clone(), pool.client().clone()));
+
+        // Auto-start watch if configured
+        if let Some(ref watch_config) = config.ingestion.watch {
+            if watch_config.enabled.unwrap_or(false) {
+                if let (Some(path), Some(database), Some(collection)) =
+                    (&watch_config.path, &watch_config.database, &watch_config.collection)
+                {
+                    let wc = mongocore::ingestion::watch::WatchConfig {
+                        path: std::path::PathBuf::from(path),
+                        file_pattern: watch_config
+                            .file_pattern
+                            .clone()
+                            .unwrap_or_else(|| "*.csv".to_string()),
+                        database: database.clone(),
+                        collection: collection.clone(),
+                        conflict_strategy: parse_conflict_strategy(
+                            watch_config.conflict_strategy.as_deref(),
+                        ),
+                        dedup_key: Vec::new(),
+                        debounce_ms: config.ingestion.watch_debounce_ms,
+                    };
+                    match watcher.start_watch(wc).await {
+                        Ok(id) => info!("Started directory watch: {}", id),
+                        Err(e) => warn!("Failed to start directory watch: {}", e),
+                    }
+                }
+            }
+        }
+
+        (Some(engine), Some(watcher))
+    } else {
+        (None, None)
+    };
+
     // Start gRPC server
-    let grpc_handle = start_grpc_server(pool.clone(), config.grpc_port, voyage_api_key.as_deref(), analytics.clone());
+    let grpc_handle = start_grpc_server(
+        pool.clone(),
+        config.grpc_port,
+        voyage_api_key.as_deref(),
+        analytics.clone(),
+        ingestion_engine.clone(),
+        directory_watcher.clone(),
+    );
 
     // Start MCP server
-    let mcp_handle = start_mcp_server(pool.clone(), config.mcp_port, analytics, None, None);
+    let mcp_handle = start_mcp_server(pool.clone(), config.mcp_port, analytics, ingestion_engine, directory_watcher);
 
     info!("MongoCore started successfully");
 
@@ -72,6 +118,14 @@ async fn main() {
                 Err(e) => error!("MCP server task panicked: {e}"),
             }
         }
+    }
+}
+
+fn parse_conflict_strategy(s: Option<&str>) -> mongocore::ingestion::ConflictStrategy {
+    match s {
+        Some("overwrite") => mongocore::ingestion::ConflictStrategy::Overwrite,
+        Some("merge") => mongocore::ingestion::ConflictStrategy::Merge,
+        _ => mongocore::ingestion::ConflictStrategy::Skip,
     }
 }
 
