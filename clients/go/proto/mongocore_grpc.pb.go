@@ -40,6 +40,12 @@ const (
 	MongoCore_Watch_FullMethodName             = "/mongocore.v1.MongoCore/Watch"
 	MongoCore_RunCommand_FullMethodName        = "/mongocore.v1.MongoCore/RunCommand"
 	MongoCore_GetAnalytics_FullMethodName      = "/mongocore.v1.MongoCore/GetAnalytics"
+	MongoCore_Ingest_FullMethodName            = "/mongocore.v1.MongoCore/Ingest"
+	MongoCore_GetIngestStatus_FullMethodName   = "/mongocore.v1.MongoCore/GetIngestStatus"
+	MongoCore_ListIngestJobs_FullMethodName    = "/mongocore.v1.MongoCore/ListIngestJobs"
+	MongoCore_CancelIngest_FullMethodName      = "/mongocore.v1.MongoCore/CancelIngest"
+	MongoCore_WatchDirectory_FullMethodName    = "/mongocore.v1.MongoCore/WatchDirectory"
+	MongoCore_StopWatch_FullMethodName         = "/mongocore.v1.MongoCore/StopWatch"
 )
 
 // MongoCoreClient is the client API for MongoCore service.
@@ -76,6 +82,13 @@ type MongoCoreClient interface {
 	RunCommand(ctx context.Context, in *RunCommandRequest, opts ...grpc.CallOption) (*RunCommandResponse, error)
 	// Analytics
 	GetAnalytics(ctx context.Context, in *GetAnalyticsRequest, opts ...grpc.CallOption) (*GetAnalyticsResponse, error)
+	// Ingestion
+	Ingest(ctx context.Context, in *IngestRequest, opts ...grpc.CallOption) (*IngestResponse, error)
+	GetIngestStatus(ctx context.Context, in *GetIngestStatusRequest, opts ...grpc.CallOption) (*GetIngestStatusResponse, error)
+	ListIngestJobs(ctx context.Context, in *ListIngestJobsRequest, opts ...grpc.CallOption) (*ListIngestJobsResponse, error)
+	CancelIngest(ctx context.Context, in *CancelIngestRequest, opts ...grpc.CallOption) (*CancelIngestResponse, error)
+	WatchDirectory(ctx context.Context, in *WatchDirectoryRequest, opts ...grpc.CallOption) (*WatchDirectoryResponse, error)
+	StopWatch(ctx context.Context, in *StopWatchRequest, opts ...grpc.CallOption) (*StopWatchResponse, error)
 }
 
 type mongoCoreClient struct {
@@ -305,6 +318,66 @@ func (c *mongoCoreClient) GetAnalytics(ctx context.Context, in *GetAnalyticsRequ
 	return out, nil
 }
 
+func (c *mongoCoreClient) Ingest(ctx context.Context, in *IngestRequest, opts ...grpc.CallOption) (*IngestResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(IngestResponse)
+	err := c.cc.Invoke(ctx, MongoCore_Ingest_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mongoCoreClient) GetIngestStatus(ctx context.Context, in *GetIngestStatusRequest, opts ...grpc.CallOption) (*GetIngestStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetIngestStatusResponse)
+	err := c.cc.Invoke(ctx, MongoCore_GetIngestStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mongoCoreClient) ListIngestJobs(ctx context.Context, in *ListIngestJobsRequest, opts ...grpc.CallOption) (*ListIngestJobsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListIngestJobsResponse)
+	err := c.cc.Invoke(ctx, MongoCore_ListIngestJobs_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mongoCoreClient) CancelIngest(ctx context.Context, in *CancelIngestRequest, opts ...grpc.CallOption) (*CancelIngestResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CancelIngestResponse)
+	err := c.cc.Invoke(ctx, MongoCore_CancelIngest_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mongoCoreClient) WatchDirectory(ctx context.Context, in *WatchDirectoryRequest, opts ...grpc.CallOption) (*WatchDirectoryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(WatchDirectoryResponse)
+	err := c.cc.Invoke(ctx, MongoCore_WatchDirectory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mongoCoreClient) StopWatch(ctx context.Context, in *StopWatchRequest, opts ...grpc.CallOption) (*StopWatchResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(StopWatchResponse)
+	err := c.cc.Invoke(ctx, MongoCore_StopWatch_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MongoCoreServer is the server API for MongoCore service.
 // All implementations must embed UnimplementedMongoCoreServer
 // for forward compatibility.
@@ -339,6 +412,13 @@ type MongoCoreServer interface {
 	RunCommand(context.Context, *RunCommandRequest) (*RunCommandResponse, error)
 	// Analytics
 	GetAnalytics(context.Context, *GetAnalyticsRequest) (*GetAnalyticsResponse, error)
+	// Ingestion
+	Ingest(context.Context, *IngestRequest) (*IngestResponse, error)
+	GetIngestStatus(context.Context, *GetIngestStatusRequest) (*GetIngestStatusResponse, error)
+	ListIngestJobs(context.Context, *ListIngestJobsRequest) (*ListIngestJobsResponse, error)
+	CancelIngest(context.Context, *CancelIngestRequest) (*CancelIngestResponse, error)
+	WatchDirectory(context.Context, *WatchDirectoryRequest) (*WatchDirectoryResponse, error)
+	StopWatch(context.Context, *StopWatchRequest) (*StopWatchResponse, error)
 	mustEmbedUnimplementedMongoCoreServer()
 }
 
@@ -411,6 +491,24 @@ func (UnimplementedMongoCoreServer) RunCommand(context.Context, *RunCommandReque
 }
 func (UnimplementedMongoCoreServer) GetAnalytics(context.Context, *GetAnalyticsRequest) (*GetAnalyticsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAnalytics not implemented")
+}
+func (UnimplementedMongoCoreServer) Ingest(context.Context, *IngestRequest) (*IngestResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Ingest not implemented")
+}
+func (UnimplementedMongoCoreServer) GetIngestStatus(context.Context, *GetIngestStatusRequest) (*GetIngestStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetIngestStatus not implemented")
+}
+func (UnimplementedMongoCoreServer) ListIngestJobs(context.Context, *ListIngestJobsRequest) (*ListIngestJobsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListIngestJobs not implemented")
+}
+func (UnimplementedMongoCoreServer) CancelIngest(context.Context, *CancelIngestRequest) (*CancelIngestResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CancelIngest not implemented")
+}
+func (UnimplementedMongoCoreServer) WatchDirectory(context.Context, *WatchDirectoryRequest) (*WatchDirectoryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method WatchDirectory not implemented")
+}
+func (UnimplementedMongoCoreServer) StopWatch(context.Context, *StopWatchRequest) (*StopWatchResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method StopWatch not implemented")
 }
 func (UnimplementedMongoCoreServer) mustEmbedUnimplementedMongoCoreServer() {}
 func (UnimplementedMongoCoreServer) testEmbeddedByValue()                   {}
@@ -804,6 +902,114 @@ func _MongoCore_GetAnalytics_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MongoCore_Ingest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(IngestRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MongoCoreServer).Ingest(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MongoCore_Ingest_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MongoCoreServer).Ingest(ctx, req.(*IngestRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MongoCore_GetIngestStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetIngestStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MongoCoreServer).GetIngestStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MongoCore_GetIngestStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MongoCoreServer).GetIngestStatus(ctx, req.(*GetIngestStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MongoCore_ListIngestJobs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListIngestJobsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MongoCoreServer).ListIngestJobs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MongoCore_ListIngestJobs_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MongoCoreServer).ListIngestJobs(ctx, req.(*ListIngestJobsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MongoCore_CancelIngest_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CancelIngestRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MongoCoreServer).CancelIngest(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MongoCore_CancelIngest_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MongoCoreServer).CancelIngest(ctx, req.(*CancelIngestRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MongoCore_WatchDirectory_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(WatchDirectoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MongoCoreServer).WatchDirectory(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MongoCore_WatchDirectory_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MongoCoreServer).WatchDirectory(ctx, req.(*WatchDirectoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MongoCore_StopWatch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(StopWatchRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MongoCoreServer).StopWatch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MongoCore_StopWatch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MongoCoreServer).StopWatch(ctx, req.(*StopWatchRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MongoCore_ServiceDesc is the grpc.ServiceDesc for MongoCore service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -890,6 +1096,30 @@ var MongoCore_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetAnalytics",
 			Handler:    _MongoCore_GetAnalytics_Handler,
+		},
+		{
+			MethodName: "Ingest",
+			Handler:    _MongoCore_Ingest_Handler,
+		},
+		{
+			MethodName: "GetIngestStatus",
+			Handler:    _MongoCore_GetIngestStatus_Handler,
+		},
+		{
+			MethodName: "ListIngestJobs",
+			Handler:    _MongoCore_ListIngestJobs_Handler,
+		},
+		{
+			MethodName: "CancelIngest",
+			Handler:    _MongoCore_CancelIngest_Handler,
+		},
+		{
+			MethodName: "WatchDirectory",
+			Handler:    _MongoCore_WatchDirectory_Handler,
+		},
+		{
+			MethodName: "StopWatch",
+			Handler:    _MongoCore_StopWatch_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
