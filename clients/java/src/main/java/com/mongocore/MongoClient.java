@@ -75,6 +75,88 @@ public class MongoClient implements AutoCloseable {
         return codec.decode(reader, org.bson.codecs.DecoderContext.builder().build());
     }
 
+    // --- Ingestion Methods ---
+
+    public record IngestOptions(String source, String database, String collection, String format) {
+        public IngestOptions(String source, String database, String collection) {
+            this(source, database, collection, "auto");
+        }
+    }
+
+    public record IngestResult(String jobId, String status) {}
+
+    public record IngestJob(String jobId, String status, String source, String database, String collection) {}
+
+    public record WatchOptions(String directory, String database, String collection, String format) {
+        public WatchOptions(String directory, String database, String collection) {
+            this(directory, database, collection, "auto");
+        }
+    }
+
+    public record WatchResult(String watchId, String status) {}
+
+    public IngestResult ingest(IngestOptions options) {
+        MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
+        Mongocore.IngestResponse resp = stub.ingest(
+                Mongocore.IngestRequest.newBuilder()
+                        .setSource(options.source())
+                        .setDatabase(options.database())
+                        .setCollection(options.collection())
+                        .setFormat(options.format())
+                        .build());
+        return new IngestResult(resp.getJobId(), resp.getStatus());
+    }
+
+    public IngestJob ingestStatus(String jobId) {
+        MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
+        Mongocore.IngestStatusResponse resp = stub.ingestStatus(
+                Mongocore.IngestStatusRequest.newBuilder()
+                        .setJobId(jobId)
+                        .build());
+        return new IngestJob(resp.getJobId(), resp.getStatus(), resp.getSource(),
+                resp.getDatabase(), resp.getCollection());
+    }
+
+    public List<IngestJob> listIngestJobs() {
+        MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
+        Mongocore.ListIngestJobsResponse resp = stub.listIngestJobs(
+                Mongocore.ListIngestJobsRequest.newBuilder().build());
+        return resp.getJobsList().stream()
+                .map(j -> new IngestJob(j.getJobId(), j.getStatus(), j.getSource(),
+                        j.getDatabase(), j.getCollection()))
+                .toList();
+    }
+
+    public IngestResult cancelIngest(String jobId) {
+        MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
+        Mongocore.CancelIngestResponse resp = stub.cancelIngest(
+                Mongocore.CancelIngestRequest.newBuilder()
+                        .setJobId(jobId)
+                        .build());
+        return new IngestResult(resp.getJobId(), resp.getStatus());
+    }
+
+    public WatchResult watchDirectory(WatchOptions options) {
+        MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
+        Mongocore.WatchDirectoryResponse resp = stub.watchDirectory(
+                Mongocore.WatchDirectoryRequest.newBuilder()
+                        .setDirectory(options.directory())
+                        .setDatabase(options.database())
+                        .setCollection(options.collection())
+                        .setFormat(options.format())
+                        .build());
+        return new WatchResult(resp.getWatchId(), resp.getStatus());
+    }
+
+    public WatchResult stopWatch(String watchId) {
+        MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
+        Mongocore.StopWatchResponse resp = stub.stopWatch(
+                Mongocore.StopWatchRequest.newBuilder()
+                        .setWatchId(watchId)
+                        .build());
+        return new WatchResult(resp.getWatchId(), resp.getStatus());
+    }
+
     ManagedChannel getChannel() {
         return channel;
     }
