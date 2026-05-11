@@ -317,12 +317,12 @@ mongocore/
 
 | Version | Focus | Status |
 |---------|-------|--------|
-| **v1** | Core sidecar, gRPC + MCP interfaces, compiled queries, Voyage AI, change streams | **Complete** |
-| **v2** | Power user features, query analytics, multi-tenant support | Planned |
-| **v3** | Intelligent data ingestion (LLM-powered ETL) | Planned |
-| **v4** | Migration paths, framework adapters (Mongoose, Spring Data, etc.) | Planned |
-| **v5** | Self-contained AI (local NL-MQL model) | Planned |
-| **v6** | WASM, browser client, plugin system | Planned |
+| **v0.1** | Core sidecar, gRPC + MCP interfaces, compiled queries, Voyage AI, change streams | **Complete** |
+| **v0.2** | Power user features, query analytics, multi-tenant support | Planned |
+| **v0.3** | Intelligent data ingestion (LLM-powered ETL) | Planned |
+| **v0.4** | Migration paths, framework adapters (Mongoose, Spring Data, etc.) | Planned |
+| **v0.5** | Self-contained AI (local NL-MQL model) | Planned |
+| **v0.6** | WASM, browser client, plugin system | Planned |
 
 ## License
 
