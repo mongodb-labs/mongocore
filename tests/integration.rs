@@ -15,3 +15,6 @@ mod mcp_test;
 
 #[path = "integration/compiled_test.rs"]
 mod compiled_test;
+
+#[path = "integration/search_test.rs"]
+mod search_test;

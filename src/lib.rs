@@ -6,3 +6,5 @@ pub mod error;
 pub mod grpc;
 pub mod mcp;
 pub mod operations;
+pub mod search;
+pub mod voyage;
