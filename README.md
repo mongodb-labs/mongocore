@@ -33,6 +33,9 @@ Full documentation with language-specific examples is available in the [`docs/`]
 | [Admin Operations](./docs/admin-operations.md) | Collections, indexes, introspection |
 | [MCP Server](./docs/mcp-server.md) | AI agent integration via JSON-RPC |
 | [Client Libraries](./docs/client-libraries.md) | Language-specific setup and API reference |
+| [Raw Passthrough](./docs/raw-passthrough.md) | Arbitrary MongoDB commands for power users |
+| [Analytics](./docs/analytics.md) | Query performance insights and operation tracking |
+| [Multi-Tenant](./docs/multi-tenant.md) | Shared sidecar with per-tenant isolation |
 
 ## Architecture
 
@@ -313,12 +316,18 @@ mongocore/
 - **Unified test runner** — `just test-all` runs 94 unit + 53 integration + 40 client tests
 - **Deployment infrastructure** — Dockerfile, GitHub Actions CI/CD, installer script
 
+## v2 Feature Set
+
+- **Raw wire protocol passthrough** — RunCommand RPC for arbitrary MongoDB commands with safety validation
+- **Query analytics** — Real-time performance tracking with latency percentiles, error rates, and operation insights
+- **Multi-tenant support** — Shared sidecar with isolated caches, rate limiting, and per-tenant connection pools
+
 ## Roadmap
 
 | Version | Focus | Status |
 |---------|-------|--------|
 | **v0.1** | Core sidecar, gRPC + MCP interfaces, compiled queries, Voyage AI, change streams | **Complete** |
-| **v0.2** | Power user features, query analytics, multi-tenant support | Planned |
+| **v0.2** | Power user features, query analytics, multi-tenant support | **Complete** |
 | **v0.3** | Intelligent data ingestion (LLM-powered ETL) | Planned |
 | **v0.4** | Migration paths, framework adapters (Mongoose, Spring Data, etc.) | Planned |
 | **v0.5** | Self-contained AI (local NL-MQL model) | Planned |
