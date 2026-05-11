@@ -6,3 +6,6 @@ mod transaction_test;
 
 #[path = "integration/aggregation_test.rs"]
 mod aggregation_test;
+
+#[path = "integration/grpc_test.rs"]
+mod grpc_test;
