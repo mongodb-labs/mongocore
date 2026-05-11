@@ -21,3 +21,6 @@ mod search_test;
 
 #[path = "integration/startup_test.rs"]
 mod startup_test;
+
+#[path = "integration/raw_command_test.rs"]
+mod raw_command_test;

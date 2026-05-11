@@ -3,7 +3,7 @@ use uuid::Uuid;
 
 use mongocore::grpc::proto::mongo_core_client::MongoCoreClient;
 use mongocore::grpc::proto::{
-    AggregateRequest, BeginTransactionRequest, CommitTransactionRequest, AbortTransactionRequest,
+    AbortTransactionRequest, AggregateRequest, BeginTransactionRequest, CommitTransactionRequest,
     CreateIndexRequest, DeleteRequest, FindOneRequest, FindRequest, InsertManyRequest,
     InsertRequest, ListDatabasesRequest, UpdateRequest,
 };
@@ -50,7 +50,7 @@ async fn start_test_server() -> MongoCoreClient<tonic::transport::Channel> {
     drop(listener);
 
     // Start the gRPC server
-    let _handle = start_grpc_server(pool, port);
+    let _handle = start_grpc_server(pool, port, None);
 
     // Give the server time to bind
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
@@ -317,7 +317,10 @@ async fn test_grpc_find_one() {
         .unwrap();
 
     let doc = resp.into_inner().document.unwrap();
-    assert_eq!(decode_doc(&doc).get_str("key").unwrap(), "unique_grpc_value");
+    assert_eq!(
+        decode_doc(&doc).get_str("key").unwrap(),
+        "unique_grpc_value"
+    );
 }
 
 #[tokio::test]

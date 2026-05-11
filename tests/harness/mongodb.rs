@@ -21,6 +21,11 @@ pub async fn get_test_pool() -> ConnectionPool {
         voyage_api_key_env: None,
         compiled_cache_sync: true,
         log_level: "info".to_string(),
+        multi_tenant_enabled: false,
+        tenants: vec![],
+        analytics_enabled: false,
+        analytics_buffer_size: 10000,
+        analytics_flush_interval_secs: 300,
     };
 
     ConnectionPool::connect(&config)

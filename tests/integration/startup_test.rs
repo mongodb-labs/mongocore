@@ -23,16 +23,15 @@ async fn test_both_servers_start_and_respond() {
     let grpc_port = find_free_port().await;
     let mcp_port = find_free_port().await;
 
-    let grpc_handle = start_grpc_server(pool.clone(), grpc_port);
+    let grpc_handle = start_grpc_server(pool.clone(), grpc_port, None);
     let mcp_handle = start_mcp_server(pool.clone(), mcp_port);
 
     tokio::time::sleep(std::time::Duration::from_millis(150)).await;
 
     // Verify gRPC server responds
-    let mut grpc_client =
-        MongoCoreClient::connect(format!("http://127.0.0.1:{}", grpc_port))
-            .await
-            .expect("gRPC client should connect");
+    let mut grpc_client = MongoCoreClient::connect(format!("http://127.0.0.1:{}", grpc_port))
+        .await
+        .expect("gRPC client should connect");
 
     let resp = grpc_client
         .list_databases(ListDatabasesRequest {})
@@ -75,7 +74,7 @@ async fn test_grpc_server_serves_on_configured_port() {
     let pool = harness::get_test_pool().await;
     let port = find_free_port().await;
 
-    let _handle = start_grpc_server(pool, port);
+    let _handle = start_grpc_server(pool, port, None);
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
     let mut client = MongoCoreClient::connect(format!("http://127.0.0.1:{}", port))
@@ -131,17 +130,19 @@ async fn test_shared_pool_across_servers() {
     let grpc_port = find_free_port().await;
     let mcp_port = find_free_port().await;
 
-    let _grpc_handle = start_grpc_server(pool.clone(), grpc_port);
+    let _grpc_handle = start_grpc_server(pool.clone(), grpc_port, None);
     let _mcp_handle = start_mcp_server(pool.clone(), mcp_port);
     tokio::time::sleep(std::time::Duration::from_millis(150)).await;
 
-    let coll_name = format!("startup_test_{}", uuid::Uuid::new_v4().to_string().replace('-', ""));
+    let coll_name = format!(
+        "startup_test_{}",
+        uuid::Uuid::new_v4().to_string().replace('-', "")
+    );
 
     // Insert via gRPC
-    let mut grpc_client =
-        MongoCoreClient::connect(format!("http://127.0.0.1:{}", grpc_port))
-            .await
-            .unwrap();
+    let mut grpc_client = MongoCoreClient::connect(format!("http://127.0.0.1:{}", grpc_port))
+        .await
+        .unwrap();
 
     let doc = bson::doc! { "source": "grpc", "test": true };
     let mut buf = Vec::new();
