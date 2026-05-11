@@ -12,6 +12,8 @@ use crate::error::MongoCoreError;
 use crate::operations::{
     FindAndModifyOptions, FindOptions, IndexOptions, Operations, ReturnDocumentOption, Transaction,
 };
+use crate::operations::raw::{run_command, RawCommandOptions};
+use crate::operations::raw_validator::ValidationMode;
 use crate::search::SearchEngine;
 use crate::voyage::VoyageClient;
 
@@ -700,5 +702,42 @@ impl MongoCore for MongoCoreService {
         };
 
         Ok(Response::new(Box::pin(stream) as Self::WatchStream))
+    }
+
+    // === Raw Passthrough ===
+
+    async fn run_command(
+        &self,
+        request: Request<proto::RunCommandRequest>,
+    ) -> Result<Response<proto::RunCommandResponse>, Status> {
+        let req = request.into_inner();
+
+        // Decode the command from proto format
+        let command_doc = req
+            .command
+            .as_ref()
+            .ok_or_else(|| Status::invalid_argument("Missing command document"))?;
+        let command = proto_doc_to_bson(command_doc)?;
+
+        // Map the allow_all field to ValidationMode
+        let validation_mode = if req.allow_all {
+            ValidationMode::AllowAll
+        } else {
+            ValidationMode::BlockDangerous
+        };
+
+        let options = RawCommandOptions { validation_mode };
+
+        // Execute the command
+        let result = run_command(&self.pool, &req.database, command, &options)
+            .await
+            .map_err(to_status)?;
+
+        // Encode the result back to proto format
+        let result_doc = bson_to_proto_doc(&result)?;
+
+        Ok(Response::new(proto::RunCommandResponse {
+            result: Some(result_doc),
+        }))
     }
 }
