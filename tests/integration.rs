@@ -18,3 +18,6 @@ mod compiled_test;
 
 #[path = "integration/search_test.rs"]
 mod search_test;
+
+#[path = "integration/startup_test.rs"]
+mod startup_test;
