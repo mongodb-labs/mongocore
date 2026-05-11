@@ -1,0 +1,14 @@
+# MongoCore production configuration example
+# Copy to mongocore.toml and customize
+
+connection_uri = "mongodb+srv://user:password@cluster.mongodb.net"
+
+grpc_port = 50051
+mcp_port = 3000
+
+llm_provider = "claude"
+llm_api_key_env = "ANTHROPIC_API_KEY"
+voyage_api_key_env = "VOYAGE_API_KEY"
+
+compiled_cache_sync = true
+log_level = "info"

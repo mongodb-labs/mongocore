@@ -19,3 +19,15 @@ docker-up:
 # Stop MongoDB test container
 docker-down:
     docker compose -f docker-compose.test.yml down
+
+# Build Docker image
+docker-build:
+    docker build -t mongocore:dev .
+
+# Run Docker container
+docker-run:
+    docker run --rm -p 50051:50051 -p 3000:3000 mongocore:dev
+
+# Build release binary
+release-local:
+    cargo build --release

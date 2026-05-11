@@ -1,0 +1,27 @@
+# MongoCore default configuration
+# Override with environment variables (MONGOCORE_*) or CLI flags
+
+# MongoDB connection URI
+connection_uri = "mongodb://localhost:27017"
+
+# gRPC server port (for application clients)
+grpc_port = 50051
+
+# MCP server port (for AI agents)
+mcp_port = 3000
+
+# LLM provider for compiled queries (optional)
+# Options: "claude", "openai"
+# llm_provider = "claude"
+
+# Environment variable containing the LLM API key
+# llm_api_key_env = "ANTHROPIC_API_KEY"
+
+# Environment variable containing the Voyage AI API key
+# voyage_api_key_env = "VOYAGE_API_KEY"
+
+# Whether to sync compiled query cache to Atlas
+compiled_cache_sync = true
+
+# Log level: trace, debug, info, warn, error
+log_level = "info"
