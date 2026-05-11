@@ -1,1 +1,67 @@
+# Rust
 /target
+**/*.rs.bk
+*.pdb
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.log
+target/
+.classpath
+.project
+.settings/
+.idea/
+*.iml
+
+# Go
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+
+# TypeScript / Node.js
+node_modules/
+dist/
+*.js.map
+*.tsbuildinfo
+.npm
+.eslintcache
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+.eggs/
+build/
+develop-eggs/
+sdist/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+.env.*.local
