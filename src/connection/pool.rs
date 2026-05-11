@@ -198,6 +198,7 @@ mod tests {
             analytics_enabled: true,
             analytics_buffer_size: 10000,
             analytics_flush_interval_secs: 300,
+            ingestion: crate::config::ResolvedIngestionConfig::default(),
         };
 
         let options = ConnectionPool::build_client_options(&config).await.unwrap();
@@ -245,6 +246,7 @@ mod tests {
             analytics_enabled: true,
             analytics_buffer_size: 10000,
             analytics_flush_interval_secs: 300,
+            ingestion: crate::config::ResolvedIngestionConfig::default(),
         };
 
         let options = ConnectionPool::build_client_options(&config).await.unwrap();
@@ -271,6 +273,7 @@ mod tests {
             analytics_enabled: true,
             analytics_buffer_size: 10000,
             analytics_flush_interval_secs: 300,
+            ingestion: crate::config::ResolvedIngestionConfig::default(),
         };
 
         let options = ConnectionPool::build_client_options(&config).await.unwrap();

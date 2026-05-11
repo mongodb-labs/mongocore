@@ -59,6 +59,61 @@ pub struct TenantFileConfig {
     pub connection_uri: Option<String>,
 }
 
+/// Ingestion watch configuration from TOML.
+#[derive(Debug, Deserialize, Clone, Default)]
+pub struct WatchFileConfig {
+    pub enabled: Option<bool>,
+    pub path: Option<String>,
+    pub file_pattern: Option<String>,
+    pub database: Option<String>,
+    pub collection: Option<String>,
+    pub conflict_strategy: Option<String>,
+}
+
+/// Ingestion configuration from TOML.
+#[derive(Debug, Deserialize, Clone, Default)]
+pub struct IngestionFileConfig {
+    pub enabled: Option<bool>,
+    pub sample_size: Option<u32>,
+    pub default_batch_size: Option<u32>,
+    pub default_concurrency: Option<u32>,
+    pub max_file_size_mb: Option<u64>,
+    pub llm_expressions: Option<bool>,
+    pub max_llm_concurrency: Option<u32>,
+    pub watch_debounce_ms: Option<u64>,
+    pub watch: Option<WatchFileConfig>,
+}
+
+/// Resolved ingestion configuration with defaults applied.
+#[derive(Debug, Clone)]
+pub struct ResolvedIngestionConfig {
+    pub enabled: bool,
+    pub sample_size: u32,
+    pub default_batch_size: u32,
+    pub default_concurrency: u32,
+    pub max_file_size_mb: u64,
+    pub llm_expressions: bool,
+    pub max_llm_concurrency: u32,
+    pub watch_debounce_ms: u64,
+    pub watch: Option<WatchFileConfig>,
+}
+
+impl Default for ResolvedIngestionConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            sample_size: 1000,
+            default_batch_size: 1000,
+            default_concurrency: 4,
+            max_file_size_mb: 10240,
+            llm_expressions: false,
+            max_llm_concurrency: 4,
+            watch_debounce_ms: 2000,
+            watch: None,
+        }
+    }
+}
+
 /// TOML file configuration structure.
 #[derive(Debug, Deserialize, Default)]
 pub struct FileConfig {
@@ -75,6 +130,7 @@ pub struct FileConfig {
     pub analytics_enabled: Option<bool>,
     pub analytics_buffer_size: Option<usize>,
     pub analytics_flush_interval_secs: Option<u64>,
+    pub ingestion: Option<IngestionFileConfig>,
 }
 
 /// Resolved configuration for MongoCore.
@@ -93,6 +149,7 @@ pub struct Config {
     pub analytics_enabled: bool,
     pub analytics_buffer_size: usize,
     pub analytics_flush_interval_secs: u64,
+    pub ingestion: ResolvedIngestionConfig,
 }
 
 impl Config {
@@ -150,6 +207,19 @@ impl Config {
         let analytics_buffer_size = file_config.analytics_buffer_size.unwrap_or(10000);
         let analytics_flush_interval_secs = file_config.analytics_flush_interval_secs.unwrap_or(300);
 
+        let ingestion_file = file_config.ingestion.unwrap_or_default();
+        let ingestion = ResolvedIngestionConfig {
+            enabled: ingestion_file.enabled.unwrap_or(true),
+            sample_size: ingestion_file.sample_size.unwrap_or(1000),
+            default_batch_size: ingestion_file.default_batch_size.unwrap_or(1000),
+            default_concurrency: ingestion_file.default_concurrency.unwrap_or(4),
+            max_file_size_mb: ingestion_file.max_file_size_mb.unwrap_or(10240),
+            llm_expressions: ingestion_file.llm_expressions.unwrap_or(false),
+            max_llm_concurrency: ingestion_file.max_llm_concurrency.unwrap_or(4),
+            watch_debounce_ms: ingestion_file.watch_debounce_ms.unwrap_or(2000),
+            watch: ingestion_file.watch,
+        };
+
         Ok(Config {
             connection_uri,
             grpc_port,
@@ -164,6 +234,7 @@ impl Config {
             analytics_enabled,
             analytics_buffer_size,
             analytics_flush_interval_secs,
+            ingestion,
         })
     }
 }
@@ -341,5 +412,68 @@ connection_uri = "mongodb://other:27017"
         );
         assert!(config.tenants[1].rate_limit_ops_per_sec.is_none());
         assert!(config.tenants[1].max_cache_entries.is_none());
+    }
+
+    fn default_cli() -> CliArgs {
+        CliArgs {
+            config: None,
+            connection_uri: None,
+            grpc_port: None,
+            mcp_port: None,
+            llm_provider: None,
+            llm_api_key_env: None,
+            voyage_api_key_env: None,
+            compiled_cache_sync: None,
+            log_level: None,
+        }
+    }
+
+    #[test]
+    fn test_ingestion_config_defaults() {
+        let cli = default_cli();
+        let config = Config::load(&cli).unwrap();
+        assert!(config.ingestion.enabled);
+        assert_eq!(config.ingestion.sample_size, 1000);
+        assert_eq!(config.ingestion.default_batch_size, 1000);
+        assert_eq!(config.ingestion.default_concurrency, 4);
+        assert!(!config.ingestion.llm_expressions);
+    }
+
+    #[test]
+    fn test_ingestion_config_from_toml() {
+        let toml_content = r#"
+connection_uri = "mongodb://localhost:27017"
+
+[ingestion]
+enabled = true
+sample_size = 2000
+default_batch_size = 500
+default_concurrency = 8
+max_file_size_mb = 5120
+llm_expressions = false
+max_llm_concurrency = 2
+watch_debounce_ms = 3000
+
+[ingestion.watch]
+enabled = true
+path = "/data/incoming"
+file_pattern = "*.csv"
+database = "imports"
+collection = "data"
+conflict_strategy = "merge"
+"#;
+        let mut tmp = NamedTempFile::new().unwrap();
+        tmp.write_all(toml_content.as_bytes()).unwrap();
+        let cli = CliArgs {
+            config: Some(tmp.path().to_path_buf()),
+            ..default_cli()
+        };
+        let config = Config::load(&cli).unwrap();
+        assert_eq!(config.ingestion.sample_size, 2000);
+        assert_eq!(config.ingestion.default_batch_size, 500);
+        assert_eq!(config.ingestion.watch_debounce_ms, 3000);
+        let watch = config.ingestion.watch.unwrap();
+        assert_eq!(watch.enabled, Some(true));
+        assert_eq!(watch.path.as_deref(), Some("/data/incoming"));
     }
 }
