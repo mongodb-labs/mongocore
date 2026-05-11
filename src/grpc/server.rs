@@ -20,8 +20,8 @@ pub fn start_grpc_server(
 ) -> JoinHandle<Result<(), tonic::transport::Error>> {
     let addr = format!("[::]:{}", port).parse().expect("Invalid address");
     let service = match voyage_api_key {
-        Some(key) => MongoCoreService::with_voyage(pool, key, analytics),
-        None => MongoCoreService::new(pool, analytics),
+        Some(key) => MongoCoreService::with_voyage(pool, key, analytics, None, None),
+        None => MongoCoreService::new(pool, analytics, None, None),
     };
 
     info!("gRPC server listening on {}", addr);
