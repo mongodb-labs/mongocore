@@ -509,6 +509,8 @@ Phase 4 (Distribution):
 
 Phases 2's subsystems can be built in parallel. Phase 4's subsystems can be built in parallel. Within each subsystem, follow TDD: write failing test → implement → pass → commit.
 
+**Deferred to v2:** Comparative benchmark suite against native language drivers (PyMongo, Java driver, Node driver) running identical operations against `mongodb/atlas` container. Validates the "fast" claim with concrete latency/throughput numbers.
+
 ---
 
 ## Definition of Done (v1)
