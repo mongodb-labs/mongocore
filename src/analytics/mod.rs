@@ -1,5 +1,6 @@
 pub mod aggregator;
 pub mod collector;
+pub mod persistence;
 pub mod ring_buffer;
 pub mod types;
 
