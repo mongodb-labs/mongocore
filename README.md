@@ -37,6 +37,7 @@ Full documentation with language-specific examples is available in the [`docs/`]
 | [Analytics](./docs/analytics.md) | Query performance insights and operation tracking |
 | [Multi-Tenant](./docs/multi-tenant.md) | Shared sidecar with per-tenant isolation |
 | [Ingestion](./docs/ingestion.md) | Polars-powered data ingestion and ETL |
+| [Design & Plans](./docs/design/) | Architecture specs and implementation plans |
 
 ## Architecture
 

@@ -30,6 +30,8 @@ MongoCore is an AI-native MongoDB driver implemented as a Rust sidecar. It provi
 | [Raw Passthrough](./raw-passthrough.md) | Arbitrary MongoDB commands for power users |
 | [Analytics](./analytics.md) | Query performance insights and operation tracking |
 | [Multi-Tenant](./multi-tenant.md) | Shared sidecar with per-tenant isolation |
+| [Ingestion](./ingestion.md) | Polars-powered data ingestion and ETL |
+| [Design & Plans](./design/) | Architecture specs and implementation plans |
 
 ## Quick Start
 
