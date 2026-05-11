@@ -43,10 +43,12 @@ impl Default for RawCommandOptions {
 /// use bson::doc;
 /// use mongocore::connection::pool::ConnectionPool;
 /// use mongocore::operations::raw::{run_command, RawCommandOptions};
-/// use mongocore::config::Config;
+/// use mongocore::config::{Config, CliArgs};
+/// use clap::Parser;
 ///
 /// # async fn example() -> Result<(), Box<dyn std::error::Error>> {
-/// # let config = Config::default();
+/// # let cli = CliArgs::parse();
+/// # let config = Config::load(&cli)?;
 /// let pool = ConnectionPool::connect(&config).await?;
 /// let command = doc! { "ping": 1 };
 /// let options = RawCommandOptions::default();
