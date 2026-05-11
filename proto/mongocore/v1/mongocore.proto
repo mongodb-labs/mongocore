@@ -37,6 +37,9 @@ service MongoCore {
 
   // Streaming
   rpc Watch(WatchRequest) returns (stream WatchEvent);
+
+  // Raw Passthrough
+  rpc RunCommand(RunCommandRequest) returns (RunCommandResponse);
 }
 
 // ==================== CRUD Requests/Responses ====================
@@ -264,4 +267,16 @@ message WatchEvent {
   optional Document document = 4;       // Full document (for insert/update/replace)
   optional Document update_description = 5; // For update events: {updatedFields, removedFields}
   optional Document document_key = 6;   // The _id of the affected document
+}
+
+// ==================== Raw Passthrough ====================
+
+message RunCommandRequest {
+  string database = 1;
+  Document command = 2;
+  bool allow_all = 3;
+}
+
+message RunCommandResponse {
+  Document result = 1;
 }
