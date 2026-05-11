@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// Represents BSON types for schema inference.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum BsonType {
     String,
     Int32,
@@ -20,7 +20,7 @@ pub enum BsonType {
 }
 
 /// A field in a BSON schema.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct SchemaField {
     pub name: String,
     pub bson_type: BsonType,
