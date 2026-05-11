@@ -1,3 +1,4 @@
+pub mod dlq;
 pub mod reader;
 pub mod schema;
 pub mod transform;
