@@ -19,7 +19,7 @@ async fn start_test_mcp_server() -> (HttpClient, String) {
     let port = listener.local_addr().unwrap().port();
     drop(listener);
 
-    let _handle = start_mcp_server(pool, port);
+    let _handle = start_mcp_server(pool, port, None);
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
     let client = HttpClient::new();
@@ -65,11 +65,7 @@ fn parse_tool_result(response: &Value) -> Value {
 async fn test_mcp_health() {
     let (client, url) = start_test_mcp_server().await;
 
-    let resp = client
-        .get(format!("{}/health", url))
-        .send()
-        .await
-        .unwrap();
+    let resp = client.get(format!("{}/health", url)).send().await.unwrap();
     assert_eq!(resp.status(), 200);
 }
 
@@ -368,13 +364,7 @@ async fn test_mcp_aggregate() {
 async fn test_mcp_list_databases() {
     let (client, url) = start_test_mcp_server().await;
 
-    let resp = tool_call(
-        &client,
-        &url,
-        "list_databases",
-        json!({}),
-    )
-    .await;
+    let resp = tool_call(&client, &url, "list_databases", json!({})).await;
     assert_eq!(resp["result"]["isError"], json!(false));
 
     let results = parse_tool_result(&resp);
@@ -416,10 +406,7 @@ async fn test_mcp_list_collections() {
     let collections = results["collections"]
         .as_array()
         .expect("Expected collections array in result");
-    let names: Vec<&str> = collections
-        .iter()
-        .filter_map(|c| c.as_str())
-        .collect();
+    let names: Vec<&str> = collections.iter().filter_map(|c| c.as_str()).collect();
     assert!(
         names.iter().any(|n| *n == coll),
         "Expected collection '{}' in list: {:?}",

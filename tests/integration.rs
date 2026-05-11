@@ -24,3 +24,9 @@ mod startup_test;
 
 #[path = "integration/raw_command_test.rs"]
 mod raw_command_test;
+
+#[path = "integration/tenant_test.rs"]
+mod tenant_test;
+
+#[path = "integration/analytics_test.rs"]
+mod analytics_test;

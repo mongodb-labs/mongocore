@@ -50,7 +50,7 @@ async fn start_test_server() -> MongoCoreClient<tonic::transport::Channel> {
     drop(listener);
 
     // Start the gRPC server
-    let _handle = start_grpc_server(pool, port, None);
+    let _handle = start_grpc_server(pool, port, None, None);
 
     // Give the server time to bind
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
