@@ -31,6 +31,9 @@ pub struct MongoCoreService {
     analytics: Option<Arc<AnalyticsCollector>>,
     tenant_registry: Option<Arc<TenantRegistry>>,
     quota_manager: Option<Arc<QuotaManager>>,
+    ingestion_engine: Option<Arc<crate::ingestion::IngestionEngine>>,
+    directory_watcher: Option<Arc<crate::ingestion::DirectoryWatcher>>,
+    client: Option<mongodb::Client>,
 }
 
 impl MongoCoreService {
@@ -51,6 +54,9 @@ impl MongoCoreService {
             analytics,
             tenant_registry,
             quota_manager,
+            ingestion_engine: None,
+            directory_watcher: None,
+            client: None,
         }
     }
 
@@ -73,7 +79,23 @@ impl MongoCoreService {
             analytics,
             tenant_registry,
             quota_manager,
+            ingestion_engine: None,
+            directory_watcher: None,
+            client: None,
         }
+    }
+
+    /// Configure ingestion support on this service.
+    pub fn with_ingestion(
+        mut self,
+        engine: Arc<crate::ingestion::IngestionEngine>,
+        watcher: Arc<crate::ingestion::DirectoryWatcher>,
+        client: mongodb::Client,
+    ) -> Self {
+        self.ingestion_engine = Some(engine);
+        self.directory_watcher = Some(watcher);
+        self.client = Some(client);
+        self
     }
 
     /// Record an analytics event if analytics is enabled.
@@ -851,47 +873,197 @@ impl MongoCore for MongoCoreService {
         }))
     }
 
-    // Ingestion RPCs (stub implementations - Task 13 will provide full implementation)
+    // === Ingestion ===
 
     async fn ingest(
         &self,
-        _request: Request<proto::IngestRequest>,
+        request: Request<proto::IngestRequest>,
     ) -> Result<Response<proto::IngestResponse>, Status> {
-        Err(Status::unimplemented("Ingest not yet implemented"))
+        let engine = self.ingestion_engine.as_ref()
+            .ok_or_else(|| Status::unavailable("Ingestion not enabled"))?;
+        let client = self.client.as_ref()
+            .ok_or_else(|| Status::unavailable("Client not configured"))?;
+        let req = request.into_inner();
+
+        let csv_options = req.csv_options.map(|opts| {
+            crate::ingestion::CsvOptions {
+                delimiter: opts.delimiter.bytes().next(),
+                quote_char: opts.quote_char.bytes().next(),
+                has_header: Some(opts.has_header),
+                comment_char: opts.comment_char.bytes().next(),
+            }
+        }).unwrap_or_default();
+
+        let options = crate::ingestion::IngestOptions {
+            file_path: req.file_path,
+            database: req.database,
+            collection: req.collection,
+            format: proto_format_to_internal(req.format),
+            dedup_key: req.dedup_key,
+            conflict_strategy: proto_conflict_to_internal(req.conflict_strategy),
+            batch_size: if req.batch_size > 0 { req.batch_size as u32 } else { 1000 },
+            concurrency: if req.concurrency > 0 { req.concurrency as u32 } else { 4 },
+            expressions: req.expressions,
+            schema_overrides: req.schema_overrides,
+            sample_size: if req.sample_size > 0 { req.sample_size as u32 } else { 1000 },
+            csv_options,
+        };
+
+        match engine.ingest(client, options).await {
+            Ok(job) => {
+                let mut schema_map = std::collections::HashMap::new();
+                for field in &job.inferred_schema.fields {
+                    schema_map.insert(field.name.clone(), format!("{:?}", field.bson_type));
+                }
+                Ok(Response::new(proto::IngestResponse {
+                    job_id: job.job_id,
+                    status: proto::IngestJobStatus::Running as i32,
+                    inferred_schema: schema_map,
+                    total_rows: job.total_rows,
+                }))
+            }
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
     }
 
     async fn get_ingest_status(
         &self,
-        _request: Request<proto::GetIngestStatusRequest>,
+        request: Request<proto::GetIngestStatusRequest>,
     ) -> Result<Response<proto::GetIngestStatusResponse>, Status> {
-        Err(Status::unimplemented("GetIngestStatus not yet implemented"))
+        let engine = self.ingestion_engine.as_ref()
+            .ok_or_else(|| Status::unavailable("Ingestion not enabled"))?;
+        let job_id = request.into_inner().job_id;
+
+        match engine.get_status(&job_id).await {
+            Ok(Some(job)) => {
+                let elapsed = chrono::Utc::now()
+                    .signed_duration_since(job.started_at)
+                    .num_milliseconds();
+                let estimated_remaining = if job.rows_processed > 0 {
+                    ((job.total_rows - job.rows_processed) as f64
+                        * (elapsed as f64 / job.rows_processed as f64)) as i64
+                } else {
+                    0
+                };
+                Ok(Response::new(proto::GetIngestStatusResponse {
+                    job_id: job.job_id,
+                    status: status_to_proto(job.status) as i32,
+                    total_rows: job.total_rows,
+                    rows_processed: job.rows_processed,
+                    rows_inserted: job.rows_inserted,
+                    rows_skipped: job.rows_skipped,
+                    rows_failed: job.rows_failed,
+                    elapsed_ms: elapsed,
+                    estimated_remaining_ms: estimated_remaining,
+                }))
+            }
+            Ok(None) => Err(Status::not_found(format!("Job '{}' not found", job_id))),
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
     }
 
     async fn list_ingest_jobs(
         &self,
         _request: Request<proto::ListIngestJobsRequest>,
     ) -> Result<Response<proto::ListIngestJobsResponse>, Status> {
-        Err(Status::unimplemented("ListIngestJobs not yet implemented"))
+        let engine = self.ingestion_engine.as_ref()
+            .ok_or_else(|| Status::unavailable("Ingestion not enabled"))?;
+
+        match engine.list_jobs().await {
+            Ok(jobs) => {
+                let summaries = jobs.iter().map(|j| proto::IngestJobSummary {
+                    job_id: j.job_id.clone(),
+                    file_path: j.file_path.clone(),
+                    database: j.database.clone(),
+                    collection: j.collection.clone(),
+                    status: status_to_proto(j.status.clone()) as i32,
+                    total_rows: j.total_rows,
+                    rows_processed: j.rows_processed,
+                }).collect();
+                Ok(Response::new(proto::ListIngestJobsResponse { jobs: summaries }))
+            }
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
     }
 
     async fn cancel_ingest(
         &self,
-        _request: Request<proto::CancelIngestRequest>,
+        request: Request<proto::CancelIngestRequest>,
     ) -> Result<Response<proto::CancelIngestResponse>, Status> {
-        Err(Status::unimplemented("CancelIngest not yet implemented"))
+        let engine = self.ingestion_engine.as_ref()
+            .ok_or_else(|| Status::unavailable("Ingestion not enabled"))?;
+        let job_id = request.into_inner().job_id;
+
+        match engine.cancel(&job_id).await {
+            Ok(()) => Ok(Response::new(proto::CancelIngestResponse { success: true })),
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
     }
 
     async fn watch_directory(
         &self,
-        _request: Request<proto::WatchDirectoryRequest>,
+        request: Request<proto::WatchDirectoryRequest>,
     ) -> Result<Response<proto::WatchDirectoryResponse>, Status> {
-        Err(Status::unimplemented("WatchDirectory not yet implemented"))
+        let watcher = self.directory_watcher.as_ref()
+            .ok_or_else(|| Status::unavailable("Ingestion not enabled"))?;
+        let req = request.into_inner();
+
+        let config = crate::ingestion::watch::WatchConfig {
+            path: std::path::PathBuf::from(req.path),
+            file_pattern: if req.file_pattern.is_empty() { "*".to_string() } else { req.file_pattern },
+            database: req.database,
+            collection: req.collection,
+            conflict_strategy: proto_conflict_to_internal(req.conflict_strategy),
+            dedup_key: req.dedup_key,
+            debounce_ms: 1000,
+        };
+
+        match watcher.start_watch(config).await {
+            Ok(watch_id) => Ok(Response::new(proto::WatchDirectoryResponse { watch_id })),
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
     }
 
     async fn stop_watch(
         &self,
-        _request: Request<proto::StopWatchRequest>,
+        request: Request<proto::StopWatchRequest>,
     ) -> Result<Response<proto::StopWatchResponse>, Status> {
-        Err(Status::unimplemented("StopWatch not yet implemented"))
+        let watcher = self.directory_watcher.as_ref()
+            .ok_or_else(|| Status::unavailable("Ingestion not enabled"))?;
+        let watch_id = request.into_inner().watch_id;
+
+        match watcher.stop_watch(&watch_id).await {
+            Ok(()) => Ok(Response::new(proto::StopWatchResponse { success: true })),
+            Err(e) => Err(Status::internal(e.to_string())),
+        }
+    }
+}
+
+// === Ingestion helper functions ===
+
+fn proto_format_to_internal(format: i32) -> crate::ingestion::FileFormat {
+    match proto::FileFormat::try_from(format).unwrap_or(proto::FileFormat::Auto) {
+        proto::FileFormat::Auto => crate::ingestion::FileFormat::Auto,
+        proto::FileFormat::Csv => crate::ingestion::FileFormat::Csv,
+        proto::FileFormat::Json => crate::ingestion::FileFormat::Json,
+        proto::FileFormat::Ndjson => crate::ingestion::FileFormat::NdJson,
+        proto::FileFormat::Parquet => crate::ingestion::FileFormat::Parquet,
+    }
+}
+
+fn proto_conflict_to_internal(strategy: i32) -> crate::ingestion::ConflictStrategy {
+    match proto::ConflictStrategy::try_from(strategy).unwrap_or(proto::ConflictStrategy::Skip) {
+        proto::ConflictStrategy::Skip => crate::ingestion::ConflictStrategy::Skip,
+        proto::ConflictStrategy::Overwrite => crate::ingestion::ConflictStrategy::Overwrite,
+        proto::ConflictStrategy::Merge => crate::ingestion::ConflictStrategy::Merge,
+    }
+}
+
+fn status_to_proto(status: crate::ingestion::IngestStatus) -> proto::IngestJobStatus {
+    match status {
+        crate::ingestion::IngestStatus::Running => proto::IngestJobStatus::Running,
+        crate::ingestion::IngestStatus::Completed => proto::IngestJobStatus::Completed,
+        crate::ingestion::IngestStatus::Failed => proto::IngestJobStatus::Failed,
+        crate::ingestion::IngestStatus::Cancelled => proto::IngestJobStatus::Cancelled,
     }
 }
