@@ -126,7 +126,20 @@ MongoClient client = MongoClient.create(); // localhost:50051
 | Insert many | `await coll.insert_many(docs)` | `await coll.insertMany(docs)` | `coll.InsertMany(ctx, docs)` | `coll.insertMany(docs)` |
 | Update one | `await coll.update_one(f, u)` | `await coll.updateOne(f, u)` | `coll.UpdateOne(ctx, f, u)` | `coll.updateOne(f, u)` |
 | Delete one | `await coll.delete_one(filter)` | `await coll.deleteOne(filter)` | `coll.DeleteOne(ctx, filter)` | `coll.deleteOne(filter)` |
+| Delete many | `await coll.delete_many(filter)` | `await coll.deleteMany(filter)` | `coll.DeleteMany(ctx, filter)` | `coll.deleteMany(filter)` |
 | Aggregate | `await coll.aggregate(pipeline)` | `await coll.aggregate(pipeline)` | `coll.Aggregate(ctx, pipeline)` | `coll.aggregate(pipeline)` |
+| Watch | `async with coll.watch()` | `coll.watch()` | `coll.Watch(ctx, opts)` | `coll.watch()` |
+
+## Change Streams (Watch)
+
+All clients support real-time change streams with auto-close semantics. See the [Change Streams](./streaming.md) guide for full details.
+
+| Language | Auto-Close Pattern | Type |
+|----------|-------------------|------|
+| Python | `async with coll.watch() as stream` | `ChangeStream` (async context manager) |
+| TypeScript | `await using stream = coll.watch()` | `ChangeStream` (AsyncDisposable) |
+| Go | `defer cs.Close()` | `*ChangeStream` (io.Closer) |
+| Java | `try (ChangeStream s = coll.watch())` | `ChangeStream` (AutoCloseable + Iterable) |
 
 ## BSON Encoding
 
@@ -210,7 +223,7 @@ clients/
 │   ├── src/mongocore/
 │   │   ├── client.py          # MongoClient
 │   │   ├── database.py        # Database handle
-│   │   ├── collection.py      # Collection with CRUD
+│   │   ├── collection.py      # Collection with CRUD + ChangeStream (async with)
 │   │   ├── sidecar.py         # SidecarManager
 │   │   └── generated/         # gRPC stubs (generated)
 │   └── tests/
@@ -218,20 +231,22 @@ clients/
 │   └── src/
 │       ├── client.ts          # MongoClient
 │       ├── database.ts        # Database
-│       ├── collection.ts      # Collection with CRUD
+│       ├── collection.ts      # Collection with CRUD + ChangeStream (AsyncDisposable)
 │       ├── sidecar.ts         # SidecarManager
 │       └── types.ts           # TypeScript interfaces
 ├── go/
 │   └── mongocore/
 │       ├── client.go          # Client
 │       ├── database.go        # Database
-│       ├── collection.go      # Collection
+│       ├── collection.go      # Collection + ChangeStream (io.Closer)
 │       └── sidecar.go         # SidecarManager
 └── java/
     └── src/main/java/com/mongocore/
         ├── MongoClient.java       # Client (AutoCloseable)
         ├── MongoDatabase.java     # Database handle
         ├── MongoCollection.java   # Collection with CRUD
+        ├── ChangeStream.java      # AutoCloseable change stream
+        ├── ChangeEvent.java       # Change event POJO
         ├── FindOptions.java       # Builder-pattern options
         ├── SidecarManager.java    # Binary lifecycle
         └── *Result.java           # Result types

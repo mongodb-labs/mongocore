@@ -1,86 +1,96 @@
 # Change Streams
 
-MongoCore supports MongoDB change streams via a server-streaming gRPC `Watch` RPC. You can watch an entire database or a specific collection for real-time notifications of inserts, updates, deletes, and replacements.
+MongoCore supports MongoDB change streams via a server-streaming gRPC `Watch` RPC. Watch a collection for real-time notifications of inserts, updates, deletes, and replacements with auto-close semantics in every language.
 
 ## How It Works
 
-The `Watch` RPC returns a stream of `WatchEvent` messages. Each event includes the operation type, the affected database/collection, and the document data.
+The `Watch` RPC returns a stream of `WatchEvent` messages. Each event includes the operation type, the affected database/collection, and the document data. All client libraries provide auto-close patterns to ensure streams are properly terminated.
 
 ## Python
+
+Uses `async with` for automatic stream cleanup:
 
 ```python
 from mongocore import MongoClient
 
-async with MongoClient() as client:
-    # Watch a specific collection
-    async for event in client.watch("myapp", collection="orders"):
-        print(f"Operation: {event.operation_type}")
-        print(f"Collection: {event.collection}")
-        if event.document:
-            print(f"Document: {event.document}")
+async with MongoClient("localhost:50051") as client:
+    users = client["myapp"]["users"]
 
-    # Watch entire database
-    async for event in client.watch("myapp"):
-        print(f"{event.operation_type} on {event.collection}")
-
-    # Watch with a filter pipeline
-    async for event in client.watch("myapp", collection="orders", pipeline=[
-        {"$match": {"fullDocument.status": "shipped"}}
-    ]):
-        print(f"Order shipped: {event.document}")
+    # Watch with auto-close (recommended)
+    async with users.watch() as stream:
+        async for event in stream:
+            print(f"Operation: {event.operation_type}")
+            print(f"Collection: {event.collection}")
+            if event.document:
+                print(f"Document: {event.document}")
 ```
 
 ## TypeScript
 
-```typescript
-const stream = client.watch('myapp', {
-  collection: 'orders',
-  pipeline: [
-    { $match: { 'fullDocument.status': 'shipped' } }
-  ],
-});
+Uses `AsyncDisposable` (`await using`) for automatic cleanup, or manual `close()`:
 
+```typescript
+import { MongoClient } from '@mongocore/client';
+
+const client = new MongoClient('localhost:50051');
+await client.connect();
+const users = client.db('myapp').collection('users');
+
+// With AsyncDisposable (recommended)
+await using stream = users.watch();
 for await (const event of stream) {
-  console.log(`${event.operationType} on ${event.collection}`);
-  if (event.document) {
-    console.log(event.document);
+  console.log(event.operationType, event.document);
+}
+
+// Or manual close
+const stream = users.watch();
+try {
+  for await (const event of stream) {
+    console.log(event.operationType, event.document);
   }
+} finally {
+  stream.close();
 }
 ```
 
 ## Go
 
+Implements `io.Closer` for use with `defer`:
+
 ```go
-stream, err := client.Watch(ctx, "myapp", &mongocore.WatchOptions{
-    Collection: "orders",
-    Pipeline: []bson.D{
-        {{Key: "$match", Value: bson.D{
-            {Key: "fullDocument.status", Value: "shipped"},
-        }}},
-    },
-})
+client := mongocore.NewClient("localhost:50051")
+client.Connect(ctx)
+users := client.Database("myapp").Collection("users")
+
+cs, err := users.Watch(ctx, nil)
 if err != nil {
     log.Fatal(err)
 }
+defer cs.Close()
 
-for event := range stream {
-    fmt.Printf("%s on %s\n", event.OperationType, event.Collection)
+for {
+    event, err := cs.Next()
+    if err != nil {
+        break
+    }
+    fmt.Printf("%s: %v\n", event.OperationType, event.Document)
 }
 ```
 
 ## Java
 
-```java
-MongoClient client = MongoClient.create();
+Implements `AutoCloseable` for use with try-with-resources:
 
-client.watch("myapp", "orders", event -> {
-    System.out.printf("%s on %s%n",
-        event.getOperationType(),
-        event.getCollection());
-    if (event.getDocument() != null) {
-        System.out.println(event.getDocument().toJson());
+```java
+try (MongoClient client = MongoClient.create("localhost:50051")) {
+    MongoCollection users = client.getDatabase("myapp").getCollection("users");
+
+    try (ChangeStream stream = users.watch()) {
+        for (ChangeEvent event : stream) {
+            System.out.println(event.getOperationType() + ": " + event.getDocument());
+        }
     }
-});
+}
 ```
 
 ## Event Types
