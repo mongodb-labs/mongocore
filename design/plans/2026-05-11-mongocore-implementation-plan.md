@@ -294,6 +294,200 @@ service MongoCore {
 
 ---
 
+## Test Harness & Strategy
+
+### Test Infrastructure
+
+**Files to create:**
+- `tests/harness/mod.rs` — shared test harness entry point
+- `tests/harness/mongodb.rs` — MongoDB test container lifecycle (start/stop replica set)
+- `tests/harness/sidecar.rs` — sidecar process lifecycle for integration tests (start, wait for health, stop)
+- `tests/harness/grpc_client.rs` — pre-configured gRPC test client
+- `tests/harness/mcp_client.rs` — pre-configured MCP (JSON-RPC) test client
+- `tests/harness/mock_llm.rs` — mock LLM server (returns deterministic MQL for known intents)
+- `tests/harness/mock_voyage.rs` — mock Voyage AI server (returns deterministic embeddings)
+- `tests/harness/fixtures/` — test data (sample documents, expected query results, compiled query snapshots)
+- `docker-compose.test.yml` — MongoDB 7.0 replica set (3 nodes) + Atlas Search emulation
+- `Makefile` or `justfile` — test runner commands (`test-unit`, `test-integration`, `test-e2e`, `test-perf`)
+
+### Test Tiers
+
+| Tier | What | Dependencies | Speed | When to Run |
+|------|------|-------------|-------|-------------|
+| **Unit** | Pure logic: config parsing, hash determinism, BSON helpers, MQL validation, template extraction, fallback logic | None | <5s total | Every commit |
+| **Integration** | Each subsystem against real MongoDB: CRUD, transactions, gRPC endpoints, MCP tools, cache hierarchy | MongoDB container | <60s total | Every PR |
+| **End-to-End** | Full flow: language client → gRPC → sidecar → MongoDB. MCP agent → tool call → result. NL query → LLM → compiled → cached → re-executed | MongoDB + sidecar process + mock LLM + mock Voyage | <120s total | Every PR |
+| **Performance** | Latency benchmarks, throughput under load, cache hit/miss ratios, connection pool behavior | MongoDB + sidecar process | ~5min | Nightly / pre-release |
+
+### Mock vs Real Strategy
+
+| Component | Unit Tests | Integration Tests | E2E Tests | Performance Tests |
+|-----------|-----------|-------------------|-----------|-------------------|
+| MongoDB | Mock (in-memory ops) | Real (container) | Real (container) | Real (container) |
+| Sidecar | N/A (testing internals) | In-process (library mode) | Separate process | Separate process |
+| LLM Provider | N/A | Mock server | Mock server | Mock server |
+| Voyage AI | N/A | Mock server | Mock server | Mock server (or real, optional) |
+| gRPC transport | N/A | Real (localhost) | Real (localhost) | Real (localhost) |
+| MCP transport | N/A | Real (HTTP localhost) | Real (HTTP localhost) | N/A |
+
+### Subsystem Test Specifications
+
+#### Subsystem 1: Core — Test Parameters
+
+| Test Case | Input | Expected Output | Pass Criteria |
+|-----------|-------|-----------------|---------------|
+| Connect to replica set | Valid connection URI | Client connected, pool initialized | Health check returns OK, startup log shows MongoDB version |
+| Connect with bad URI | Invalid URI | Error returned | Specific error type, no panic, no hang |
+| Opinionated defaults applied | Default client creation | Write concern = majority, read concern = majority, retryable writes = true | Inspect client options after creation |
+| CRUD: insert + find | Insert doc, find by `_id` | Document returned matching insert | Exact BSON match |
+| CRUD: update + verify | Update field, re-read | Updated field value | Field value matches update |
+| CRUD: delete + verify | Delete doc, try to find | No document returned | Find returns None/empty |
+| InsertMany (bulk) | 1000 documents | All inserted, count = 1000 | `count_documents` returns 1000 |
+| FindAndModify | Find + update atomically | Returns pre-modification doc (or post, depending on option) | Returned doc matches expected state |
+| Transaction: commit | Insert in txn, commit, read outside txn | Document visible | Find outside txn returns document |
+| Transaction: abort | Insert in txn, abort, read outside txn | Document NOT visible | Find outside txn returns empty |
+| Transaction: conflict | Concurrent writes to same doc in two txns | One succeeds, one gets write conflict | Correct error code on conflicting txn |
+| Connection pool exhaustion | Open max connections, request one more | Queued or timeout error | Predictable behavior (no crash), returns within timeout |
+| Aggregation pipeline | `$match` → `$group` → `$sort` | Correct aggregated results | Result matches hand-computed expected output |
+| CreateCollection | Create with validator | Collection exists with validator | `listCollections` shows correct options |
+| CreateIndex | Create compound index | Index exists | `listIndexes` shows the index |
+
+#### Subsystem 2: gRPC — Test Parameters
+
+| Test Case | Input | Expected Output | Pass Criteria |
+|-----------|-------|-----------------|---------------|
+| Service discovery | gRPC reflection request | All RPCs listed | All proto-defined methods present |
+| Find via gRPC | FindRequest with filter | FindResponse with matching docs | Docs match direct MongoDB query |
+| Insert via gRPC | InsertRequest with BSON doc | InsertResponse with inserted ID | ID matches, doc retrievable |
+| Streaming: Watch | WatchRequest on collection, then insert | WatchEvent received | Event contains inserted doc, arrives within 5s |
+| Streaming: cancel | Start Watch, then cancel stream | Stream closes cleanly | No error on server, no resource leak |
+| Timeout enforcement | Request with 1ms deadline | DeadlineExceeded error | gRPC status code = DEADLINE_EXCEEDED |
+| Invalid request | Malformed BSON bytes | InvalidArgument error | gRPC status code = INVALID_ARGUMENT, descriptive message |
+| Concurrent requests | 100 parallel Find requests | All return correct results | No cross-contamination, all succeed |
+| Large result set | Find returning 10,000 docs | All docs returned | Count matches, no truncation |
+
+#### Subsystem 3: MCP — Test Parameters
+
+| Test Case | Input | Expected Output | Pass Criteria |
+|-----------|-------|-----------------|---------------|
+| Tool discovery | `tools/list` JSON-RPC call | All tools listed with schemas | Tool names match expected set, schemas are valid JSON Schema |
+| Resource discovery | `resources/list` JSON-RPC call | Schema, index, capability resources listed | URIs are well-formed, descriptions present |
+| Tool execution: find | `call_tool("find", {collection, filter})` | Matching documents | Results match direct query |
+| Read-only mode: block write | `call_tool("insert", {...})` with `--read-only` | Error: operation not permitted | Error code indicates read-only, no data written |
+| Doc limit enforcement | Find matching 500 docs, limit = 100 | Only 100 returned | Response contains exactly 100 docs + truncation indicator |
+| Session lifecycle | Initialize → call tools → disconnect | Session created and cleaned up | No resource leaks (check sidecar memory) |
+| Interest pattern | Register pattern, insert matching doc | Notification via SSE | Notification received within 5s, contains matching doc |
+| Query cost estimation | Expensive aggregation ($lookup on large collection) | Cost estimate returned before execution | Estimate includes stage analysis |
+
+#### Subsystem 4: Compiled Queries — Test Parameters
+
+| Test Case | Input | Expected Output | Pass Criteria |
+|-----------|-------|-----------------|---------------|
+| Hash determinism | Same intent + context, called twice | Same hash | Hashes are byte-identical |
+| Hash uniqueness | Same intent, different collections | Different hashes | Hashes differ |
+| Cold compilation | New intent string | LLM called, MQL returned, cached | Mock LLM receives request, result is valid MQL, cache entry created |
+| Hot cache hit | Previously compiled intent | MQL from cache, NO LLM call | Mock LLM NOT called, response time <1ms |
+| Template parameterization | "under $50" then "under $100" | Same template, different param | Only one LLM call total, both queries execute correctly |
+| Validator: safe query | `[{$match: {x: 1}}]` | Passes validation | No error |
+| Validator: unsafe query | `[{$out: "hackers"}]` | Blocked by validator | Specific validation error returned |
+| L1→L2 persistence | Compile query, restart sidecar, re-query | Cache hit from L2 (disk) | No LLM call after restart |
+| L3 Atlas sync | Compile on instance A, start instance B | Instance B has compiled query | Instance B serves from L3 without LLM call |
+| Invalidation: schema change | Compile query, add index, re-query | Recompilation triggered | LLM called again, new MQL may differ |
+| Manual flush | Flush cache via API | All cached queries removed | Subsequent calls trigger recompilation |
+
+#### Subsystem 5: Voyage AI & Vector Search — Test Parameters
+
+| Test Case | Input | Expected Output | Pass Criteria |
+|-----------|-------|-----------------|---------------|
+| Embed single string | "wireless headphones" | Vector (float array) | Non-zero vector of expected dimensions (e.g., 1024) |
+| Batch embedding | 50 strings submitted in 10ms window | Single batch API call | Mock Voyage receives 1 request with 50 inputs |
+| Embedding cache | Same string embedded twice | Second call skips API | Mock Voyage called once only |
+| Auto-embed on insert | Insert doc to configured collection | Doc stored with embedding field | Document has vector field with correct dimensions |
+| vector_search: string query | Query string + filter | Matching docs ranked by similarity | Results ordered by score, filter applied |
+| vector_search: raw vector | Float array + filter | Matching docs | No Voyage API call (vector used directly) |
+| search() full path | NL intent string | Compiled + embedded + vector searched + reranked | Response metadata shows `search_method: "vector"` |
+| Fallback: no Voyage AI | Voyage unavailable, search indexes exist | Full-text search result | `search_method: "fulltext"` |
+| Fallback: no indexes | No search indexes, LLM available | Compiled traditional query | `search_method: "compiled_query"` |
+| Fallback: nothing | No Voyage, no indexes, no LLM | Clear error | Error message lists what's needed |
+| Reranking | search() with rerank enabled | Results reordered by relevance | Order differs from raw vector similarity order |
+
+#### Subsystem 6: Language Clients — Test Parameters
+
+| Test Case | Input | Expected Output | Pass Criteria |
+|-----------|-------|-----------------|---------------|
+| Dev-mode: auto-download | First connect, no sidecar present | Binary downloaded, sidecar spawned | Health check passes, correct platform binary |
+| Dev-mode: reuse running | Second connect, sidecar already running | Connects to existing | No new process spawned |
+| Dev-mode: graceful shutdown | Client disconnects, idle timeout | Sidecar shuts down | Process exited cleanly |
+| Prod-mode: connect to address | Pre-running sidecar at known address | Client connects | Operations work |
+| CRUD via Python client | `client.db.collection.find({"x": 1})` | Matching documents | Results match direct query |
+| CRUD via TypeScript client | `client.db.collection.find({x: 1})` | Matching documents | Results match direct query |
+| Error propagation | Invalid operation | Language-native error/exception | Error type, message, code accessible idiomatically |
+| Streaming via client | `client.db.collection.watch()` | Change events received | Events arrive as language-native async iterators/streams |
+
+#### Subsystem 7: Deployment — Test Parameters
+
+| Test Case | Input | Expected Output | Pass Criteria |
+|-----------|-------|-----------------|---------------|
+| Container builds | `docker build .` | Image <25MB | Image size check, binary runs |
+| Container health | Deploy container, hit `/health` | 200 OK with capabilities | HTTP 200, JSON body with version + capabilities |
+| Multi-platform binary | Build for linux-arm64 on CI | Valid ELF binary | File type check, smoke test on emulated platform |
+| Startup with config | `mongocore serve --config test.toml` | Sidecar starts with configured settings | Logs show correct URI, options |
+| Startup without config | `mongocore serve` (env vars only) | Sidecar starts with env vars | `MONGOCORE_URI` env var used |
+| Prometheus metrics | Hit `/metrics` after some operations | Prometheus-format metrics | Contains `mongocore_operations_total`, `mongocore_latency_seconds` |
+| Graceful shutdown | Send SIGTERM | Drains connections, exits 0 | In-flight operations complete, exit code 0 |
+
+### Performance Benchmarks (Nightly)
+
+| Benchmark | Metric | Target | Method |
+|-----------|--------|--------|--------|
+| gRPC find latency (single doc) | p50 / p99 | <2ms / <10ms | 10,000 sequential finds, measure distribution |
+| gRPC insert throughput | ops/sec | >10,000 ops/s | Concurrent inserts for 30s |
+| Compiled query cold path | time-to-first-result | <3s (dominated by LLM) | NL query on cold cache |
+| Compiled query hot path | time-to-result | <2ms | NL query on warm cache |
+| Change stream latency | event delay | <50ms | Insert doc, measure time until WatchEvent arrives |
+| Connection pool under load | p99 latency | <50ms | 1000 concurrent requests |
+| Sidecar memory (idle) | RSS | <50MB | After startup with connection pool initialized |
+| Sidecar memory (under load) | RSS | <200MB | During sustained 10k ops/s |
+| Auto-embed batch efficiency | API calls saved | >80% reduction vs per-doc | 1000 inserts in 1s, count Voyage API calls |
+
+### Running Tests
+
+```bash
+# Unit tests (no dependencies)
+just test-unit        # or: cargo test --lib
+
+# Integration tests (requires Docker)
+just test-integration # starts MongoDB container, runs tests, tears down
+
+# End-to-end tests (full stack)
+just test-e2e         # starts MongoDB + sidecar + mock services, runs full flow
+
+# Performance benchmarks
+just test-perf        # starts stack, runs criterion benchmarks, outputs report
+
+# All tests
+just test-all         # unit + integration + e2e (not perf, too slow for CI)
+```
+
+### CI Pipeline
+
+```yaml
+# On every push:
+- just test-unit
+
+# On every PR:
+- just test-unit
+- just test-integration
+- just test-e2e
+
+# Nightly:
+- just test-all
+- just test-perf
+- Compare perf results to baseline, alert on >10% regression
+```
+
+---
+
 ## Implementation Order & Dependencies
 
 ```
