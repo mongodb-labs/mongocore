@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	pb "github.com/rozza/mongocore/clients/go/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -12,6 +13,7 @@ import (
 type Client struct {
 	address string
 	conn    *grpc.ClientConn
+	stub    pb.MongoCoreClient
 }
 
 // NewClient creates a new MongoCore client.
@@ -26,6 +28,7 @@ func (c *Client) Connect(ctx context.Context) error {
 		return fmt.Errorf("mongocore: failed to connect: %w", err)
 	}
 	c.conn = conn
+	c.stub = pb.NewMongoCoreClient(conn)
 	return nil
 }
 
@@ -42,7 +45,16 @@ func (c *Client) Database(name string) *Database {
 	return &Database{client: c, name: name}
 }
 
-// Connection returns the underlying gRPC connection.
-func (c *Client) Connection() *grpc.ClientConn {
-	return c.conn
+// Stub returns the gRPC stub for direct access.
+func (c *Client) Stub() pb.MongoCoreClient {
+	return c.stub
+}
+
+// ListDatabases returns all database names.
+func (c *Client) ListDatabases(ctx context.Context) ([]string, error) {
+	resp, err := c.stub.ListDatabases(ctx, &pb.ListDatabasesRequest{})
+	if err != nil {
+		return nil, err
+	}
+	return resp.Databases, nil
 }

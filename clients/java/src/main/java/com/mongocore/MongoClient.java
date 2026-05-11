@@ -2,6 +2,10 @@ package com.mongocore;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import mongocore.v1.MongoCoreGrpc;
+import mongocore.v1.Mongocore;
+
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class MongoClient implements AutoCloseable {
@@ -25,6 +29,13 @@ public class MongoClient implements AutoCloseable {
 
     public MongoDatabase getDatabase(String name) {
         return new MongoDatabase(this, name);
+    }
+
+    public List<String> listDatabases() {
+        MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
+        Mongocore.ListDatabasesResponse resp = stub.listDatabases(
+                Mongocore.ListDatabasesRequest.newBuilder().build());
+        return resp.getDatabasesList();
     }
 
     ManagedChannel getChannel() {

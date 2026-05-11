@@ -2,8 +2,8 @@ package mongocore
 
 import (
 	"context"
-	"fmt"
 
+	pb "github.com/rozza/mongocore/clients/go/proto"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
@@ -29,49 +29,249 @@ type UpdateResult struct {
 	UpsertedID    string
 }
 
+func encodeBson(doc bson.D) ([]byte, error) {
+	return bson.Marshal(doc)
+}
+
+func decodeBsonDoc(data []byte) (bson.D, error) {
+	var doc bson.D
+	err := bson.Unmarshal(data, &doc)
+	return doc, err
+}
+
 // Find returns documents matching the filter.
 func (c *Collection) Find(ctx context.Context, filter bson.D, opts *FindOptions) ([]bson.D, error) {
-	// Will use generated gRPC stub to call Find RPC
-	// Encodes filter as BSON bytes, sends via proto, decodes response
-	return nil, fmt.Errorf("mongocore: requires generated gRPC stubs")
+	filterBytes, err := encodeBson(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	req := &pb.FindRequest{
+		Database:   c.database,
+		Collection: c.name,
+		Filter:     &pb.Filter{Data: filterBytes},
+	}
+
+	if opts != nil {
+		findOpts := &pb.FindOptions{}
+		if opts.Limit > 0 {
+			limit := opts.Limit
+			findOpts.Limit = &limit
+		}
+		if opts.Skip > 0 {
+			skip := opts.Skip
+			findOpts.Skip = &skip
+		}
+		if opts.Sort != nil {
+			sortBytes, err := encodeBson(opts.Sort)
+			if err != nil {
+				return nil, err
+			}
+			findOpts.Sort = sortBytes
+		}
+		if opts.Projection != nil {
+			projBytes, err := encodeBson(opts.Projection)
+			if err != nil {
+				return nil, err
+			}
+			findOpts.Projection = projBytes
+		}
+		req.Options = findOpts
+	}
+
+	resp, err := c.client.stub.Find(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	docs := make([]bson.D, 0, len(resp.Documents))
+	for _, d := range resp.Documents {
+		doc, err := decodeBsonDoc(d.Data)
+		if err != nil {
+			return nil, err
+		}
+		docs = append(docs, doc)
+	}
+	return docs, nil
 }
 
 // FindOne returns a single document matching the filter.
 func (c *Collection) FindOne(ctx context.Context, filter bson.D) (bson.D, error) {
-	return nil, fmt.Errorf("mongocore: requires generated gRPC stubs")
+	filterBytes, err := encodeBson(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.client.stub.FindOne(ctx, &pb.FindOneRequest{
+		Database:   c.database,
+		Collection: c.name,
+		Filter:     &pb.Filter{Data: filterBytes},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Document == nil || len(resp.Document.Data) == 0 {
+		return nil, nil
+	}
+	return decodeBsonDoc(resp.Document.Data)
 }
 
 // InsertOne inserts a single document.
 func (c *Collection) InsertOne(ctx context.Context, document bson.D) (string, error) {
-	return "", fmt.Errorf("mongocore: requires generated gRPC stubs")
+	docBytes, err := encodeBson(document)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := c.client.stub.Insert(ctx, &pb.InsertRequest{
+		Database:   c.database,
+		Collection: c.name,
+		Document:   &pb.Document{Data: docBytes},
+	})
+	if err != nil {
+		return "", err
+	}
+	return resp.InsertedId, nil
 }
 
 // InsertMany inserts multiple documents.
 func (c *Collection) InsertMany(ctx context.Context, documents []bson.D) ([]string, error) {
-	return nil, fmt.Errorf("mongocore: requires generated gRPC stubs")
+	pbDocs := make([]*pb.Document, 0, len(documents))
+	for _, doc := range documents {
+		docBytes, err := encodeBson(doc)
+		if err != nil {
+			return nil, err
+		}
+		pbDocs = append(pbDocs, &pb.Document{Data: docBytes})
+	}
+
+	resp, err := c.client.stub.InsertMany(ctx, &pb.InsertManyRequest{
+		Database:   c.database,
+		Collection: c.name,
+		Documents:  pbDocs,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return resp.InsertedIds, nil
 }
 
 // UpdateOne updates a single document.
 func (c *Collection) UpdateOne(ctx context.Context, filter, update bson.D) (*UpdateResult, error) {
-	return nil, fmt.Errorf("mongocore: requires generated gRPC stubs")
+	filterBytes, err := encodeBson(filter)
+	if err != nil {
+		return nil, err
+	}
+	updateBytes, err := encodeBson(update)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.client.stub.Update(ctx, &pb.UpdateRequest{
+		Database:   c.database,
+		Collection: c.name,
+		Filter:     &pb.Filter{Data: filterBytes},
+		Update:     &pb.Document{Data: updateBytes},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &UpdateResult{
+		MatchedCount:  resp.MatchedCount,
+		ModifiedCount: resp.ModifiedCount,
+	}, nil
 }
 
 // UpdateMany updates multiple documents.
 func (c *Collection) UpdateMany(ctx context.Context, filter, update bson.D) (*UpdateResult, error) {
-	return nil, fmt.Errorf("mongocore: requires generated gRPC stubs")
+	filterBytes, err := encodeBson(filter)
+	if err != nil {
+		return nil, err
+	}
+	updateBytes, err := encodeBson(update)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.client.stub.UpdateMany(ctx, &pb.UpdateManyRequest{
+		Database:   c.database,
+		Collection: c.name,
+		Filter:     &pb.Filter{Data: filterBytes},
+		Update:     &pb.Document{Data: updateBytes},
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &UpdateResult{
+		MatchedCount:  resp.MatchedCount,
+		ModifiedCount: resp.ModifiedCount,
+	}, nil
 }
 
 // DeleteOne deletes a single document.
 func (c *Collection) DeleteOne(ctx context.Context, filter bson.D) (int64, error) {
-	return 0, fmt.Errorf("mongocore: requires generated gRPC stubs")
+	filterBytes, err := encodeBson(filter)
+	if err != nil {
+		return 0, err
+	}
+
+	resp, err := c.client.stub.Delete(ctx, &pb.DeleteRequest{
+		Database:   c.database,
+		Collection: c.name,
+		Filter:     &pb.Filter{Data: filterBytes},
+	})
+	if err != nil {
+		return 0, err
+	}
+	return resp.DeletedCount, nil
 }
 
 // DeleteMany deletes multiple documents.
 func (c *Collection) DeleteMany(ctx context.Context, filter bson.D) (int64, error) {
-	return 0, fmt.Errorf("mongocore: requires generated gRPC stubs")
+	filterBytes, err := encodeBson(filter)
+	if err != nil {
+		return 0, err
+	}
+
+	resp, err := c.client.stub.DeleteMany(ctx, &pb.DeleteManyRequest{
+		Database:   c.database,
+		Collection: c.name,
+		Filter:     &pb.Filter{Data: filterBytes},
+	})
+	if err != nil {
+		return 0, err
+	}
+	return resp.DeletedCount, nil
 }
 
 // Aggregate executes an aggregation pipeline.
 func (c *Collection) Aggregate(ctx context.Context, pipeline []bson.D) ([]bson.D, error) {
-	return nil, fmt.Errorf("mongocore: requires generated gRPC stubs")
+	stages := make([][]byte, 0, len(pipeline))
+	for _, stage := range pipeline {
+		stageBytes, err := encodeBson(stage)
+		if err != nil {
+			return nil, err
+		}
+		stages = append(stages, stageBytes)
+	}
+
+	resp, err := c.client.stub.Aggregate(ctx, &pb.AggregateRequest{
+		Database:   c.database,
+		Collection: c.name,
+		Pipeline:   &pb.Pipeline{Stages: stages},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	docs := make([]bson.D, 0, len(resp.Documents))
+	for _, d := range resp.Documents {
+		doc, err := decodeBsonDoc(d.Data)
+		if err != nil {
+			return nil, err
+		}
+		docs = append(docs, doc)
+	}
+	return docs, nil
 }

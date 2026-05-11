@@ -1,7 +1,6 @@
 """Collection operations."""
 
 from typing import Any, Optional
-import bson as pymongo_bson
 from bson import encode, decode
 
 
@@ -63,7 +62,7 @@ class Collection:
             collection=self._name,
             filter=self._make_filter(filter),
         ))
-        if response.document:
+        if response.document and response.document.data:
             return self._decode_doc(response.document.data)
         return None
 

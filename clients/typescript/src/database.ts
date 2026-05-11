@@ -19,10 +19,26 @@ export class Database {
   }
 
   async listCollections(): Promise<string[]> {
-    throw new Error('Requires generated gRPC stubs. Run: npm run generate');
+    return new Promise((resolve, reject) => {
+      this.client.getGrpcClient().listCollections(
+        { database: this.name },
+        (err: any, response: any) => {
+          if (err) return reject(err);
+          resolve(response.collections || []);
+        }
+      );
+    });
   }
 
   async createCollection(name: string): Promise<void> {
-    throw new Error('Requires generated gRPC stubs. Run: npm run generate');
+    return new Promise((resolve, reject) => {
+      this.client.getGrpcClient().createCollection(
+        { database: this.name, collection: name },
+        (err: any) => {
+          if (err) return reject(err);
+          resolve();
+        }
+      );
+    });
   }
 }

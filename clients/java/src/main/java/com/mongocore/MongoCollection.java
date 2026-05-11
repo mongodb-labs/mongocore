@@ -1,12 +1,26 @@
 package com.mongocore;
 
+import com.google.protobuf.ByteString;
+import mongocore.v1.MongoCoreGrpc;
+import mongocore.v1.Mongocore;
+import mongocore.v1.Types;
 import org.bson.Document;
+import org.bson.codecs.DocumentCodec;
+import org.bson.codecs.EncoderContext;
+import org.bson.codecs.DecoderContext;
+import org.bson.io.BasicOutputBuffer;
+import org.bson.BsonBinaryReader;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class MongoCollection {
     private final MongoClient client;
     private final String database;
     private final String name;
+    private static final DocumentCodec CODEC = new DocumentCodec();
 
     MongoCollection(MongoClient client, String database, String name) {
         this.client = client;
@@ -22,75 +36,161 @@ public class MongoCollection {
         return database;
     }
 
-    /**
-     * Find documents matching the filter.
-     */
+    private MongoCoreGrpc.MongoCoreBlockingStub getStub() {
+        return MongoCoreGrpc.newBlockingStub(client.getChannel());
+    }
+
+    private ByteString encodeBson(Document doc) {
+        BasicOutputBuffer buffer = new BasicOutputBuffer();
+        CODEC.encode(new org.bson.BsonBinaryWriter(buffer), doc, EncoderContext.builder().build());
+        return ByteString.copyFrom(buffer.getInternalBuffer(), 0, buffer.getSize());
+    }
+
+    private Document decodeBson(ByteString data) {
+        byte[] bytes = data.toByteArray();
+        BsonBinaryReader reader = new BsonBinaryReader(ByteBuffer.wrap(bytes));
+        return CODEC.decode(reader, DecoderContext.builder().build());
+    }
+
+    private Types.Filter makeFilter(Document filter) {
+        return Types.Filter.newBuilder().setData(encodeBson(filter)).build();
+    }
+
+    private Types.Document makeDocument(Document doc) {
+        return Types.Document.newBuilder().setData(encodeBson(doc)).build();
+    }
+
     public List<Document> find(Document filter) {
-        // Will use generated gRPC stub to call Find RPC
-        // Encodes filter as raw BSON bytes, sends via proto, decodes response
-        throw new UnsupportedOperationException("Requires generated gRPC stubs. Run: mvn generate-sources");
+        return find(filter, null);
     }
 
-    /**
-     * Find documents with options.
-     */
     public List<Document> find(Document filter, FindOptions options) {
-        throw new UnsupportedOperationException("Requires generated gRPC stubs. Run: mvn generate-sources");
+        Mongocore.FindRequest.Builder req = Mongocore.FindRequest.newBuilder()
+                .setDatabase(database)
+                .setCollection(name)
+                .setFilter(makeFilter(filter));
+
+        if (options != null) {
+            Types.FindOptions.Builder opts = Types.FindOptions.newBuilder();
+            if (options.getLimit() != null) {
+                opts.setLimit(options.getLimit().longValue());
+            }
+            if (options.getSkip() != null) {
+                opts.setSkip(options.getSkip().longValue());
+            }
+            if (options.getSort() != null) {
+                opts.setSort(encodeBson(options.getSort()));
+            }
+            if (options.getProjection() != null) {
+                opts.setProjection(encodeBson(options.getProjection()));
+            }
+            req.setOptions(opts.build());
+        }
+
+        Mongocore.FindResponse resp = getStub().find(req.build());
+        List<Document> docs = new ArrayList<>(resp.getDocumentsCount());
+        for (Types.Document d : resp.getDocumentsList()) {
+            docs.add(decodeBson(d.getData()));
+        }
+        return docs;
     }
 
-    /**
-     * Find a single document.
-     */
     public Document findOne(Document filter) {
-        throw new UnsupportedOperationException("Requires generated gRPC stubs. Run: mvn generate-sources");
+        Mongocore.FindOneResponse resp = getStub().findOne(
+                Mongocore.FindOneRequest.newBuilder()
+                        .setDatabase(database)
+                        .setCollection(name)
+                        .setFilter(makeFilter(filter))
+                        .build());
+
+        if (resp.hasDocument() && !resp.getDocument().getData().isEmpty()) {
+            return decodeBson(resp.getDocument().getData());
+        }
+        return null;
     }
 
-    /**
-     * Insert a single document.
-     */
     public InsertResult insertOne(Document document) {
-        throw new UnsupportedOperationException("Requires generated gRPC stubs. Run: mvn generate-sources");
+        Mongocore.InsertResponse resp = getStub().insert(
+                Mongocore.InsertRequest.newBuilder()
+                        .setDatabase(database)
+                        .setCollection(name)
+                        .setDocument(makeDocument(document))
+                        .build());
+        return new InsertResult(resp.getInsertedId());
     }
 
-    /**
-     * Insert multiple documents.
-     */
     public InsertManyResult insertMany(List<Document> documents) {
-        throw new UnsupportedOperationException("Requires generated gRPC stubs. Run: mvn generate-sources");
+        List<Types.Document> pbDocs = documents.stream()
+                .map(this::makeDocument)
+                .collect(Collectors.toList());
+
+        Mongocore.InsertManyResponse resp = getStub().insertMany(
+                Mongocore.InsertManyRequest.newBuilder()
+                        .setDatabase(database)
+                        .setCollection(name)
+                        .addAllDocuments(pbDocs)
+                        .build());
+        return new InsertManyResult(resp.getInsertedIdsList());
     }
 
-    /**
-     * Update a single document.
-     */
     public UpdateResult updateOne(Document filter, Document update) {
-        throw new UnsupportedOperationException("Requires generated gRPC stubs. Run: mvn generate-sources");
+        Mongocore.UpdateResponse resp = getStub().update(
+                Mongocore.UpdateRequest.newBuilder()
+                        .setDatabase(database)
+                        .setCollection(name)
+                        .setFilter(makeFilter(filter))
+                        .setUpdate(makeDocument(update))
+                        .build());
+        return new UpdateResult(resp.getMatchedCount(), resp.getModifiedCount(), "");
     }
 
-    /**
-     * Update multiple documents.
-     */
     public UpdateResult updateMany(Document filter, Document update) {
-        throw new UnsupportedOperationException("Requires generated gRPC stubs. Run: mvn generate-sources");
+        Mongocore.UpdateManyResponse resp = getStub().updateMany(
+                Mongocore.UpdateManyRequest.newBuilder()
+                        .setDatabase(database)
+                        .setCollection(name)
+                        .setFilter(makeFilter(filter))
+                        .setUpdate(makeDocument(update))
+                        .build());
+        return new UpdateResult(resp.getMatchedCount(), resp.getModifiedCount(), "");
     }
 
-    /**
-     * Delete a single document.
-     */
     public long deleteOne(Document filter) {
-        throw new UnsupportedOperationException("Requires generated gRPC stubs. Run: mvn generate-sources");
+        Mongocore.DeleteResponse resp = getStub().delete(
+                Mongocore.DeleteRequest.newBuilder()
+                        .setDatabase(database)
+                        .setCollection(name)
+                        .setFilter(makeFilter(filter))
+                        .build());
+        return resp.getDeletedCount();
     }
 
-    /**
-     * Delete multiple documents.
-     */
     public long deleteMany(Document filter) {
-        throw new UnsupportedOperationException("Requires generated gRPC stubs. Run: mvn generate-sources");
+        Mongocore.DeleteManyResponse resp = getStub().deleteMany(
+                Mongocore.DeleteManyRequest.newBuilder()
+                        .setDatabase(database)
+                        .setCollection(name)
+                        .setFilter(makeFilter(filter))
+                        .build());
+        return resp.getDeletedCount();
     }
 
-    /**
-     * Run an aggregation pipeline.
-     */
     public List<Document> aggregate(List<Document> pipeline) {
-        throw new UnsupportedOperationException("Requires generated gRPC stubs. Run: mvn generate-sources");
+        List<ByteString> stages = pipeline.stream()
+                .map(this::encodeBson)
+                .collect(Collectors.toList());
+
+        Mongocore.AggregateResponse resp = getStub().aggregate(
+                Mongocore.AggregateRequest.newBuilder()
+                        .setDatabase(database)
+                        .setCollection(name)
+                        .setPipeline(Types.Pipeline.newBuilder().addAllStages(stages).build())
+                        .build());
+
+        List<Document> docs = new ArrayList<>(resp.getDocumentsCount());
+        for (Types.Document d : resp.getDocumentsList()) {
+            docs.add(decodeBson(d.getData()));
+        }
+        return docs;
     }
 }

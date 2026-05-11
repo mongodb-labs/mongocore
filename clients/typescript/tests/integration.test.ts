@@ -1,0 +1,150 @@
+/**
+ * Integration tests for the MongoCore TypeScript client.
+ *
+ * Requires a running MongoCore sidecar on localhost:50051.
+ * Start with: cargo run -- --config config.test.toml
+ */
+
+import { MongoClient } from '../src/client';
+import { Collection } from '../src/collection';
+import { Database } from '../src/database';
+
+const TEST_DB = 'mongocore_client_test';
+
+function uniqueCollection(): string {
+  return `ts_test_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+let client: MongoClient;
+
+beforeAll(async () => {
+  client = new MongoClient('localhost:50051');
+  await client.connect();
+});
+
+afterAll(async () => {
+  await client.close();
+});
+
+describe('CRUD operations', () => {
+  test('insert and find', async () => {
+    const coll = client.db(TEST_DB).collection(uniqueCollection());
+
+    const result = await coll.insertOne({ name: 'Alice', age: 30 });
+    expect(result.insertedId).toBeTruthy();
+
+    const docs = await coll.find({ name: 'Alice' });
+    expect(docs).toHaveLength(1);
+    expect(docs[0].name).toBe('Alice');
+    expect(docs[0].age).toBe(30);
+  });
+
+  test('insert many and find', async () => {
+    const coll = client.db(TEST_DB).collection(uniqueCollection());
+
+    const result = await coll.insertMany([
+      { name: 'Bob', score: 85 },
+      { name: 'Carol', score: 92 },
+      { name: 'Dave', score: 78 },
+    ]);
+    expect(result.insertedCount).toBe(3);
+    expect(result.insertedIds).toHaveLength(3);
+
+    const docs = await coll.find({});
+    expect(docs).toHaveLength(3);
+  });
+
+  test('find one', async () => {
+    const coll = client.db(TEST_DB).collection(uniqueCollection());
+
+    await coll.insertOne({ key: 'unique_ts_value' });
+    const doc = await coll.findOne({ key: 'unique_ts_value' });
+    expect(doc).not.toBeNull();
+    expect(doc!.key).toBe('unique_ts_value');
+
+    const missing = await coll.findOne({ key: 'nonexistent' });
+    expect(missing).toBeNull();
+  });
+
+  test('update one', async () => {
+    const coll = client.db(TEST_DB).collection(uniqueCollection());
+
+    await coll.insertOne({ name: 'Eve', status: 'active' });
+    const result = await coll.updateOne(
+      { name: 'Eve' },
+      { $set: { status: 'inactive' } }
+    );
+    expect(result.modifiedCount).toBe(1);
+
+    const doc = await coll.findOne({ name: 'Eve' });
+    expect(doc!.status).toBe('inactive');
+  });
+
+  test('delete one', async () => {
+    const coll = client.db(TEST_DB).collection(uniqueCollection());
+
+    await coll.insertOne({ name: 'Frank' });
+    await coll.insertOne({ name: 'Grace' });
+
+    const count = await coll.deleteOne({ name: 'Frank' });
+    expect(count).toBe(1);
+
+    const docs = await coll.find({});
+    expect(docs).toHaveLength(1);
+    expect(docs[0].name).toBe('Grace');
+  });
+
+  test('delete many', async () => {
+    const coll = client.db(TEST_DB).collection(uniqueCollection());
+
+    await coll.insertMany([
+      { group: 'A' },
+      { group: 'A' },
+      { group: 'B' },
+    ]);
+
+    const count = await coll.deleteMany({ group: 'A' });
+    expect(count).toBe(2);
+
+    const docs = await coll.find({});
+    expect(docs).toHaveLength(1);
+  });
+
+  test('aggregate', async () => {
+    const coll = client.db(TEST_DB).collection(uniqueCollection());
+
+    await coll.insertMany([
+      { category: 'A', value: 10 },
+      { category: 'A', value: 20 },
+      { category: 'B', value: 30 },
+    ]);
+
+    const results = await coll.aggregate([
+      { $group: { _id: '$category', total: { $sum: '$value' } } },
+      { $sort: { _id: 1 } },
+    ]);
+
+    expect(results).toHaveLength(2);
+    expect(results[0]._id).toBe('A');
+    expect(results[0].total).toBe(30);
+    expect(results[1]._id).toBe('B');
+    expect(results[1].total).toBe(30);
+  });
+
+  test('find with limit', async () => {
+    const coll = client.db(TEST_DB).collection(uniqueCollection());
+
+    const docs = Array.from({ length: 10 }, (_, i) => ({ i }));
+    await coll.insertMany(docs);
+
+    const results = await coll.find({}, { limit: 3 });
+    expect(results).toHaveLength(3);
+  });
+});
+
+describe('Database operations', () => {
+  test('list databases', async () => {
+    const databases = await client.listDatabases();
+    expect(databases.length).toBeGreaterThan(0);
+  });
+});

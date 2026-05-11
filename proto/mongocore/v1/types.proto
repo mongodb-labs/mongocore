@@ -1,5 +1,6 @@
 syntax = "proto3";
 package mongocore.v1;
+option go_package = "github.com/rozza/mongocore/clients/go/proto";
 
 // A BSON document represented as raw bytes (avoids double-serialization)
 message Document {
