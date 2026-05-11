@@ -1,7 +1,8 @@
+use bson;
 use mongocore::config::Config;
 use mongocore::connection::pool::ConnectionPool;
 
-const TEST_DB: &str = "mongocore_test";
+pub const TEST_DB: &str = "mongocore_test";
 
 /// Get a connected ConnectionPool for integration tests.
 ///
@@ -27,10 +28,11 @@ pub async fn get_test_pool() -> ConnectionPool {
         .expect("Failed to connect to test MongoDB instance")
 }
 
-/// Drop the test database to ensure a clean state between test runs.
-pub async fn clean_test_db(pool: &ConnectionPool) {
+/// Drop a specific collection to ensure clean state for a test.
+pub async fn clean_collection(pool: &ConnectionPool, collection: &str) {
     pool.database(TEST_DB)
+        .collection::<bson::Document>(collection)
         .drop()
         .await
-        .expect("Failed to drop test database");
+        .ok(); // Ignore errors if collection doesn't exist
 }

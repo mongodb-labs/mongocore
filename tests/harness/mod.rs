@@ -1,3 +1,4 @@
+#[allow(dead_code)]
 pub mod mongodb;
 
-pub use self::mongodb::{clean_test_db, get_test_pool};
+pub use self::mongodb::{get_test_pool, TEST_DB};
