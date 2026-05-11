@@ -172,33 +172,38 @@ Integration tests run against `mongodb/mongodb-atlas-local`, which provides Atla
 just docker-up
 # or: docker compose -f docker-compose.test.yml up -d
 
-# Run integration tests
+# Run Rust integration tests
 just test-integration
 # or: cargo test --test integration
-
-# Run all tests (unit + integration)
-just test-all
-# or: cargo test
 
 # Stop test MongoDB
 just docker-down
 # or: docker compose -f docker-compose.test.yml down
 ```
 
-### Client Library Tests
+### Client Integration Tests
+
+Client integration tests require the MongoCore sidecar running:
 
 ```bash
-# Python
-cd clients/python && pip install -e ".[dev]" && pytest
+# Start the sidecar
+cargo run -- --config config.test.toml &
 
-# TypeScript
-cd clients/typescript && npm install && npm test
+# Run all client integration tests (Python, TypeScript, Go, Java)
+just test-clients
 
-# Go
-cd clients/go && go test ./...
+# Or run individually
+just test-python
+just test-typescript
+just test-go
+just test-java
+```
 
-# Java
-cd clients/java && mvn test
+### Run Everything
+
+```bash
+# Rust tests + all client integration tests
+just test-all
 ```
 
 ### Docker
@@ -257,6 +262,8 @@ mongocore/
 
 ## Recent Changes
 
+- **gRPC client wiring** — All four clients fully functional end-to-end with integration tests
+- **Unified test runner** — `just test-all` runs Rust + Python + TypeScript + Go + Java tests
 - **Polyglot client libraries** — Python, TypeScript, Go, and Java wrappers with `MongoClient` API
 - **Comprehensive documentation** — Full docs with examples in all four languages
 - **MCP server** — 13 tools for AI agent interaction with safety controls
