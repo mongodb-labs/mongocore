@@ -1,0 +1,150 @@
+"""Collection operations."""
+
+from typing import Any, Optional
+import bson as pymongo_bson
+from bson import encode, decode
+
+
+class Collection:
+    """A collection handle with CRUD operations."""
+
+    def __init__(self, client, database: str, name: str):
+        self._client = client
+        self._database = database
+        self._name = name
+
+    def _encode_doc(self, doc: dict) -> bytes:
+        """Encode a Python dict to BSON bytes."""
+        return encode(doc)
+
+    def _decode_doc(self, data: bytes) -> dict:
+        """Decode BSON bytes to a Python dict."""
+        return decode(data)
+
+    def _get_stub(self):
+        from .generated import mongocore_pb2_grpc
+        return mongocore_pb2_grpc.MongoCoreStub(self._client.channel)
+
+    def _make_filter(self, filter_doc: Optional[dict] = None):
+        from .generated import types_pb2
+        if filter_doc:
+            return types_pb2.Filter(data=self._encode_doc(filter_doc))
+        return types_pb2.Filter(data=b"")
+
+    def _make_document(self, doc: dict):
+        from .generated import types_pb2
+        return types_pb2.Document(data=self._encode_doc(doc))
+
+    async def find(self, filter: Optional[dict] = None, *, limit: int = 0, skip: int = 0) -> list[dict]:
+        """Find documents matching the filter."""
+        from .generated import mongocore_pb2, types_pb2
+        stub = self._get_stub()
+
+        options = types_pb2.FindOptions()
+        if limit:
+            options.limit = limit
+        if skip:
+            options.skip = skip
+
+        response = await stub.Find(mongocore_pb2.FindRequest(
+            database=self._database,
+            collection=self._name,
+            filter=self._make_filter(filter),
+            options=options,
+        ))
+        return [self._decode_doc(doc.data) for doc in response.documents]
+
+    async def find_one(self, filter: Optional[dict] = None) -> Optional[dict]:
+        """Find a single document."""
+        from .generated import mongocore_pb2
+        stub = self._get_stub()
+        response = await stub.FindOne(mongocore_pb2.FindOneRequest(
+            database=self._database,
+            collection=self._name,
+            filter=self._make_filter(filter),
+        ))
+        if response.document:
+            return self._decode_doc(response.document.data)
+        return None
+
+    async def insert_one(self, document: dict) -> str:
+        """Insert a single document. Returns the inserted ID."""
+        from .generated import mongocore_pb2
+        stub = self._get_stub()
+        response = await stub.Insert(mongocore_pb2.InsertRequest(
+            database=self._database,
+            collection=self._name,
+            document=self._make_document(document),
+        ))
+        return response.inserted_id
+
+    async def insert_many(self, documents: list[dict]) -> list[str]:
+        """Insert multiple documents. Returns list of inserted IDs."""
+        from .generated import mongocore_pb2
+        stub = self._get_stub()
+        response = await stub.InsertMany(mongocore_pb2.InsertManyRequest(
+            database=self._database,
+            collection=self._name,
+            documents=[self._make_document(d) for d in documents],
+        ))
+        return list(response.inserted_ids)
+
+    async def update_one(self, filter: dict, update: dict) -> dict:
+        """Update a single document. Returns {matched_count, modified_count}."""
+        from .generated import mongocore_pb2
+        stub = self._get_stub()
+        response = await stub.Update(mongocore_pb2.UpdateRequest(
+            database=self._database,
+            collection=self._name,
+            filter=self._make_filter(filter),
+            update=self._make_document(update),
+        ))
+        return {"matched_count": response.matched_count, "modified_count": response.modified_count}
+
+    async def update_many(self, filter: dict, update: dict) -> dict:
+        """Update multiple documents."""
+        from .generated import mongocore_pb2
+        stub = self._get_stub()
+        response = await stub.UpdateMany(mongocore_pb2.UpdateManyRequest(
+            database=self._database,
+            collection=self._name,
+            filter=self._make_filter(filter),
+            update=self._make_document(update),
+        ))
+        return {"matched_count": response.matched_count, "modified_count": response.modified_count}
+
+    async def delete_one(self, filter: dict) -> int:
+        """Delete a single document. Returns deleted count."""
+        from .generated import mongocore_pb2
+        stub = self._get_stub()
+        response = await stub.Delete(mongocore_pb2.DeleteRequest(
+            database=self._database,
+            collection=self._name,
+            filter=self._make_filter(filter),
+        ))
+        return response.deleted_count
+
+    async def delete_many(self, filter: dict) -> int:
+        """Delete multiple documents. Returns deleted count."""
+        from .generated import mongocore_pb2
+        stub = self._get_stub()
+        response = await stub.DeleteMany(mongocore_pb2.DeleteManyRequest(
+            database=self._database,
+            collection=self._name,
+            filter=self._make_filter(filter),
+        ))
+        return response.deleted_count
+
+    async def aggregate(self, pipeline: list[dict]) -> list[dict]:
+        """Run an aggregation pipeline."""
+        from .generated import mongocore_pb2, types_pb2
+        stub = self._get_stub()
+
+        stages = [self._encode_doc(stage) for stage in pipeline]
+
+        response = await stub.Aggregate(mongocore_pb2.AggregateRequest(
+            database=self._database,
+            collection=self._name,
+            pipeline=types_pb2.Pipeline(stages=stages),
+        ))
+        return [self._decode_doc(doc.data) for doc in response.documents]

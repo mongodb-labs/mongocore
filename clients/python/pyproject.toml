@@ -1,0 +1,18 @@
+[project]
+name = "mongocore"
+version = "0.1.0"
+description = "Python client for MongoCore - AI-native MongoDB driver sidecar"
+requires-python = ">=3.10"
+dependencies = [
+    "grpcio>=1.60.0",
+    "grpcio-tools>=1.60.0",
+    "protobuf>=4.25.0",
+    "pymongo>=4.6.0",  # For BSON encoding/decoding
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-asyncio"]
+
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
