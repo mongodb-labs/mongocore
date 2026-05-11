@@ -37,7 +37,7 @@ impl FindOptions {
 /// CRUD operations backed by a ConnectionPool.
 #[derive(Debug, Clone)]
 pub struct Operations {
-    pool: ConnectionPool,
+    pub(crate) pool: ConnectionPool,
 }
 
 impl Operations {
