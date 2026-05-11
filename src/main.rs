@@ -1,8 +1,9 @@
 use clap::Parser;
-use tracing::info;
+use tracing::{error, info};
 use tracing_subscriber::EnvFilter;
 
 use mongocore::config::{CliArgs, Config};
+use mongocore::connection::ConnectionPool;
 
 #[tokio::main]
 async fn main() {
@@ -23,7 +24,17 @@ async fn main() {
 
     print_banner(&config);
 
-    info!("MongoCore started successfully");
+    // Connect to MongoDB and detect capabilities
+    let _pool = match ConnectionPool::connect(&config).await {
+        Ok(pool) => {
+            info!("MongoCore started successfully");
+            pool
+        }
+        Err(e) => {
+            error!("Failed to connect to MongoDB: {e}");
+            std::process::exit(1);
+        }
+    };
 }
 
 fn print_banner(config: &Config) {
