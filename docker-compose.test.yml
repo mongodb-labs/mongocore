@@ -4,3 +4,5 @@ services:
     hostname: localhost
     ports:
       - "27017:27017"
+    environment:
+      MONGODB_LOAD_SAMPLE_DATA: "${ANTHROPIC_API_KEY:+true}"
