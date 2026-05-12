@@ -29,7 +29,9 @@ Enable the Atlas Local sample dataset by adding `MONGODB_LOAD_SAMPLE_DATA: "true
 
 This provides realistic, varied data for NL queries without any test-specific seed data insertion.
 
-### docker-compose.test.yml Change
+### docker-compose.llm.yml (new file)
+
+A separate compose file for LLM tests that loads sample data. The existing `docker-compose.test.yml` stays unchanged (fast startup for normal development).
 
 ```yaml
 services:
@@ -42,7 +44,9 @@ services:
       MONGODB_LOAD_SAMPLE_DATA: "true"
 ```
 
-Note: First startup is slower (~30-60s) as sample data loads. Subsequent starts are fast (data persists in the container volume). This impacts all `just docker-up` users — existing integration tests will experience a one-time slower first startup but no behavioral change after data is loaded.
+First startup is slower (~30-60s) as sample data loads. Subsequent starts are fast (data persists in the container volume).
+
+The default `just docker-up` remains fast. A new `just docker-up-llm` command starts MongoDB with sample data for LLM testing.
 
 ### Test File
 
@@ -156,7 +160,15 @@ let context = TranslationContext {
 ### Justfile
 
 ```
-# Run compiled query LLM tests (requires ANTHROPIC_API_KEY or OPENAI_API_KEY)
+# Start MongoDB with sample data for LLM tests
+docker-up-llm:
+    docker compose -f docker-compose.llm.yml up -d
+
+# Stop LLM test MongoDB
+docker-down-llm:
+    docker compose -f docker-compose.llm.yml down
+
+# Run compiled query LLM tests (requires docker-up-llm + ANTHROPIC_API_KEY or OPENAI_API_KEY)
 test-llm:
     cargo test --test integration compiled_llm -- --nocapture
 ```
@@ -165,7 +177,7 @@ test-llm:
 
 | File | Change |
 |------|--------|
-| `docker-compose.test.yml` | Add `MONGODB_LOAD_SAMPLE_DATA: "true"` |
+| `docker-compose.llm.yml` | Create with `MONGODB_LOAD_SAMPLE_DATA: "true"` |
 | `tests/integration/compiled_llm_test.rs` | Create with 7 test functions |
 | `tests/integration.rs` | Add `mod compiled_llm_test;` |
 | `justfile` | Add `test-llm` recipe |
@@ -180,8 +192,9 @@ test-llm:
 
 ## Success Criteria
 
-- [ ] `docker-compose.test.yml` loads sample data on startup
-- [ ] `sample_mflix.movies` is available with data after `just docker-up`
+- [ ] `docker-compose.llm.yml` exists and loads sample data on startup
+- [ ] `sample_mflix.movies` is available with data after `just docker-up-llm`
+- [ ] `just docker-up` (existing) remains unchanged and fast
 - [ ] Tests skip cleanly when no API key is set (no failures in CI)
 - [ ] With `ANTHROPIC_API_KEY` set, all 7 tests pass
 - [ ] Each test validates: MQL parses, executes, returns plausible results
