@@ -1,5 +1,8 @@
+use std::collections::HashSet;
+use std::sync::Mutex;
+
 use bson::{doc, Document};
-use mongodb::options::{ClientOptions, SelectionCriteria};
+use mongodb::options::{ClientOptions, DriverInfo, SelectionCriteria};
 use mongodb::{Client, Collection, Database};
 use tracing::info;
 
@@ -22,11 +25,12 @@ pub struct Capabilities {
 }
 
 /// MongoCore connection pool wrapping a `mongodb::Client` with opinionated defaults.
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct ConnectionPool {
     client: Client,
     capabilities: Capabilities,
     host: String,
+    appended_interfaces: Mutex<HashSet<String>>,
 }
 
 impl ConnectionPool {
@@ -57,6 +61,7 @@ impl ConnectionPool {
             client,
             capabilities,
             host,
+            appended_interfaces: Mutex::new(HashSet::new()),
         };
 
         pool.log_startup_banner();
@@ -74,6 +79,13 @@ impl ConnectionPool {
             Some(SelectionCriteria::ReadPreference(default_read_preference()));
         options.retry_writes = Some(DEFAULT_RETRYABLE_WRITES);
         options.retry_reads = Some(DEFAULT_RETRYABLE_READS);
+
+        options.driver_info = Some(
+            DriverInfo::builder()
+                .name("mongocore".to_string())
+                .version(env!("CARGO_PKG_VERSION").to_string())
+                .build(),
+        );
 
         Ok(options)
     }
@@ -175,6 +187,33 @@ impl ConnectionPool {
     /// Get the detected capabilities.
     pub fn capabilities(&self) -> &Capabilities {
         &self.capabilities
+    }
+
+    /// Append interface metadata to the client's driver info.
+    /// This is idempotent per interface - subsequent calls with the same interface name are no-ops.
+    pub fn append_interface_metadata(&self, interface: &str) {
+        let mut appended = self.appended_interfaces.lock().unwrap();
+        if appended.contains(interface) {
+            return;
+        }
+        let driver_info = DriverInfo::builder()
+            .name(interface.to_string())
+            .build();
+        if self.client.append_metadata(driver_info).is_ok() {
+            appended.insert(interface.to_string());
+            tracing::debug!("Appended driver metadata for interface: {}", interface);
+        }
+    }
+}
+
+impl Clone for ConnectionPool {
+    fn clone(&self) -> Self {
+        Self {
+            client: self.client.clone(),
+            capabilities: self.capabilities.clone(),
+            host: self.host.clone(),
+            appended_interfaces: Mutex::new(HashSet::new()),
+        }
     }
 }
 
@@ -280,5 +319,30 @@ mod tests {
 
         assert_eq!(options.retry_writes, Some(DEFAULT_RETRYABLE_WRITES));
         assert_eq!(options.retry_reads, Some(DEFAULT_RETRYABLE_READS));
+    }
+
+    #[tokio::test]
+    async fn test_client_options_driver_info_set() {
+        let config = Config {
+            connection_uri: "mongodb://localhost:27017".to_string(),
+            grpc_port: 50051,
+            mcp_port: 3000,
+            llm_provider: None,
+            llm_api_key_env: None,
+            voyage_api_key_env: None,
+            compiled_cache_sync: true,
+            log_level: "info".to_string(),
+            multi_tenant_enabled: false,
+            tenants: vec![],
+            analytics_enabled: true,
+            analytics_buffer_size: 10000,
+            analytics_flush_interval_secs: 300,
+            ingestion: crate::config::ResolvedIngestionConfig::default(),
+        };
+
+        let options = ConnectionPool::build_client_options(&config).await.unwrap();
+        let driver_info = options.driver_info.expect("driver_info should be set");
+        assert_eq!(driver_info.name, "mongocore");
+        assert_eq!(driver_info.version.as_deref(), Some(env!("CARGO_PKG_VERSION")));
     }
 }
