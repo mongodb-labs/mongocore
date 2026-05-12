@@ -345,9 +345,24 @@ mongocore/
 | **v0.1** | Core sidecar, gRPC + MCP interfaces, compiled queries, Voyage AI, change streams | **Complete** |
 | **v0.2** | Power user features, query analytics, multi-tenant support | **Complete** |
 | **v0.3** | Intelligent data ingestion (Polars-powered ETL) | **Complete** |
-| **v0.4** | Migration paths, framework adapters (Mongoose, Spring Data, etc.) | Planned |
-| **v0.5** | Self-contained AI (local NL-MQL model) | Planned |
-| **v0.6** | WASM, browser client, plugin system | Planned |
+
+### Current Work
+
+| Area | Description |
+|------|-------------|
+| **Demo** | Stdio MCP transport for Claude Code integration, curated restaurant dataset, scripted demo flow |
+| **Developer Experience** | AGENTS.md/CLAUDE.md for agentic development, proto regeneration workflow, test gates |
+| **Integration** | Driver metadata (handshake), URL source for ingestion, OpenTelemetry support |
+| **Performance** | Benchmarking suite comparing MongoCore vs native drivers for common workloads |
+| **Visualizations** | Configurable web UI for analytics, query flow, and ingestion progress |
+
+### Future Plans
+
+| Area | Description |
+|------|-------------|
+| Migration & Ecosystem | Framework adapters (Mongoose, Spring Data, etc.), migration paths from existing drivers |
+| Self-Contained AI | Local NL→MQL model, no external LLM dependency required |
+| WASM & Extensibility | Browser client, WASM compilation target, plugin system |
 
 ## License
 

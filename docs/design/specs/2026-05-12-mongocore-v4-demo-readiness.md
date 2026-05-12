@@ -1,4 +1,4 @@
-# MongoCore v4: Demo Readiness — Stdio MCP Transport & Demo Flow
+# MongoCore: Demo Readiness — Stdio MCP Transport & Demo Flow
 
 ## Overview
 
@@ -232,7 +232,7 @@ demo/
 
 ## Implementation Scope
 
-### Must Build (v4)
+### Must Build
 
 | Component | Description |
 |-----------|-------------|
