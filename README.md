@@ -189,6 +189,17 @@ mongocore/
 - **AGENTS.md / CLAUDE.md** — Universal AI agent development guide and Claude Code specialization
 - **Testing rules** — Enforced test parity across all clients, verbose output, proto regeneration workflow documented
 
+### v0.5 — LLM Gateway & Security
+
+- **Custom LLM gateway** — Configurable base URL, auth header, and model for corporate AI gateways/proxies (supports both Anthropic and OpenAI request formats)
+- **Simplified LLM config** — Direct API keys in TOML (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`) with env var fallback, auto-detect provider
+- **MQL validator hardening** — Blocks `$function` and `$accumulator` operators (code execution risk), recursive pipeline content checking
+- **LLM integration tests** — 20 tests across 4 sample databases with cache behavior validation and injection safety testing
+- **Safety documentation** — Full documentation of validator protections, blocked operators, and attack vectors defended against
+- **Auto-managed test sidecar** — `just test-clients` automatically builds, starts, and stops the sidecar
+- **Sample data in Docker** — `just docker-up` loads Atlas sample datasets for LLM testing
+- **TEST_LLM_INTEGRATION flag** — Opt-in flag for LLM tests, reads config from `config.test.toml`
+
 ## Roadmap
 
 | Version | Focus | Status |
@@ -197,13 +208,13 @@ mongocore/
 | **v0.2** | Raw passthrough, query analytics, multi-tenant support | **Complete** |
 | **v0.3** | Intelligent data ingestion (Polars-powered ETL) | **Complete** |
 | **v0.4** | Integration (driver metadata, URL ingestion, OpenTelemetry), full client test coverage | **Complete** |
+| **v0.5** | Custom LLM gateway, simplified config, validator hardening, LLM integration tests | **Complete** |
 
 ### Future Roadmap
 
 | Area | Description |
 |------|-------------|
 | Demo | Stdio MCP transport for Claude Code integration, curated restaurant dataset, scripted demo flow |
-| Compiled Query Testing | Unit tests for cache mechanics (mock LLM), integration tests with real LLM provider for MQL validation |
 | LLM-Provided Templates | Ask LLM to return parameterized templates for smarter cache reuse across semantic variants |
 | MCP + Claude Integration | Auto-detect API key from Claude's environment when launched as MCP server, zero-config NL→MQL |
 | Packaging & Deployment | Pre-built binaries (GitHub Releases, Homebrew), Docker images (GHCR), client libs on PyPI/npm/Maven Central, Helm chart |
