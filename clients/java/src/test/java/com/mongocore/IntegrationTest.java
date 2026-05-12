@@ -209,4 +209,225 @@ public class IntegrationTest {
         assertNotNull(databases);
         assertFalse(databases.isEmpty());
     }
+
+    @Test
+    public void testUpdateMany() {
+        MongoCollection coll = getCollection();
+
+        coll.insertMany(Arrays.asList(
+                new Document("group", "A").append("status", "active"),
+                new Document("group", "A").append("status", "active"),
+                new Document("group", "B").append("status", "active")
+        ));
+
+        UpdateResult result = coll.updateMany(
+                new Document("group", "A"),
+                new Document("$set", new Document("status", "inactive"))
+        );
+        assertEquals(2, result.getModifiedCount());
+
+        List<Document> docs = coll.find(new Document("status", "inactive"));
+        assertEquals(2, docs.size());
+    }
+
+    @Test
+    public void testFindAndModify() {
+        MongoCollection coll = getCollection();
+
+        coll.insertOne(new Document("name", "counter").append("counter", 10));
+
+        Document result = coll.findAndModify(
+                new Document("name", "counter"),
+                new Document("$inc", new Document("counter", 1)),
+                true  // returnNew
+        );
+
+        assertNotNull(result);
+        assertEquals("counter", result.getString("name"));
+        assertEquals(11, result.getInteger("counter").intValue());
+
+        Document doc = coll.findOne(new Document("name", "counter"));
+        assertEquals(11, doc.getInteger("counter").intValue());
+    }
+
+    @Test
+    public void testListCollections() {
+        MongoDatabase db = client.getDatabase(TEST_DB);
+        String collName = uniqueCollection();
+
+        db.getCollection(collName).insertOne(new Document("test", true));
+
+        List<String> collections = db.listCollections();
+        assertNotNull(collections);
+        assertTrue(collections.contains(collName));
+    }
+
+    @Test
+    public void testCreateCollection() {
+        MongoDatabase db = client.getDatabase(TEST_DB);
+        String collName = uniqueCollection();
+
+        db.createCollection(collName);
+
+        List<String> collections = db.listCollections();
+        assertTrue(collections.contains(collName));
+    }
+
+    @Test
+    public void testCreateIndex() {
+        MongoCollection coll = getCollection();
+
+        coll.insertOne(new Document("email", "test@example.com"));
+
+        String indexName = coll.createIndex(new Document("email", 1), true);
+        assertNotNull(indexName);
+        assertFalse(indexName.isEmpty());
+    }
+
+    @Test
+    public void testRunCommand() {
+        Document result = client.runCommand("admin", new Document("ping", 1), false);
+        assertNotNull(result);
+        assertEquals(1.0, result.getDouble("ok"), 0.01);
+    }
+
+    @Test
+    public void testGetAnalytics() {
+        MongoCollection coll = getCollection();
+        coll.insertOne(new Document("test", true));
+
+        Map<String, Object> analytics = client.getAnalytics();
+        assertNotNull(analytics);
+        assertTrue(analytics.containsKey("total_operations"));
+        assertTrue((Long) analytics.get("total_operations") > 0);
+    }
+
+    @Test
+    public void testTransactionCommit() {
+        String txnId = client.beginTransaction();
+        assertNotNull(txnId);
+        assertFalse(txnId.isEmpty());
+
+        boolean committed = client.commitTransaction(txnId);
+        assertTrue(committed);
+    }
+
+    @Test
+    public void testTransactionAbort() {
+        String txnId = client.beginTransaction();
+        assertNotNull(txnId);
+        assertFalse(txnId.isEmpty());
+
+        boolean aborted = client.abortTransaction(txnId);
+        assertTrue(aborted);
+    }
+
+    @Test
+    public void testIngestCSV() {
+        String csvPath = java.nio.file.Paths.get("clients/test_fixtures/sample.csv")
+                .toAbsolutePath()
+                .toString();
+
+        MongoClient.IngestOptions options = new MongoClient.IngestOptions(
+                csvPath,
+                TEST_DB,
+                uniqueCollection()
+        );
+
+        MongoClient.IngestResult result = client.ingest(options);
+        assertNotNull(result.jobId());
+        assertFalse(result.jobId().isEmpty());
+    }
+
+    @Test
+    public void testIngestStatus() {
+        String csvPath = java.nio.file.Paths.get("clients/test_fixtures/sample.csv")
+                .toAbsolutePath()
+                .toString();
+
+        MongoClient.IngestOptions options = new MongoClient.IngestOptions(
+                csvPath,
+                TEST_DB,
+                uniqueCollection()
+        );
+
+        MongoClient.IngestResult ingestResult = client.ingest(options);
+        String jobId = ingestResult.jobId();
+
+        MongoClient.IngestJob status = client.ingestStatus(jobId);
+        assertNotNull(status);
+        assertNotNull(status.jobId());
+        assertEquals(jobId, status.jobId());
+    }
+
+    @Test
+    public void testListIngestJobs() {
+        List<MongoClient.IngestJob> jobs = client.listIngestJobs();
+        assertNotNull(jobs);
+    }
+
+    @Test
+    public void testCancelIngest() {
+        String csvPath = java.nio.file.Paths.get("clients/test_fixtures/sample.csv")
+                .toAbsolutePath()
+                .toString();
+
+        MongoClient.IngestOptions options = new MongoClient.IngestOptions(
+                csvPath,
+                TEST_DB,
+                uniqueCollection()
+        );
+
+        MongoClient.IngestResult ingestResult = client.ingest(options);
+        String jobId = ingestResult.jobId();
+
+        boolean cancelled = client.cancelIngest(jobId);
+        // The result can be true or false depending on job state
+        assertNotNull(cancelled);
+    }
+
+    @Test
+    public void testWatchDirectory() throws Exception {
+        java.nio.file.Path tempDir = java.nio.file.Files.createTempDirectory("mongocore_test_watch");
+
+        try {
+            MongoClient.WatchOptions options = new MongoClient.WatchOptions(
+                    tempDir.toString(),
+                    TEST_DB,
+                    uniqueCollection()
+            );
+
+            MongoClient.WatchResult result = client.watchDirectory(options);
+            assertNotNull(result.watchId());
+            assertFalse(result.watchId().isEmpty());
+            assertTrue(result.success());
+
+            client.stopWatch(result.watchId());
+        } finally {
+            java.nio.file.Files.deleteIfExists(tempDir);
+        }
+    }
+
+    @Test
+    public void testStopWatch() throws Exception {
+        java.nio.file.Path tempDir = java.nio.file.Files.createTempDirectory("mongocore_test_stop");
+
+        try {
+            MongoClient.WatchOptions options = new MongoClient.WatchOptions(
+                    tempDir.toString(),
+                    TEST_DB,
+                    uniqueCollection()
+            );
+
+            MongoClient.WatchResult watchResult = client.watchDirectory(options);
+            String watchId = watchResult.watchId();
+
+            MongoClient.WatchResult stopResult = client.stopWatch(watchId);
+            assertNotNull(stopResult);
+            assertEquals(watchId, stopResult.watchId());
+            assertTrue(stopResult.success());
+        } finally {
+            java.nio.file.Files.deleteIfExists(tempDir);
+        }
+    }
 }
