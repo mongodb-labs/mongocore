@@ -85,6 +85,7 @@ All tests query `sample_mflix.movies`:
 | `test_llm_count_by_genre` | "count movies by genre" | Aggregate with $group | Results have `_id` and a count field |
 | `test_llm_average_runtime` | "average runtime of action movies" | Aggregate with $match + $group/$avg | Result has an average value between 60-180 (plausible) |
 | `test_llm_cache_reuse` | Same query twice | Second call is cache hit | LLM called only once, both results identical |
+| `test_llm_template_cache_reuse` | "find comedy movies from 2010" then "find comedy movies from 2020" | Second call uses cached template with new parameter | LLM called only once, second result has year == 2020 |
 
 ### Assertion Strategy
 
@@ -97,6 +98,16 @@ LLM output is non-deterministic. Assertions are intentionally loose:
 5. **Results are plausible:** Spot-check one field value matches the constraint (e.g., `runtime < 60`)
 
 If an assertion on plausibility fails, the test logs the LLM's response for debugging but doesn't hard-fail on type mismatch (Find vs Aggregate) — only on execution failure or empty results.
+
+### Template Cache Reuse
+
+The compiled query system extracts parameterized templates from NL queries. Numbers like `2010` in "find comedy movies from 2010" become placeholders (`{num_0}`). When a second query like "find comedy movies from 2020" arrives, the template pattern matches the cached entry and the new parameter value (2020) is substituted into the compiled MQL — no LLM call needed.
+
+The `test_llm_template_cache_reuse` test validates this by:
+1. Translating "find comedy movies from 2010" (cold — calls LLM)
+2. Translating "find comedy movies from 2020" (warm — should reuse template)
+3. Asserting the LLM was called only once
+4. Asserting the second result filters by year == 2020 (parameter substituted correctly)
 
 ### Execution
 
