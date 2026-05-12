@@ -53,14 +53,23 @@ impl MqlValidator {
                     stage_name, i
                 ));
             }
+
+            // Check for dangerous operators nested within stage content
+            Self::check_dangerous_operators(stage)?;
         }
         Ok(())
     }
 
+    /// Operators that allow arbitrary code execution
+    const DANGEROUS_OPERATORS: &'static [&'static str] = &["$where", "$function", "$accumulator"];
+
     fn check_dangerous_operators(doc: &Document) -> Result<(), String> {
         for (key, value) in doc.iter() {
-            if key == "$where" {
-                return Err("$where operator is not allowed (code injection risk)".to_string());
+            if Self::DANGEROUS_OPERATORS.contains(&key.as_str()) {
+                return Err(format!(
+                    "'{}' operator is not allowed (code execution risk)",
+                    key
+                ));
             }
             // Recursively check nested documents
             if let Some(nested) = value.as_document() {
@@ -154,5 +163,88 @@ mod tests {
         let result = MqlValidator::validate_filter(&filter);
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("$where"));
+    }
+
+    #[test]
+    fn function_operator_in_filter_is_blocked() {
+        let filter = doc! {
+            "$expr": {
+                "$function": {
+                    "body": "function() { return true; }",
+                    "args": [],
+                    "lang": "js"
+                }
+            }
+        };
+        let result = MqlValidator::validate_filter(&filter);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("$function"));
+    }
+
+    #[test]
+    fn accumulator_operator_in_filter_is_blocked() {
+        let filter = doc! {
+            "$expr": {
+                "$accumulator": {
+                    "init": "function() { return 0; }",
+                    "accumulate": "function(state, val) { return state + val; }",
+                    "merge": "function(a, b) { return a + b; }",
+                    "lang": "js"
+                }
+            }
+        };
+        let result = MqlValidator::validate_filter(&filter);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("$accumulator"));
+    }
+
+    #[test]
+    fn function_in_pipeline_addfields_is_blocked() {
+        let pipeline = vec![doc! {
+            "$addFields": {
+                "computed": {
+                    "$function": {
+                        "body": "function(x) { return x * 2; }",
+                        "args": ["$value"],
+                        "lang": "js"
+                    }
+                }
+            }
+        }];
+        // Pipeline stage is allowed ($addFields), but nested content has $function
+        // This requires the pipeline validator to also check nested operators
+        let result = MqlValidator::validate_pipeline(&pipeline);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("$function"));
+    }
+
+    #[test]
+    fn deeply_nested_where_is_caught() {
+        let filter = doc! {
+            "$and": [{
+                "$or": [{
+                    "$and": [{
+                        "$where": "this.x > 1"
+                    }]
+                }]
+            }]
+        };
+        let result = MqlValidator::validate_filter(&filter);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("$where"));
+    }
+
+    #[test]
+    fn regex_in_filter_is_allowed() {
+        let filter = doc! { "name": { "$regex": "^test", "$options": "i" } };
+        assert!(MqlValidator::validate_filter(&filter).is_ok());
+    }
+
+    #[test]
+    fn function_operator_at_top_level_is_blocked() {
+        let filter = doc! { "$function": { "body": "return true", "args": [], "lang": "js" } };
+        let result = MqlValidator::validate_filter(&filter);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().contains("$function"));
     }
 }

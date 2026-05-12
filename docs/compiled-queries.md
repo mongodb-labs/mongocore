@@ -192,6 +192,57 @@ Future queries like "find items under $100" match the same template and reuse th
 
 When `compiled_cache_sync = true`, every new translation is stored in the `__mongocore.compiled_queries` collection on your Atlas cluster. Other MongoCore instances can read from this shared cache, meaning a query only needs LLM translation once across your entire fleet.
 
+## Safety & Validation
+
+All LLM-generated MQL passes through a validation layer before execution. This provides defense-in-depth — even if an LLM produces dangerous output (due to prompt injection or hallucination), the validator blocks it.
+
+### Blocked Filter Operators
+
+| Operator | Risk | Reason |
+|----------|------|--------|
+| `$where` | JavaScript execution | Allows arbitrary JS code to run on the server. An attacker could exfiltrate data or cause denial of service. |
+| `$function` | JavaScript execution | Server-side JS function evaluation. Same risks as `$where` — arbitrary code execution. |
+| `$accumulator` | JavaScript execution | Custom accumulator with JS `init`/`accumulate`/`merge` functions. Arbitrary code execution in aggregation. |
+
+### Blocked Aggregation Stages
+
+| Stage | Risk | Reason |
+|-------|------|--------|
+| `$out` | Data exfiltration/overwrite | Writes pipeline results to a collection. Could overwrite production data or exfiltrate to attacker-controlled collection. |
+| `$merge` | Data modification | Merges pipeline results into an existing collection. Same risks as `$out` with partial overwrites. |
+| `$collStats` | Information disclosure | Exposes internal collection statistics. Not dangerous alone but unnecessary for NL queries. |
+| `$currentOp` | Information disclosure | Exposes running operations, connection info. Administrative operation, not a query concern. |
+| `$listSessions` | Information disclosure | Lists active sessions. Administrative, not relevant to NL queries. |
+| `$planCacheStats` | Information disclosure | Exposes query plan cache internals. |
+
+### Allowed Aggregation Stages
+
+Only these stages are permitted in compiled query pipelines:
+
+`$match`, `$project`, `$sort`, `$limit`, `$skip`, `$group`, `$lookup`, `$unwind`, `$vectorSearch`, `$search`, `$count`, `$addFields`, `$set`
+
+Any stage not in this allowlist is rejected, even if it's not explicitly in the blocklist. This is a whitelist approach — safe by default.
+
+### Recursive Validation
+
+The validator recursively inspects:
+- Nested documents within filters (catches `$where` inside `$and`/`$or` clauses)
+- Array elements (catches dangerous operators in `$elemMatch` or `$or` arrays)
+- Subdocuments at any depth (not just top-level)
+
+### What This Protects Against
+
+1. **Prompt injection** — User crafts NL input to trick the LLM into producing `$where` or `$out`. Validator catches it regardless of how convincing the injection was.
+2. **LLM hallucination** — LLM occasionally produces unexpected operators. Validator ensures only safe operators execute.
+3. **Operator injection** — Attempts to embed MongoDB operators in natural language (e.g., "find where $where = ..."). Even if the LLM includes it, validator blocks execution.
+4. **Data exfiltration** — `$out`/`$merge` could write results to attacker-accessible locations. Both blocked unconditionally.
+5. **Code execution** — `$where`, `$function`, `$accumulator` all execute JavaScript on the server. All blocked.
+
+### Limitations
+
+- The validator does NOT prevent overly broad queries (e.g., `find({})` with no filter). An LLM tricked into producing an unfiltered query will execute — it just won't do anything *dangerous*.
+- Collection/database targeting is handled by the translator (the query always runs on the collection specified in the `translate()` call, not whatever the LLM outputs).
+
 ## Output Format
 
 The LLM returns structured JSON that MongoCore parses into one of:

@@ -204,6 +204,7 @@ mongocore/
 |------|-------------|
 | Demo | Stdio MCP transport for Claude Code integration, curated restaurant dataset, scripted demo flow |
 | Compiled Query Testing | Unit tests for cache mechanics (mock LLM), integration tests with real LLM provider for MQL validation |
+| LLM-Provided Templates | Ask LLM to return parameterized templates for smarter cache reuse across semantic variants |
 | MCP + Claude Integration | Auto-detect API key from Claude's environment when launched as MCP server, zero-config NL→MQL |
 | Packaging & Deployment | Pre-built binaries (GitHub Releases, Homebrew), Docker images (GHCR), client libs on PyPI/npm/Maven Central, Helm chart |
 | Performance | Benchmarking suite comparing MongoCore vs native drivers for common workloads |
