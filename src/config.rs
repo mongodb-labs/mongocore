@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use crate::defaults::{
     DEFAULT_COMPILED_CACHE_SYNC, DEFAULT_CONNECTION_URI, DEFAULT_GRPC_PORT, DEFAULT_LOG_LEVEL,
-    DEFAULT_MCP_PORT,
+    DEFAULT_MCP_PORT, DEFAULT_OTEL_ENDPOINT, DEFAULT_OTEL_SERVICE_NAME,
 };
 use crate::error::MongoCoreError;
 
@@ -47,6 +47,18 @@ pub struct CliArgs {
     /// Log level (trace, debug, info, warn, error)
     #[arg(long, env = "MONGOCORE_LOG_LEVEL")]
     pub log_level: Option<String>,
+
+    /// Enable OpenTelemetry tracing export
+    #[arg(long, env = "MONGOCORE_OTEL_ENABLED")]
+    pub otel_enabled: Option<bool>,
+
+    /// OpenTelemetry OTLP endpoint (gRPC)
+    #[arg(long, env = "MONGOCORE_OTEL_ENDPOINT")]
+    pub otel_endpoint: Option<String>,
+
+    /// OpenTelemetry service name
+    #[arg(long, env = "MONGOCORE_OTEL_SERVICE_NAME")]
+    pub otel_service_name: Option<String>,
 }
 
 /// Per-tenant configuration structure.
@@ -131,6 +143,9 @@ pub struct FileConfig {
     pub analytics_buffer_size: Option<usize>,
     pub analytics_flush_interval_secs: Option<u64>,
     pub ingestion: Option<IngestionFileConfig>,
+    pub otel_enabled: Option<bool>,
+    pub otel_endpoint: Option<String>,
+    pub otel_service_name: Option<String>,
 }
 
 /// Resolved configuration for MongoCore.
@@ -150,6 +165,9 @@ pub struct Config {
     pub analytics_buffer_size: usize,
     pub analytics_flush_interval_secs: u64,
     pub ingestion: ResolvedIngestionConfig,
+    pub otel_enabled: bool,
+    pub otel_endpoint: String,
+    pub otel_service_name: String,
 }
 
 impl Config {
@@ -220,6 +238,21 @@ impl Config {
             watch: ingestion_file.watch,
         };
 
+        let otel_enabled = cli
+            .otel_enabled
+            .or(file_config.otel_enabled)
+            .unwrap_or(false);
+        let otel_endpoint = cli
+            .otel_endpoint
+            .clone()
+            .or(file_config.otel_endpoint)
+            .unwrap_or_else(|| DEFAULT_OTEL_ENDPOINT.to_string());
+        let otel_service_name = cli
+            .otel_service_name
+            .clone()
+            .or(file_config.otel_service_name)
+            .unwrap_or_else(|| DEFAULT_OTEL_SERVICE_NAME.to_string());
+
         Ok(Config {
             connection_uri,
             grpc_port,
@@ -235,6 +268,9 @@ impl Config {
             analytics_buffer_size,
             analytics_flush_interval_secs,
             ingestion,
+            otel_enabled,
+            otel_endpoint,
+            otel_service_name,
         })
     }
 }
@@ -257,6 +293,9 @@ mod tests {
             voyage_api_key_env: None,
             compiled_cache_sync: None,
             log_level: None,
+            otel_enabled: None,
+            otel_endpoint: None,
+            otel_service_name: None,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -296,6 +335,9 @@ log_level = "debug"
             voyage_api_key_env: None,
             compiled_cache_sync: None,
             log_level: None,
+            otel_enabled: None,
+            otel_endpoint: None,
+            otel_service_name: None,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -330,6 +372,9 @@ log_level = "debug"
             voyage_api_key_env: None,
             compiled_cache_sync: None,
             log_level: Some("warn".to_string()),
+            otel_enabled: None,
+            otel_endpoint: None,
+            otel_service_name: None,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -354,6 +399,9 @@ log_level = "debug"
             voyage_api_key_env: None,
             compiled_cache_sync: None,
             log_level: None,
+            otel_enabled: None,
+            otel_endpoint: None,
+            otel_service_name: None,
         };
 
         let result = Config::load(&cli);
@@ -390,6 +438,9 @@ connection_uri = "mongodb://other:27017"
             voyage_api_key_env: None,
             compiled_cache_sync: None,
             log_level: None,
+            otel_enabled: None,
+            otel_endpoint: None,
+            otel_service_name: None,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -425,6 +476,9 @@ connection_uri = "mongodb://other:27017"
             voyage_api_key_env: None,
             compiled_cache_sync: None,
             log_level: None,
+            otel_enabled: None,
+            otel_endpoint: None,
+            otel_service_name: None,
         }
     }
 
@@ -466,7 +520,17 @@ conflict_strategy = "merge"
         tmp.write_all(toml_content.as_bytes()).unwrap();
         let cli = CliArgs {
             config: Some(tmp.path().to_path_buf()),
-            ..default_cli()
+            connection_uri: None,
+            grpc_port: None,
+            mcp_port: None,
+            llm_provider: None,
+            llm_api_key_env: None,
+            voyage_api_key_env: None,
+            compiled_cache_sync: None,
+            log_level: None,
+            otel_enabled: None,
+            otel_endpoint: None,
+            otel_service_name: None,
         };
         let config = Config::load(&cli).unwrap();
         assert_eq!(config.ingestion.sample_size, 2000);

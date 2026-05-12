@@ -27,6 +27,12 @@ pub const DEFAULT_COMPILED_CACHE_SYNC: bool = true;
 /// Default MongoDB connection URI.
 pub const DEFAULT_CONNECTION_URI: &str = "mongodb://localhost:27017";
 
+/// Default OpenTelemetry OTLP endpoint.
+pub const DEFAULT_OTEL_ENDPOINT: &str = "http://localhost:4317";
+
+/// Default OpenTelemetry service name.
+pub const DEFAULT_OTEL_SERVICE_NAME: &str = "mongocore";
+
 /// Returns the default write concern (majority).
 pub fn default_write_concern() -> mongodb::options::WriteConcern {
     mongodb::options::WriteConcern::majority()
