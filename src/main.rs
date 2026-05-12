@@ -24,32 +24,28 @@ async fn main() {
         .unwrap_or_else(|_| EnvFilter::new(&config.log_level));
 
     #[cfg(feature = "otel")]
-    {
+    let _otel_provider = {
         if config.otel_enabled {
-            use opentelemetry::KeyValue;
-            use opentelemetry_sdk::Resource;
+            use opentelemetry::global;
+            use opentelemetry::trace::TracerProvider;
+            use opentelemetry_otlp::WithExportConfig;
             use tracing_subscriber::layer::SubscriberExt;
             use tracing_subscriber::util::SubscriberInitExt;
 
-            let tracer = opentelemetry_otlp::new_pipeline()
-                .tracing()
-                .with_exporter(
-                    opentelemetry_otlp::new_exporter()
-                        .tonic()
-                        .with_endpoint(&config.otel_endpoint),
-                )
-                .with_trace_config(
-                    opentelemetry_sdk::trace::Config::default().with_resource(
-                        Resource::new(vec![KeyValue::new(
-                            "service.name",
-                            config.otel_service_name.clone(),
-                        )]),
-                    ),
-                )
-                .install_batch(opentelemetry_sdk::runtime::Tokio)
-                .expect("Failed to initialize OpenTelemetry tracer");
+            let exporter = opentelemetry_otlp::SpanExporter::builder()
+                .with_tonic()
+                .with_endpoint(&config.otel_endpoint)
+                .build()
+                .expect("Failed to build OTLP span exporter");
 
-            let otel_layer = tracing_opentelemetry::layer().with_tracer(tracer);
+            let tracer_provider = opentelemetry_sdk::trace::SdkTracerProvider::builder()
+                .with_batch_exporter(exporter)
+                .build();
+
+            global::set_tracer_provider(tracer_provider.clone());
+
+            let otel_layer = tracing_opentelemetry::layer()
+                .with_tracer(tracer_provider.tracer(config.otel_service_name.clone()));
             let fmt_layer = tracing_subscriber::fmt::layer();
 
             tracing_subscriber::registry()
@@ -59,10 +55,12 @@ async fn main() {
                 .init();
 
             info!("OpenTelemetry tracing enabled, exporting to {}", config.otel_endpoint);
+            Some(tracer_provider)
         } else {
             tracing_subscriber::fmt().with_env_filter(filter).init();
+            None
         }
-    }
+    };
 
     #[cfg(not(feature = "otel"))]
     {
@@ -165,8 +163,8 @@ async fn main() {
 
     #[cfg(feature = "otel")]
     {
-        if config.otel_enabled {
-            opentelemetry::global::shutdown_tracer_provider();
+        if let Some(provider) = _otel_provider {
+            let _ = provider.shutdown();
         }
     }
 }
