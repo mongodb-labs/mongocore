@@ -60,6 +60,8 @@ cargo run
 cargo run -- --config config.toml
 ```
 
+See [Testing](./docs/testing.md) for test setup, commands, and Docker configuration.
+
 ### Connect (Python example)
 
 ```python

@@ -151,6 +151,7 @@ Design specifications and implementation plans live in `docs/design/`:
 - Mark completed checkboxes in plans as work progresses
 - If a spec becomes outdated (feature changed, approach abandoned), update or archive it
 - The README roadmap section should stay in sync with what's actually in progress
+- When completing significant work (new features, major fixes, architectural changes), add a brief entry to `docs/design/development-log.md` summarizing what was done and why
 - All implementation plans MUST include this block in their header:
 
 ```

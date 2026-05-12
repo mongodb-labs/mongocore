@@ -38,7 +38,7 @@ MongoCore is an AI-native MongoDB driver implemented as a Rust sidecar. It provi
 | [OpenTelemetry](./opentelemetry.md) | Distributed tracing setup and configuration |
 | [Testing](./testing.md) | Test configuration, running tests, Docker setup |
 | [Roadmap](./roadmap.md) | Version history and future roadmap |
-| [Design & Plans](./design/) | Architecture specs and implementation plans |
+| [Design & Plans](./design/) | Architecture specs, implementation plans, and development log |
 
 ## Quick Start
 
