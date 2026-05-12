@@ -12,21 +12,21 @@ test-integration:
 test-rust:
     cargo test
 
-# Run Python client integration tests
+# Run Python client tests (unit + integration)
 test-python:
-    cd clients/python && python3 -m pytest tests/test_integration.py -v
+    cd clients/python && python3 -m pytest tests/ -v
 
-# Run TypeScript client integration tests
+# Run TypeScript client tests (unit + integration)
 test-typescript:
-    cd clients/typescript && npx jest tests/integration.test.ts --no-coverage
+    cd clients/typescript && npx jest --no-coverage
 
-# Run Go client integration tests
+# Run Go client tests (unit + integration)
 test-go:
     cd clients/go && go test ./mongocore/ -v -count=1
 
-# Run Java client integration tests
+# Run Java client tests (unit + integration)
 test-java:
-    cd clients/java && mvn test -Dtest=IntegrationTest
+    cd clients/java && mvn test
 
 # Run all client integration tests
 test-clients: test-python test-typescript test-go test-java
@@ -50,7 +50,7 @@ test-unit-java:
 # Run all client unit tests
 test-unit-clients: test-unit-python test-unit-typescript test-unit-go test-unit-java
 
-# Run all tests (Rust + client integrations)
+# Run all tests (Rust + all client tests)
 test-all: test-rust test-clients
 
 # Start MongoDB for testing
