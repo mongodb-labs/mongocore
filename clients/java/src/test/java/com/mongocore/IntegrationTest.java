@@ -325,7 +325,7 @@ public class IntegrationTest {
 
     @Test
     public void testIngestCSV() {
-        String csvPath = java.nio.file.Paths.get("clients/test_fixtures/sample.csv")
+        String csvPath = java.nio.file.Paths.get("../test_fixtures/sample.csv")
                 .toAbsolutePath()
                 .toString();
 
@@ -342,7 +342,7 @@ public class IntegrationTest {
 
     @Test
     public void testIngestStatus() {
-        String csvPath = java.nio.file.Paths.get("clients/test_fixtures/sample.csv")
+        String csvPath = java.nio.file.Paths.get("../test_fixtures/sample.csv")
                 .toAbsolutePath()
                 .toString();
 
@@ -369,7 +369,7 @@ public class IntegrationTest {
 
     @Test
     public void testCancelIngest() {
-        String csvPath = java.nio.file.Paths.get("clients/test_fixtures/sample.csv")
+        String csvPath = java.nio.file.Paths.get("../test_fixtures/sample.csv")
                 .toAbsolutePath()
                 .toString();
 
