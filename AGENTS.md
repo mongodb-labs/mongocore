@@ -137,6 +137,14 @@ Design specifications and implementation plans live in `docs/design/`:
 - Mark completed checkboxes in plans as work progresses
 - If a spec becomes outdated (feature changed, approach abandoned), update or archive it
 - The README roadmap section should stay in sync with what's actually in progress
+- All implementation plans MUST include this block in their header:
+
+```
+> **For implementers:** Read and follow `AGENTS.md` at the project root.
+> Before committing: `cargo test --lib` must pass AND `cargo test --test integration` must compile.
+> If modifying client libraries: verify imports work and run `just test-clients`.
+> If modifying shared structs (like `Config`): update ALL struct literals in `src/` AND `tests/`.
+```
 
 ## Commit Style
 
