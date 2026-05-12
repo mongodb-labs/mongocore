@@ -98,12 +98,30 @@ And add a new "Testing Rules" section after "Don'ts":
 | `clients/java/src/test/java/com/mongocore/IntegrationTest.java` | Add 16 new test methods |
 | `AGENTS.md` | Add testing rules section |
 
+## Rust Unit Test Coverage Assessment
+
+208 unit tests across all modules. Coverage is well-distributed:
+
+**Well-covered:** analytics (19), compiled (34), config (7), connection (4), ingestion (55), mcp (26), operations (27), search (11), tenant (19), voyage (4)
+
+**Modules without unit tests (appropriate):**
+- `mod.rs` re-export files — no logic, just pub use
+- `grpc::service`, `grpc::server` — RPC handlers are integration-tested
+- `compiled::providers::{claude,openai}` — external API clients, integration-only
+- `ingestion::engine` — orchestrator with DB deps, integration-tested
+- `ingestion::types` — pure struct definitions with Default impls, no logic
+- `ingestion::watch` — filesystem-dependent, integration-tested
+- `analytics::persistence` — DB-dependent flush logic, integration-tested
+- `voyage::batch` — HTTP-dependent batching, integration-tested
+- `defaults`, `error` — constants and enum definitions
+
+No new Rust unit tests are needed. The gaps are all in modules that require external dependencies (DB, filesystem, HTTP APIs) and are appropriately covered by integration tests.
+
 ## Won't Build
 
 - No new client library methods (all RPCs already exposed)
 - No proto changes
 - No Rust sidecar changes
-- No unit tests (this is purely integration coverage)
 
 ## Success Criteria
 
