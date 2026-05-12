@@ -309,7 +309,7 @@ mongocore/
 └── justfile                 # Task runner (test-all, test-clients, docker-up/down)
 ```
 
-## v1 Feature Set
+## v0.1 Feature Set
 
 - **19 gRPC RPCs** — Find, FindOne, Insert, InsertMany, Update, UpdateMany, Delete, DeleteMany, FindAndModify, Aggregate, Search, BeginTransaction, CommitTransaction, AbortTransaction, CreateCollection, CreateIndex, ListDatabases, ListCollections, Watch
 - **Change streams (Watch)** — Server-streaming RPC with auto-close in all clients (Python `async with`, TypeScript `AsyncDisposable`, Go `io.Closer`, Java `AutoCloseable`)
@@ -322,13 +322,13 @@ mongocore/
 - **Unified test runner** — `just test-all` runs 94 unit + 53 integration + 40 client tests
 - **Deployment infrastructure** — Dockerfile, GitHub Actions CI/CD, installer script
 
-## v2 Feature Set
+## v0.2 Feature Set
 
 - **Raw wire protocol passthrough** — RunCommand RPC for arbitrary MongoDB commands with safety validation
 - **Query analytics** — Real-time performance tracking with latency percentiles, error rates, and operation insights
 - **Multi-tenant support** — Shared sidecar with isolated caches, rate limiting, and per-tenant connection pools
 
-## v3 Feature Set
+## v0.3 Feature Set
 
 - **Polars-based data ingestion** — CSV, JSON, NDJSON, Parquet file ingestion with parallel processing
 - **Schema inference** — Spark-connector-inspired multi-row sampling with BSON type mapping
