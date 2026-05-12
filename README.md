@@ -197,18 +197,13 @@ mongocore/
 | **v0.3** | Intelligent data ingestion (Polars-powered ETL) | **Complete** |
 | **v0.4** | Integration (driver metadata, URL ingestion, OpenTelemetry), full client test coverage | **Complete** |
 
-### Current Work
+### Future Roadmap
 
 | Area | Description |
 |------|-------------|
-| **Demo** | Stdio MCP transport for Claude Code integration, curated restaurant dataset, scripted demo flow |
-| **Performance** | Benchmarking suite comparing MongoCore vs native drivers for common workloads |
-| **Visualizations** | Configurable web UI for analytics, query flow, and ingestion progress |
-
-### Future Plans
-
-| Area | Description |
-|------|-------------|
+| Demo | Stdio MCP transport for Claude Code integration, curated restaurant dataset, scripted demo flow |
+| Performance | Benchmarking suite comparing MongoCore vs native drivers for common workloads |
+| Visualizations | Configurable web UI for analytics, query flow, and ingestion progress |
 | Migration & Ecosystem | Framework adapters (Mongoose, Spring Data, etc.), migration paths from existing drivers |
 | Self-Contained AI | Local NL→MQL model, no external LLM dependency required |
 | WASM & Extensibility | Browser client, WASM compilation target, plugin system |
