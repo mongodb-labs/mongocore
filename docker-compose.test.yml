@@ -5,4 +5,4 @@ services:
     ports:
       - "27017:27017"
     environment:
-      MONGODB_LOAD_SAMPLE_DATA: "${ANTHROPIC_API_KEY:+true}"
+      MONGODB_LOAD_SAMPLE_DATA: "${LOAD_SAMPLE_DATA:-}"
