@@ -39,6 +39,7 @@ An AI-native MongoDB driver implemented as a lightweight Rust sidecar. MongoCore
 ### Prerequisites
 
 - [Rust](https://rustup.rs/) (1.85+)
+- [Protobuf](https://grpc.io/docs/protoc-installation/) (`protoc` compiler, for client stub regeneration)
 - [Docker](https://docs.docker.com/get-docker/) (for MongoDB)
 - [just](https://github.com/casey/just) (task runner, optional)
 
