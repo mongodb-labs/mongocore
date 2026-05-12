@@ -1,4 +1,4 @@
-# Quick Start Examples
+# Quick Start
 
 ## Connect from Your Language
 
@@ -87,56 +87,4 @@ compiled_cache_sync = true
 # VOYAGE_API_KEY = "your-api-key-here"
 ```
 
-See [Getting Started](./getting-started.md) for full configuration reference.
-
-## Testing
-
-### Test Configuration
-
-Copy the example config to create your local test configuration:
-
-```bash
-cp config.test.toml.example config.test.toml
-```
-
-Edit `config.test.toml` to enable AI features for testing:
-
-```toml
-# Uncomment and set to test compiled queries
-ANTHROPIC_API_KEY = "your-api-key-here"
-
-# Uncomment and set to test vector search
-VOYAGE_API_KEY = "your-api-key-here"
-```
-
-> **Note:** `config.test.toml` is gitignored since it may contain API key references. Only the `.example` template is committed.
-
-### Running Tests
-
-```bash
-# Unit tests (no dependencies)
-cargo test --lib
-# or: just test-unit
-
-# Integration tests (needs Docker MongoDB)
-just docker-up
-cargo test --test integration
-# or: just test-integration
-
-# Client integration tests (needs Docker MongoDB + running sidecar)
-cargo run -- --config config.test.toml &
-just test-clients
-
-# Everything
-just test-all
-```
-
-### Docker
-
-Build and run MongoCore as a container:
-
-```bash
-docker build -t mongocore .
-docker run -p 50051:50051 -p 3000:3000 mongocore \
-  --connection-uri "mongodb://host.docker.internal:27017"
-```
+See [Getting Started](./getting-started.md) for full configuration reference and [Testing](./testing.md) for test setup.

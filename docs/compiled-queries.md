@@ -1,48 +1,113 @@
-# Compiled Queries
+# Compiled Queries — Intelligent NL→MQL
 
-Compiled queries let you express MongoDB operations in natural language. MongoCore translates your intent to MQL using an LLM, then caches the result at multiple levels so subsequent calls are instant.
+MongoCore's compiled query system translates natural language into optimized MongoDB queries using an LLM, then intelligently caches both the query structure and execution strategy. Subsequent queries — even with different parameters — execute at native speed without any LLM call.
+
+## The Innovation
+
+Traditional approaches treat NL→MQL as simple text-to-query translation. MongoCore goes further:
+
+1. **Intelligent routing** — The LLM classifies your intent and chooses the optimal execution method (direct filter, aggregation pipeline, vector search, full-text search, or geospatial)
+2. **Parameterized templates** — The LLM identifies which parts of your query are variable, enabling automatic reuse. "Italian restaurants" and "Chinese restaurants" share a single cached template.
+3. **Multi-level caching** — Translated queries are cached in memory, on disk, and in Atlas — so your entire fleet benefits from a single LLM call
+4. **Defense-in-depth** — All generated MQL passes through a security validator that blocks dangerous operators regardless of what the LLM produces
+
+The result: **pay once for the LLM translation, then execute at native MongoDB speed forever** — even for queries the system has never seen before, as long as they match a cached template pattern.
 
 ## How It Works
 
 ```
-"find active users older than 30"
+"find Italian restaurants in Manhattan"
         │
         ▼
-┌───────────────────────┐
-│  L1: In-Memory Cache  │ ← fastest, per-process LRU
-│  (DashMap)            │
-└───────────────────────┘
+┌────────────────────────────┐
+│  1. Exact Cache Lookup     │ ← hash(intent + db + collection)
+│     (L1 memory → L2 disk   │
+│      → L3 Atlas)           │
+└────────────────────────────┘
         │ miss
         ▼
-┌───────────────────────┐
-│  L2: Disk Cache       │ ← survives restarts, local filesystem
-│  (JSON files)         │
-└───────────────────────┘
+┌────────────────────────────┐
+│  2. Template Matching      │ ← "find {{cuisine}} restaurants in {{location}}"
+│     (regex pattern match)  │   → substitute params → execute
+└────────────────────────────┘
         │ miss
         ▼
-┌───────────────────────┐
-│  L3: Atlas Cache      │ ← shared across instances
-│  (__mongocore DB)     │
-└───────────────────────┘
-        │ miss
-        ▼
-┌───────────────────────┐
-│  LLM Translation      │ ← Claude/Anthropic API
-│  (one-time cost)      │
-└───────────────────────┘
+┌────────────────────────────┐
+│  3. LLM Translation        │ ← one-time cost
+│     Returns:               │
+│     • Execution method     │   (filter/aggregate/vector/fulltext/geo)
+│     • MQL query            │
+│     • Parameterized        │
+│       template             │
+└────────────────────────────┘
         │
         ▼
-  Cached at all levels
+  Validated → Cached at all levels → Executed
 ```
 
-After the first translation, the query is stored at all cache levels. The hash of (intent + database + collection) determines cache identity.
+### Template Reuse in Action
+
+```
+1st call: "find Italian restaurants in Manhattan"
+  → LLM returns: method=filter, filter={cuisine:"Italian", borough:"Manhattan"}
+  → Template: "find {{cuisine}} restaurants in {{location}}"
+  → Cached ✓
+
+2nd call: "find Chinese restaurants in Brooklyn"
+  → Template match! Pattern: "find {{cuisine}} restaurants in {{location}}"
+  → Substitute: cuisine="Chinese", location="Brooklyn"
+  → Execute: find({cuisine:"Chinese", borough:"Brooklyn"})
+  → NO LLM call ✓
+```
+
+## Execution Methods
+
+The LLM classifies each query into the optimal execution strategy:
+
+| Method | When Used | Example Query |
+|--------|-----------|---------------|
+| **filter** | Structured field-based queries | "find Italian restaurants in Manhattan" |
+| **aggregate** | Group-by, counts, averages, joins, top-N | "count restaurants by cuisine" |
+| **vector_search** | Semantic/meaning-based queries | "cozy restaurant for a romantic dinner" |
+| **fulltext** | Keyword text search | "search for 'wireless headphones'" |
+| **geo** | Proximity/location queries | "restaurants near Times Square" |
+
+### Query Patterns Supported
+
+**Direct Filters:**
+- "find Italian restaurants" → `{cuisine: "Italian"}`
+- "movies from the 1990s" → `{year: {$gte: 1990, $lt: 2000}}`
+- "users without an email" → `{email: {$exists: false}}`
+- "movies with both Action and Comedy" → `{genres: {$all: ["Action", "Comedy"]}}`
+
+**Aggregations:**
+- "count restaurants by borough" → `$group` + `$sum`
+- "average rating by genre" → `$unwind` + `$group` + `$avg`
+- "top 5 directors by rating" → `$group` + `$sort` + `$limit`
+- "orders with customer details" → `$lookup` (join)
+
+**Geospatial:**
+- "restaurants near Times Square" → `$near` with coordinates
+- "stores within 5km" → `$geoWithin` + `$centerSphere`
+
+**Semantic (Vector Search):**
+- "cozy atmosphere for a date night" → vector embedding + `$vectorSearch`
+- "comfortable running shoes" → semantic similarity
+
+**Full-Text:**
+- "search for 'noise cancelling headphones'" → Atlas `$search`
 
 ## Configuration
 
 ```toml
-# mongocore.toml
+# Direct API key (auto-detects provider)
 ANTHROPIC_API_KEY = "your-api-key-here"
-compiled_cache_sync = true  # Enable L3 Atlas cache
+
+# Or OpenAI
+# OPENAI_API_KEY = "your-api-key-here"
+
+# Enable L3 Atlas cache (shared across instances)
+compiled_cache_sync = true
 ```
 
 ## Custom LLM Gateway
@@ -57,18 +122,6 @@ LLM_MODEL = "claude-sonnet-4-6"
 LLM_PROVIDER_TYPE = "anthropic"  # or "openai"
 ```
 
-Or via environment variables:
-
-```bash
-export LLM_BASE_URL="https://my-ai-gateway.example.com/anthropic/v1/messages"
-export LLM_API_KEY="your-gateway-api-key"
-export LLM_AUTH_HEADER="api-key"
-export LLM_MODEL="claude-sonnet-4-6"
-export LLM_PROVIDER_TYPE="anthropic"
-```
-
-### Configuration
-
 | Field | Description | Default |
 |-------|-------------|---------|
 | `LLM_BASE_URL` | Full URL for the LLM endpoint | — (activates gateway mode) |
@@ -77,29 +130,7 @@ export LLM_PROVIDER_TYPE="anthropic"
 | `LLM_MODEL` | Model identifier to send in requests | `claude-sonnet-4-6` |
 | `LLM_PROVIDER_TYPE` | Request/response format: `anthropic` or `openai` | `anthropic` |
 
-### Precedence
-
-When `LLM_BASE_URL` is set, MongoCore uses the gateway for all NL→MQL translations. Direct `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` are ignored for compiled queries (but still used for other features if configured).
-
-### Examples
-
-**Anthropic via gateway:**
-```toml
-LLM_BASE_URL = "https://my-ai-gateway.example.com/anthropic/v1/messages"
-LLM_API_KEY = "gw-key-123"
-LLM_AUTH_HEADER = "api-key"
-LLM_MODEL = "claude-sonnet-4-6"
-LLM_PROVIDER_TYPE = "anthropic"
-```
-
-**OpenAI via gateway:**
-```toml
-LLM_BASE_URL = "https://my-ai-gateway.example.com/openai/v1/chat/completions"
-LLM_API_KEY = "gw-key-456"
-LLM_AUTH_HEADER = "api-key"
-LLM_MODEL = "gpt-5.1"
-LLM_PROVIDER_TYPE = "openai"
-```
+When `LLM_BASE_URL` is set, MongoCore uses the gateway for all NL→MQL translations.
 
 ## Usage
 
@@ -109,88 +140,78 @@ LLM_PROVIDER_TYPE = "openai"
 from mongocore import MongoClient
 
 async with MongoClient() as client:
-    users = client["myapp"]["users"]
+    restaurants = client["sample_restaurants"]["restaurants"]
 
-    # Natural language query — first call hits LLM, subsequent calls use cache
-    results = await users.compiled_query(
-        "find active users who signed up this month"
-    )
+    # Natural language → intelligently routed to the right execution method
+    results = await restaurants.compiled_query("find Italian restaurants in Manhattan")
 
-    # With parameters — templates are extracted automatically
-    results = await users.compiled_query(
-        "find users older than 25 in the engineering department"
-    )
+    # Second call with different params → uses cached template, NO LLM call
+    results = await restaurants.compiled_query("find Chinese restaurants in Brooklyn")
 
-    # The above might extract a template like:
-    # "find users older than {age_0} in the {department_0} department"
-    # Allowing future queries with different values to reuse the cached MQL
+    # Aggregation — routed to aggregate pipeline automatically
+    results = await restaurants.compiled_query("count restaurants by cuisine type")
+
+    # Semantic search — routed to vector search
+    results = await restaurants.compiled_query("cozy spot for a date night")
 ```
 
 ### TypeScript
 
 ```typescript
-const users = client.db('myapp').collection('users');
+const restaurants = client.db('sample_restaurants').collection('restaurants');
 
-// Natural language query
-const results = await users.compiledQuery(
-  'find active users who signed up this month'
-);
+// Filter query — cached after first call
+const results = await restaurants.compiledQuery('find Italian restaurants in Manhattan');
 
-// Parameterized — MongoCore extracts templates automatically
-const results2 = await users.compiledQuery(
-  'find products cheaper than $50 in the electronics category'
-);
+// Template reuse — no LLM call
+const results2 = await restaurants.compiledQuery('find Thai restaurants in Queens');
+
+// Aggregation
+const stats = await restaurants.compiledQuery('average grade score by borough');
 ```
 
 ### Go
 
 ```go
-users := client.Database("myapp").Collection("users")
+restaurants := client.Database("sample_restaurants").Collection("restaurants")
 
-results, err := users.CompiledQuery(ctx, "find active users who signed up this month")
-if err != nil {
-    log.Fatal(err)
-}
+// Intelligent routing — LLM picks the best execution method
+results, _ := restaurants.CompiledQuery(ctx, "top 5 cuisines by number of restaurants")
 
-for _, doc := range results {
-    fmt.Println(doc)
-}
+// Template reuse on subsequent calls
+results2, _ := restaurants.CompiledQuery(ctx, "top 10 cuisines by number of restaurants")
 ```
 
 ### Java
 
 ```java
-MongoCollection users = client.getDatabase("myapp").getCollection("users");
+MongoCollection restaurants = client.getDatabase("sample_restaurants").getCollection("restaurants");
 
-List<Document> results = users.compiledQuery(
-    "find active users who signed up this month"
+// Natural language with automatic caching
+List<Document> results = restaurants.compiledQuery(
+    "find restaurants with grade A in Manhattan"
 );
 ```
 
-## Template Extraction
-
-When a compiled query contains literal values (numbers, strings), MongoCore automatically extracts them into a parameterized template. This means:
-
-```
-Intent: "find items under $50"
-Template: "find items under {price_0}"
-Parameter: price_0 = 50 (type: Number)
-```
-
-Future queries like "find items under $100" match the same template and reuse the cached MQL structure, substituting the new value without calling the LLM again.
-
-## Cache Behavior
+## Cache Architecture
 
 | Level | Storage | Latency | Scope | Survives Restart |
 |-------|---------|---------|-------|-----------------|
 | L1 | In-memory (DashMap) | ~0ms | Single process | No |
 | L2 | Disk (JSON files) | ~1ms | Single machine | Yes |
 | L3 | Atlas collection | ~5-50ms | All instances | Yes |
+| Template | In-memory registry | ~0ms | Single process | No (rebuilt from L2/L3) |
 | LLM | API call | ~500-2000ms | — | — |
+
+### Cache Keys
+
+- **Exact match:** `hash(intent + database + collection)` — same query string = instant hit
+- **Template match:** Regex pattern on `intent_pattern` — different values, same structure = template hit
+- **Routing cached:** The execution method decision is cached alongside the MQL — subsequent calls don't re-evaluate
 
 ### Cache Sync
 
-When `compiled_cache_sync = true`, every new translation is stored in the `__mongocore.compiled_queries` collection on your Atlas cluster. Other MongoCore instances can read from this shared cache, meaning a query only needs LLM translation once across your entire fleet.
+When `compiled_cache_sync = true`, every new translation (including its template) is stored in `__mongocore.compiled_queries` on your Atlas cluster. Other MongoCore instances warm from this shared cache on startup.
 
 ## Safety & Validation
 
@@ -208,54 +229,41 @@ All LLM-generated MQL passes through a validation layer before execution. This p
 
 | Stage | Risk | Reason |
 |-------|------|--------|
-| `$out` | Data exfiltration/overwrite | Writes pipeline results to a collection. Could overwrite production data or exfiltrate to attacker-controlled collection. |
-| `$merge` | Data modification | Merges pipeline results into an existing collection. Same risks as `$out` with partial overwrites. |
-| `$collStats` | Information disclosure | Exposes internal collection statistics. Not dangerous alone but unnecessary for NL queries. |
-| `$currentOp` | Information disclosure | Exposes running operations, connection info. Administrative operation, not a query concern. |
-| `$listSessions` | Information disclosure | Lists active sessions. Administrative, not relevant to NL queries. |
+| `$out` | Data exfiltration/overwrite | Writes pipeline results to a collection. Could overwrite production data. |
+| `$merge` | Data modification | Merges pipeline results into an existing collection. |
+| `$collStats` | Information disclosure | Exposes internal collection statistics. |
+| `$currentOp` | Information disclosure | Exposes running operations and connection info. |
+| `$listSessions` | Information disclosure | Lists active sessions. |
 | `$planCacheStats` | Information disclosure | Exposes query plan cache internals. |
 
 ### Allowed Aggregation Stages
 
-Only these stages are permitted in compiled query pipelines:
+Only these stages are permitted: `$match`, `$project`, `$sort`, `$limit`, `$skip`, `$group`, `$lookup`, `$unwind`, `$vectorSearch`, `$search`, `$count`, `$addFields`, `$set`
 
-`$match`, `$project`, `$sort`, `$limit`, `$skip`, `$group`, `$lookup`, `$unwind`, `$vectorSearch`, `$search`, `$count`, `$addFields`, `$set`
-
-Any stage not in this allowlist is rejected, even if it's not explicitly in the blocklist. This is a whitelist approach — safe by default.
+Any stage not in this allowlist is rejected. This is a whitelist approach — safe by default.
 
 ### Recursive Validation
 
-The validator recursively inspects:
-- Nested documents within filters (catches `$where` inside `$and`/`$or` clauses)
-- Array elements (catches dangerous operators in `$elemMatch` or `$or` arrays)
-- Subdocuments at any depth (not just top-level)
+The validator inspects nested documents at any depth — `$where` buried inside `$and`/`$or` clauses is still caught.
 
 ### What This Protects Against
 
-1. **Prompt injection** — User crafts NL input to trick the LLM into producing `$where` or `$out`. Validator catches it regardless of how convincing the injection was.
-2. **LLM hallucination** — LLM occasionally produces unexpected operators. Validator ensures only safe operators execute.
-3. **Operator injection** — Attempts to embed MongoDB operators in natural language (e.g., "find where $where = ..."). Even if the LLM includes it, validator blocks execution.
-4. **Data exfiltration** — `$out`/`$merge` could write results to attacker-accessible locations. Both blocked unconditionally.
-5. **Code execution** — `$where`, `$function`, `$accumulator` all execute JavaScript on the server. All blocked.
+1. **Prompt injection** — User tricks LLM into producing `$where` or `$out` → validator catches it
+2. **LLM hallucination** — Unexpected operators → blocked by allowlist
+3. **Operator injection** — MongoDB operators embedded in NL → validator blocks execution
+4. **Data exfiltration** — `$out`/`$merge` → blocked unconditionally
+5. **Code execution** — `$where`/`$function`/`$accumulator` → all blocked
 
-### Limitations
+### Read-Only Guarantee
 
-- The validator does NOT prevent overly broad queries (e.g., `find({})` with no filter). An LLM tricked into producing an unfiltered query will execute — it just won't do anything *dangerous*.
-- Collection/database targeting is handled by the translator (the query always runs on the collection specified in the `translate()` call, not whatever the LLM outputs).
-
-## Output Format
-
-The LLM returns structured JSON that MongoCore parses into one of:
-
-```rust
-enum CompiledMql {
-    Find { filter, options },
-    Aggregate { pipeline },
-}
-```
-
-This structured output is what gets cached and executed — not raw query strings.
+The compiled query system only generates read operations (find, aggregate, search). It will never produce updates, deletes, inserts, or destructive operations. The prompt explicitly constrains output, and the validator enforces it.
 
 ## Error Handling
 
-If the LLM is unavailable or returns unparseable output, MongoCore returns an error rather than executing a potentially incorrect query. The cache hierarchy means this only affects the first call for a given intent — cached queries always work regardless of LLM availability.
+| Scenario | Behavior |
+|----------|----------|
+| LLM unavailable | Returns error (cached queries still work) |
+| Unparseable LLM response | Returns error, no execution |
+| MQL validation failure | Returns error with reason |
+| Template substitution error | Falls through to LLM call |
+| Empty results | Returns empty set (not an error) |

@@ -90,9 +90,20 @@ just docker-down  # stop when done
 
 ### Test Gates
 
-- **Before committing:** `cargo test --lib` must pass (non-negotiable)
+- **Before committing:** `cargo build` must produce ZERO warnings AND `cargo test --lib` must pass (non-negotiable)
 - **Before PR:** `cargo test --test integration` must also pass
 - **After proto changes:** verify `cargo build` succeeds (proves proto compiles)
+
+### Zero Warnings Policy
+
+`cargo build` must produce **zero warnings**. Check before every commit:
+```bash
+cargo build 2>&1 | grep "warning:"
+```
+If there are warnings, fix them before committing. Common causes:
+- Unused imports → remove them
+- Unused fields → add `#[allow(dead_code)]` only if the field is for future use, otherwise remove
+- Unused variables → prefix with `_` or remove
 
 ## Adding a New RPC
 
@@ -144,7 +155,7 @@ Design specifications and implementation plans live in `docs/design/`:
 
 ```
 > **For implementers:** Read and follow `AGENTS.md` at the project root.
-> Before committing: `just test-all` must pass (this runs all Rust tests + all client tests).
+> Before committing: `cargo build` must produce ZERO warnings AND `cargo test --lib` must pass.
 > If modifying client libraries: verify imports work and run `just test-clients`.
 > If modifying shared structs (like `Config`): update ALL struct literals in `src/` AND `tests/`.
 ```
@@ -164,7 +175,11 @@ Keep commit message titles concise (one sentence). Use the body for details when
 
 ## Workflow Rules
 
-- Run `cargo test --lib` before committing — this is non-negotiable
+- **Before EVERY commit**, run all of these (non-negotiable):
+  1. `cargo build 2>&1 | grep "warning:"` — must produce NO output (zero warnings)
+  2. `cargo test --lib` — all unit tests must pass
+  3. `cargo test --test integration --no-run` — integration tests must compile
+- **Before merging/pushing:** `just test-all` must pass (runs Rust tests + client tests with sidecar)
 - When touching proto files, always regenerate client stubs in the same commit
 - Prefer `cargo build` over `cargo check` — it catches proto compilation issues
 - Use `just docker-up` before integration tests, `just docker-down` when done

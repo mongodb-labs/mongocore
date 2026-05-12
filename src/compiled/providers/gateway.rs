@@ -27,35 +27,7 @@ impl GatewayProvider {
         collection: &str,
         context: &TranslationContext,
     ) -> String {
-        let mut prompt = format!(
-            "Translate this natural language query into a MongoDB query.\n\n\
-             Database: {}\nCollection: {}\nIntent: \"{}\"\n\n",
-            database, collection, intent
-        );
-        if let Some(ref schema) = context.schema_hint {
-            prompt.push_str(&format!("Schema: {}\n\n", schema));
-        }
-        if !context.sample_documents.is_empty() {
-            prompt.push_str("Sample documents:\n");
-            for doc in &context.sample_documents {
-                prompt.push_str(&format!("  {}\n", doc));
-            }
-            prompt.push('\n');
-        }
-        if !context.available_indexes.is_empty() {
-            prompt.push_str("Available indexes:\n");
-            for idx in &context.available_indexes {
-                prompt.push_str(&format!("  {}\n", idx));
-            }
-            prompt.push('\n');
-        }
-        prompt.push_str(
-            "Respond with ONLY valid JSON. Either:\n\
-             - A filter object for simple queries: {\"type\": \"find\", \"filter\": {...}}\n\
-             - A pipeline array for complex queries: {\"type\": \"aggregate\", \"pipeline\": [...]}\n\
-             No explanation, no markdown.",
-        );
-        prompt
+        super::prompt::build_translation_prompt(intent, database, collection, context)
     }
 
     fn build_anthropic_body(&self, prompt: &str) -> serde_json::Value {

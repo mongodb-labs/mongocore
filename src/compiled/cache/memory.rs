@@ -95,6 +95,7 @@ mod tests {
                 options: None,
             },
             template: None,
+            llm_template: None,
             created_at: 0,
         }
     }

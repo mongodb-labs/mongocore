@@ -6,12 +6,16 @@ MongoCore is an AI-native MongoDB driver implemented as a Rust sidecar. It provi
 
 - **Polyglot gRPC API** — Python, TypeScript, Go, Java client libraries
 - **MCP Server** — AI agents (Claude, GPT) interact with MongoDB via JSON-RPC
+- **Compiled Queries** — Intelligent NL→MQL with method routing, LLM-provided templates, and 3-level caching
 - **Vector Search** — Semantic search with Voyage AI embeddings and Atlas Vector Search
 - **Full-Text Search** — Atlas Search with automatic fallback
-- **Compiled Queries** — Natural language to MQL with multi-level caching
+- **Data Ingestion** — Polars-powered CSV/JSON/Parquet/URL/S3 ingestion with schema inference
 - **Transactions** — Multi-document ACID with concurrent session management
 - **Change Streams** — Real-time database notifications via server-streaming gRPC
-- **Zero-copy BSON** — Raw BSON bytes on the wire, no double-serialization
+- **Query Analytics** — Real-time latency percentiles, error rates, operation insights
+- **Multi-Tenant** — Isolated caches, rate limiting, per-tenant connection pools
+- **OpenTelemetry** — Optional distributed tracing with driver and MongoCore-level spans
+- **Custom LLM Gateway** — Corporate AI gateway support with configurable auth
 
 ## Documentation
 
@@ -22,7 +26,7 @@ MongoCore is an AI-native MongoDB driver implemented as a Rust sidecar. It provi
 | [Aggregation](./aggregation.md) | Pipeline operations and common patterns |
 | [Transactions](./transactions.md) | Multi-document ACID transactions |
 | [Search](./search.md) | Vector search, full-text search, fallback chains |
-| [Compiled Queries](./compiled-queries.md) | Natural language to MQL with caching |
+| [Compiled Queries](./compiled-queries.md) | Intelligent NL→MQL with routing, templates, and caching |
 | [Change Streams](./streaming.md) | Real-time notifications via Watch |
 | [Admin Operations](./admin-operations.md) | Collections, indexes, introspection |
 | [MCP Server](./mcp-server.md) | AI agent integration via JSON-RPC |
@@ -31,6 +35,9 @@ MongoCore is an AI-native MongoDB driver implemented as a Rust sidecar. It provi
 | [Analytics](./analytics.md) | Query performance insights and operation tracking |
 | [Multi-Tenant](./multi-tenant.md) | Shared sidecar with per-tenant isolation |
 | [Ingestion](./ingestion.md) | Polars-powered data ingestion and ETL |
+| [OpenTelemetry](./opentelemetry.md) | Distributed tracing setup and configuration |
+| [Testing](./testing.md) | Test configuration, running tests, Docker setup |
+| [Roadmap](./roadmap.md) | Version history and future roadmap |
 | [Design & Plans](./design/) | Architecture specs and implementation plans |
 
 ## Quick Start

@@ -247,4 +247,17 @@ mod tests {
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("$function"));
     }
+
+    #[test]
+    fn valid_geo_filter_passes() {
+        let filter = doc! {
+            "location": {
+                "$near": {
+                    "$geometry": { "type": "Point", "coordinates": [-73.97, 40.77] },
+                    "$maxDistance": 5000
+                }
+            }
+        };
+        assert!(MqlValidator::validate_filter(&filter).is_ok());
+    }
 }

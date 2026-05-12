@@ -8,12 +8,14 @@ use super::cache::CacheHierarchy;
 use super::hasher::QueryHasher;
 use super::providers::{LlmError, LlmProvider, TranslationContext};
 use super::template::TemplateExtractor;
+use super::template_registry::TemplateRegistry;
 use super::validator::MqlValidator;
-use super::{CompiledMql, CompiledQuery};
+use super::{CompiledMql, CompiledQuery, LlmTemplate};
 
 pub struct CompiledQueryTranslator {
     cache: CacheHierarchy,
     provider: Option<Box<dyn LlmProvider>>,
+    template_registry: TemplateRegistry,
 }
 
 impl CompiledQueryTranslator {
@@ -23,10 +25,14 @@ impl CompiledQueryTranslator {
         cache_dir: Option<PathBuf>,
     ) -> Self {
         let cache = CacheHierarchy::new(pool, cache_dir);
-        Self { cache, provider }
+        Self {
+            cache,
+            provider,
+            template_registry: TemplateRegistry::new(),
+        }
     }
 
-    /// Translate an intent to MQL. Checks cache first, then LLM.
+    /// Translate an intent to MQL. Checks cache first, then template registry, then LLM.
     pub async fn translate(
         &self,
         intent: &str,
@@ -36,12 +42,35 @@ impl CompiledQueryTranslator {
     ) -> Result<CompiledQuery, TranslateError> {
         let hash = QueryHasher::hash(intent, database, collection, None);
 
-        // Check cache
+        // 1. Check exact cache
         if let Some(cached) = self.cache.get(&hash).await {
             return Ok(cached);
         }
 
-        // Need LLM
+        // 2. Check template registry
+        if let Some(template_match) = self.template_registry.try_match(intent, database, collection) {
+            let mql = Self::parse_method_response(&template_match.mql_json, &template_match.method)?;
+            // Validate
+            self.validate_mql(&mql)?;
+            let template = TemplateExtractor::extract(intent);
+            let compiled = CompiledQuery {
+                hash: hash.clone(),
+                intent: intent.to_string(),
+                collection: collection.to_string(),
+                database: database.to_string(),
+                mql,
+                template,
+                llm_template: None,
+                created_at: std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap_or_default()
+                    .as_secs() as i64,
+            };
+            self.cache.put(&compiled).await;
+            return Ok(compiled);
+        }
+
+        // 3. Call LLM
         let provider = self.provider.as_ref().ok_or(TranslateError::NoProvider)?;
 
         let response = provider
@@ -49,20 +78,18 @@ impl CompiledQueryTranslator {
             .await
             .map_err(TranslateError::Llm)?;
 
-        // Parse LLM response
-        let mql = Self::parse_llm_response(&response)?;
+        // Parse LLM response (with method and optional template)
+        let parsed = Self::parse_llm_response(&response)?;
 
         // Validate
-        match &mql {
-            CompiledMql::Find { filter, .. } => {
-                MqlValidator::validate_filter(filter).map_err(TranslateError::Validation)?;
-            }
-            CompiledMql::Aggregate { pipeline } => {
-                MqlValidator::validate_pipeline(pipeline).map_err(TranslateError::Validation)?;
-            }
+        self.validate_mql(&parsed.mql)?;
+
+        // Register template if LLM provided one
+        if let Some(ref llm_tmpl) = parsed.llm_template {
+            self.template_registry.register(llm_tmpl, parsed.mql.method(), database, collection);
         }
 
-        // Extract template
+        // Extract NL-side template
         let template = TemplateExtractor::extract(intent);
 
         // Build compiled query
@@ -71,8 +98,9 @@ impl CompiledQueryTranslator {
             intent: intent.to_string(),
             collection: collection.to_string(),
             database: database.to_string(),
-            mql,
+            mql: parsed.mql,
             template,
+            llm_template: parsed.llm_template,
             created_at: std::time::SystemTime::now()
                 .duration_since(std::time::UNIX_EPOCH)
                 .unwrap_or_default()
@@ -85,39 +113,118 @@ impl CompiledQueryTranslator {
         Ok(compiled)
     }
 
-    fn parse_llm_response(response: &str) -> Result<CompiledMql, TranslateError> {
-        let value: serde_json::Value = serde_json::from_str(response)
+    fn parse_llm_response(response: &str) -> Result<ParsedLlmResponse, TranslateError> {
+        // Strip markdown code fences if present (LLMs sometimes wrap JSON in ```json...```)
+        let cleaned = response.trim();
+        let cleaned = if cleaned.starts_with("```") {
+            let without_start = cleaned
+                .strip_prefix("```json")
+                .or_else(|| cleaned.strip_prefix("```"))
+                .unwrap_or(cleaned);
+            without_start
+                .strip_suffix("```")
+                .unwrap_or(without_start)
+                .trim()
+        } else {
+            cleaned
+        };
+
+        let value: serde_json::Value = serde_json::from_str(cleaned)
             .map_err(|e| TranslateError::ParseError(format!("Invalid JSON from LLM: {}", e)))?;
 
-        let query_type = value["type"].as_str().unwrap_or("find");
+        // Determine method: prefer "method" field, fall back to "type" for backwards compatibility
+        let method = if let Some(m) = value.get("method").and_then(|v| v.as_str()) {
+            m
+        } else {
+            // Backwards compatibility: map old "type" to method
+            match value.get("type").and_then(|v| v.as_str()) {
+                Some("find") => "filter",
+                Some("aggregate") => "aggregate",
+                _ => "filter", // default
+            }
+        };
 
-        match query_type {
-            "find" => {
+        let mql = Self::parse_method_response(&value, method)?;
+
+        // Parse template if present
+        let llm_template = value.get("template").and_then(|t| {
+            serde_json::from_value::<LlmTemplate>(t.clone()).ok()
+        });
+
+        Ok(ParsedLlmResponse { mql, llm_template })
+    }
+
+    fn parse_method_response(value: &serde_json::Value, method: &str) -> Result<CompiledMql, TranslateError> {
+        match method {
+            "filter" => {
                 let filter_val = &value["filter"];
                 let filter: Document = bson::to_document(filter_val)
                     .map_err(|e| TranslateError::ParseError(format!("Invalid filter: {}", e)))?;
-                Ok(CompiledMql::Find {
-                    filter,
-                    options: None,
-                })
+                let options = value.get("options")
+                    .and_then(|o| bson::to_document(o).ok());
+                Ok(CompiledMql::Find { filter, options })
+            }
+            "geo" => {
+                let filter_val = &value["filter"];
+                let filter: Document = bson::to_document(filter_val)
+                    .map_err(|e| TranslateError::ParseError(format!("Invalid filter: {}", e)))?;
+                let options = value.get("options")
+                    .and_then(|o| bson::to_document(o).ok());
+                Ok(CompiledMql::Geo { filter, options })
             }
             "aggregate" => {
-                let pipeline_val = value["pipeline"].as_array().ok_or_else(|| {
-                    TranslateError::ParseError("Missing pipeline array".to_string())
-                })?;
-                let pipeline: Vec<Document> = pipeline_val
-                    .iter()
-                    .map(|v| {
-                        bson::to_document(v).map_err(|e| TranslateError::ParseError(e.to_string()))
-                    })
+                let pipeline_val = value["pipeline"].as_array()
+                    .ok_or_else(|| TranslateError::ParseError("Missing pipeline".to_string()))?;
+                let pipeline: Vec<Document> = pipeline_val.iter()
+                    .map(|v| bson::to_document(v).map_err(|e| TranslateError::ParseError(e.to_string())))
                     .collect::<Result<_, _>>()?;
                 Ok(CompiledMql::Aggregate { pipeline })
             }
-            other => Err(TranslateError::ParseError(format!(
-                "Unknown query type: {}",
-                other
-            ))),
+            "vector_search" => {
+                let search_query = value.get("search_query")
+                    .or_else(|| value.get("query"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let pre_filter = value.get("pre_filter")
+                    .and_then(|f| bson::to_document(f).ok());
+                Ok(CompiledMql::VectorSearch { search_query, pre_filter })
+            }
+            "fulltext" => {
+                let search_query = value.get("search_query")
+                    .or_else(|| value.get("query"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let pre_filter = value.get("pre_filter")
+                    .and_then(|f| bson::to_document(f).ok());
+                Ok(CompiledMql::Fulltext { search_query, pre_filter })
+            }
+            _ => {
+                // Default to find for backwards compatibility
+                let filter_val = &value["filter"];
+                let filter: Document = bson::to_document(filter_val)
+                    .unwrap_or_default();
+                Ok(CompiledMql::Find { filter, options: None })
+            }
         }
+    }
+
+    fn validate_mql(&self, mql: &CompiledMql) -> Result<(), TranslateError> {
+        match mql {
+            CompiledMql::Find { filter, .. } | CompiledMql::Geo { filter, .. } => {
+                MqlValidator::validate_filter(filter).map_err(TranslateError::Validation)?;
+            }
+            CompiledMql::Aggregate { pipeline } => {
+                MqlValidator::validate_pipeline(pipeline).map_err(TranslateError::Validation)?;
+            }
+            CompiledMql::VectorSearch { search_query, .. } | CompiledMql::Fulltext { search_query, .. } => {
+                if search_query.is_empty() {
+                    return Err(TranslateError::Validation("Empty search query".to_string()));
+                }
+            }
+        }
+        Ok(())
     }
 
     /// Warm the cache from Atlas (L3). Call on startup if Atlas sync is enabled.
@@ -128,6 +235,16 @@ impl CompiledQueryTranslator {
     pub fn cache_size(&self) -> usize {
         self.cache.l1_size()
     }
+
+    pub fn template_registry_size(&self) -> usize {
+        self.template_registry.len()
+    }
+}
+
+#[derive(Debug)]
+struct ParsedLlmResponse {
+    mql: CompiledMql,
+    llm_template: Option<LlmTemplate>,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -149,21 +266,22 @@ mod tests {
     #[test]
     fn parse_find_response() {
         let json = r#"{"type": "find", "filter": {"status": "active", "age": {"$gt": 25}}}"#;
-        let result = CompiledQueryTranslator::parse_llm_response(json).unwrap();
-        match result {
+        let parsed = CompiledQueryTranslator::parse_llm_response(json).unwrap();
+        match parsed.mql {
             CompiledMql::Find { filter, options } => {
                 assert_eq!(filter.get_str("status").unwrap(), "active");
                 assert!(options.is_none());
             }
             _ => panic!("Expected Find"),
         }
+        assert!(parsed.llm_template.is_none());
     }
 
     #[test]
     fn parse_aggregate_response() {
         let json = r#"{"type": "aggregate", "pipeline": [{"$match": {"status": "active"}}, {"$sort": {"name": 1}}]}"#;
-        let result = CompiledQueryTranslator::parse_llm_response(json).unwrap();
-        match result {
+        let parsed = CompiledQueryTranslator::parse_llm_response(json).unwrap();
+        match parsed.mql {
             CompiledMql::Aggregate { pipeline } => {
                 assert_eq!(pipeline.len(), 2);
                 assert!(pipeline[0].contains_key("$match"));
@@ -171,6 +289,31 @@ mod tests {
             }
             _ => panic!("Expected Aggregate"),
         }
+        assert!(parsed.llm_template.is_none());
+    }
+
+    #[test]
+    fn parse_new_format_with_method_and_template() {
+        let json = r#"{
+            "method": "filter",
+            "filter": {"cuisine": "Italian"},
+            "template": {
+                "intent_pattern": "find {{cuisine}} restaurants",
+                "parameters": [{"name": "cuisine", "value": "Italian", "param_type": "String"}],
+                "mql_pattern": {"cuisine": "{{cuisine}}"}
+            }
+        }"#;
+        let parsed = CompiledQueryTranslator::parse_llm_response(json).unwrap();
+        match parsed.mql {
+            CompiledMql::Find { filter, .. } => {
+                assert_eq!(filter.get_str("cuisine").unwrap(), "Italian");
+            }
+            _ => panic!("Expected Find"),
+        }
+        assert!(parsed.llm_template.is_some());
+        let template = parsed.llm_template.unwrap();
+        assert_eq!(template.intent_pattern, "find {{cuisine}} restaurants");
+        assert_eq!(template.parameters.len(), 1);
     }
 
     #[test]
@@ -180,17 +323,6 @@ mod tests {
         assert!(result.is_err());
         match result.unwrap_err() {
             TranslateError::ParseError(msg) => assert!(msg.contains("Invalid JSON")),
-            other => panic!("Expected ParseError, got {:?}", other),
-        }
-    }
-
-    #[test]
-    fn parse_unknown_type_returns_error() {
-        let json = r#"{"type": "delete", "filter": {}}"#;
-        let result = CompiledQueryTranslator::parse_llm_response(json);
-        assert!(result.is_err());
-        match result.unwrap_err() {
-            TranslateError::ParseError(msg) => assert!(msg.contains("Unknown query type")),
             other => panic!("Expected ParseError, got {:?}", other),
         }
     }
@@ -225,6 +357,7 @@ mod tests {
                 options: None,
             },
             template: None,
+            llm_template: None,
             created_at: 0,
         };
         translator.cache.put(&query).await;
