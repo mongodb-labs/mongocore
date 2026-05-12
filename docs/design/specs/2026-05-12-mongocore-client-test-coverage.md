@@ -111,13 +111,66 @@ And add a new "Testing Rules" section after "Don'ts":
 
 | File | Change |
 |------|--------|
-| `justfile` | Remove `-q` from Java test recipe |
+| `justfile` | Remove `-q` from Java test recipe, add `test-unit-clients` commands |
 | `clients/test_fixtures/sample.csv` | Create shared CSV fixture |
-| `clients/python/tests/test_integration.py` | Add 16 new test functions |
-| `clients/typescript/tests/integration.test.ts` | Add 16 new test blocks |
-| `clients/go/mongocore/integration_test.go` | Add 16 new test functions |
+| `clients/test_fixtures/watch_drop.csv` | Create fixture for watch tests |
+| `clients/python/tests/test_integration.py` | Add 16 new integration test functions |
+| `clients/python/tests/test_client.py` | Add 2 missing unit tests |
+| `clients/typescript/tests/integration.test.ts` | Add 16 new integration test blocks |
+| `clients/typescript/tests/unit.test.ts` | Create with 5 unit tests |
+| `clients/go/mongocore/integration_test.go` | Add 16 new integration test functions |
+| `clients/go/mongocore/client_test.go` | Create with 5 unit tests |
 | `clients/java/src/test/java/com/mongocore/IntegrationTest.java` | Add 16 new test methods |
+| `clients/java/src/test/java/com/mongocore/MongoClientTest.java` | Add 2 missing unit tests |
 | `AGENTS.md` | Add testing rules section |
+
+## Client Unit Tests
+
+Client unit tests validate object construction and configuration without needing a running sidecar.
+
+**Current state:**
+- Python: 3 tests (client creation, DB access, collection access)
+- Java: 4 tests (client creation, DB access, collection access, find options)
+- TypeScript: 0 tests (no unit test file exists)
+- Go: 0 tests (no unit test file exists)
+
+**Target:** All 4 clients should have a uniform set of unit tests:
+
+| Test | What it verifies |
+|------|-----------------|
+| `client_creation` | Client instantiates with address |
+| `client_default_address` | Client uses localhost:50051 when no address given |
+| `database_access` | `client["db"]` / `client.db("db")` returns Database handle with correct name |
+| `collection_access` | `db["coll"]` / `db.collection("coll")` returns Collection handle with correct name |
+| `client_metadata_header` | The `x-client-language` metadata constant is set to the correct language |
+
+### Files to create/update
+
+| Language | File | Action |
+|----------|------|--------|
+| Python | `clients/python/tests/test_client.py` | Add `test_client_default_address`, `test_client_metadata_header` |
+| TypeScript | `clients/typescript/tests/unit.test.ts` | Create with all 5 tests |
+| Go | `clients/go/mongocore/client_test.go` | Create with all 5 tests |
+| Java | `clients/java/src/test/java/com/mongocore/MongoClientTest.java` | Add `testDefaultAddress`, `testMetadataHeader` |
+
+### Justfile updates
+
+Add unit test commands:
+```
+test-unit-python:
+    cd clients/python && python3 -m pytest tests/test_client.py -v
+
+test-unit-typescript:
+    cd clients/typescript && npx jest tests/unit.test.ts --no-coverage
+
+test-unit-go:
+    cd clients/go && go test ./mongocore/ -v -count=1 -run "^TestUnit"
+
+test-unit-java:
+    cd clients/java && mvn test -Dtest=MongoClientTest
+
+test-unit-clients: test-unit-python test-unit-typescript test-unit-go test-unit-java
+```
 
 ## Rust Unit Test Coverage Assessment
 
