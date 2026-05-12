@@ -8,6 +8,9 @@
 import { MongoClient } from '../src/client';
 import { Collection } from '../src/collection';
 import { Database } from '../src/database';
+import path from 'path';
+import fs from 'fs';
+import os from 'os';
 
 const TEST_DB = 'mongocore_client_test';
 
@@ -189,5 +192,205 @@ describe('Database operations', () => {
   test('list databases', async () => {
     const databases = await client.listDatabases();
     expect(databases.length).toBeGreaterThan(0);
+  });
+
+  test('update many', async () => {
+    const coll = client.db(TEST_DB).collection(uniqueCollection());
+
+    await coll.insertMany([
+      { name: 'Alice', status: 'active' },
+      { name: 'Bob', status: 'active' },
+      { name: 'Carol', status: 'inactive' },
+    ]);
+
+    const result = await coll.updateMany(
+      { status: 'active' },
+      { $set: { status: 'updated' } }
+    );
+    expect(result.modifiedCount).toBe(2);
+
+    const docs = await coll.find({ status: 'updated' });
+    expect(docs).toHaveLength(2);
+  });
+
+  test('find and modify', async () => {
+    const coll = client.db(TEST_DB).collection(uniqueCollection());
+
+    await coll.insertOne({ name: 'Counter', value: 10 });
+
+    const result = await coll.findAndModify(
+      { name: 'Counter' },
+      { $inc: { value: 5 } },
+      { returnDocument: 'after' }
+    );
+
+    expect(result.document).not.toBeNull();
+    expect(result.document!.name).toBe('Counter');
+    expect(result.document!.value).toBe(15);
+  });
+
+  test('list collections', async () => {
+    const collName = uniqueCollection();
+    const coll = client.db(TEST_DB).collection(collName);
+
+    await coll.insertOne({ test: 'data' });
+
+    const db = client.db(TEST_DB);
+    const collections = await db.listCollections();
+
+    expect(collections).toContain(collName);
+  });
+
+  test('create collection', async () => {
+    const collName = uniqueCollection();
+    const db = client.db(TEST_DB);
+
+    await db.createCollection(collName);
+
+    const collections = await db.listCollections();
+    expect(collections).toContain(collName);
+  });
+
+  test('create index', async () => {
+    const coll = client.db(TEST_DB).collection(uniqueCollection());
+
+    await coll.insertOne({ email: 'test@example.com' });
+
+    const result = await coll.createIndex(
+      { email: 1 },
+      { unique: true }
+    );
+
+    expect(result.indexName).toBeTruthy();
+  });
+
+  test('run command', async () => {
+    const result = await client.runCommand('admin', { ping: 1 });
+
+    expect(result.ok).toBe(1);
+  });
+
+  test('get analytics', async () => {
+    const coll = client.db(TEST_DB).collection(uniqueCollection());
+    await coll.insertOne({ test: 'analytics' });
+
+    const analytics = await client.getAnalytics();
+
+    expect(analytics.totalOperations).toBeDefined();
+  });
+});
+
+describe('Transaction operations', () => {
+  test('transaction commit', async () => {
+    const txId = await client.beginTransaction(TEST_DB);
+
+    expect(txId).toBeTruthy();
+
+    const result = await client.commitTransaction(txId);
+
+    expect(result).toBe(true);
+  });
+
+  test('transaction abort', async () => {
+    const txId = await client.beginTransaction(TEST_DB);
+
+    expect(txId).toBeTruthy();
+
+    const result = await client.abortTransaction(txId);
+
+    expect(result).toBe(true);
+  });
+});
+
+describe('Ingestion operations', () => {
+  test('ingest csv', async () => {
+    const csvPath = path.resolve(__dirname, '../../test_fixtures/sample.csv');
+    const collName = uniqueCollection();
+
+    const result = await client.ingest({
+      source: csvPath,
+      format: 'csv',
+      database: TEST_DB,
+      collection: collName,
+    });
+
+    expect(result.jobId).toBeTruthy();
+  });
+
+  test('ingest status', async () => {
+    const csvPath = path.resolve(__dirname, '../../test_fixtures/sample.csv');
+    const collName = uniqueCollection();
+
+    const result = await client.ingest({
+      source: csvPath,
+      format: 'csv',
+      database: TEST_DB,
+      collection: collName,
+    });
+
+    const status = await client.ingestStatus(result.jobId);
+
+    expect(status).toBeDefined();
+    expect(status.jobId).toBe(result.jobId);
+  });
+
+  test('list ingest jobs', async () => {
+    const jobs = await client.listIngestJobs();
+
+    expect(Array.isArray(jobs)).toBe(true);
+  });
+
+  test('cancel ingest', async () => {
+    const csvPath = path.resolve(__dirname, '../../test_fixtures/sample.csv');
+    const collName = uniqueCollection();
+
+    const result = await client.ingest({
+      source: csvPath,
+      format: 'csv',
+      database: TEST_DB,
+      collection: collName,
+    });
+
+    const cancelResult = await client.cancelIngest(result.jobId);
+
+    expect(cancelResult).toBeDefined();
+    expect(cancelResult.jobId).toBe(result.jobId);
+  });
+});
+
+describe('Watch operations', () => {
+  test('watch directory', async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mongocore-test-'));
+
+    const result = await client.watchDirectory({
+      path: tempDir,
+      database: TEST_DB,
+      collection: uniqueCollection(),
+      format: 'csv',
+    });
+
+    expect(result.watchId).toBeTruthy();
+
+    await client.stopWatch(result.watchId);
+
+    fs.rmSync(tempDir, { recursive: true });
+  });
+
+  test('stop watch', async () => {
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'mongocore-test-'));
+
+    const result = await client.watchDirectory({
+      path: tempDir,
+      database: TEST_DB,
+      collection: uniqueCollection(),
+      format: 'csv',
+    });
+
+    const stopResult = await client.stopWatch(result.watchId);
+
+    expect(stopResult.watchId).toBe(result.watchId);
+    expect(stopResult.status).toBeDefined();
+
+    fs.rmSync(tempDir, { recursive: true });
   });
 });
