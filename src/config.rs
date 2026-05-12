@@ -28,17 +28,17 @@ pub struct CliArgs {
     #[arg(long, env = "MONGOCORE_MCP_PORT")]
     pub mcp_port: Option<u16>,
 
-    /// LLM provider name
-    #[arg(long, env = "MONGOCORE_LLM_PROVIDER")]
-    pub llm_provider: Option<String>,
+    /// Anthropic API key for compiled queries
+    #[arg(long, env = "ANTHROPIC_API_KEY")]
+    pub anthropic_api_key: Option<String>,
 
-    /// Environment variable name containing the LLM API key
-    #[arg(long, env = "MONGOCORE_LLM_API_KEY_ENV")]
-    pub llm_api_key_env: Option<String>,
+    /// OpenAI API key for compiled queries
+    #[arg(long, env = "OPENAI_API_KEY")]
+    pub openai_api_key: Option<String>,
 
-    /// Environment variable name containing the Voyage API key
-    #[arg(long, env = "MONGOCORE_VOYAGE_API_KEY_ENV")]
-    pub voyage_api_key_env: Option<String>,
+    /// Voyage AI API key for embeddings
+    #[arg(long, env = "VOYAGE_API_KEY")]
+    pub voyage_api_key: Option<String>,
 
     /// Enable compiled cache sync
     #[arg(long, env = "MONGOCORE_COMPILED_CACHE_SYNC")]
@@ -132,9 +132,12 @@ pub struct FileConfig {
     pub connection_uri: Option<String>,
     pub grpc_port: Option<u16>,
     pub mcp_port: Option<u16>,
-    pub llm_provider: Option<String>,
-    pub llm_api_key_env: Option<String>,
-    pub voyage_api_key_env: Option<String>,
+    #[serde(rename = "ANTHROPIC_API_KEY")]
+    pub anthropic_api_key: Option<String>,
+    #[serde(rename = "OPENAI_API_KEY")]
+    pub openai_api_key: Option<String>,
+    #[serde(rename = "VOYAGE_API_KEY")]
+    pub voyage_api_key: Option<String>,
     pub compiled_cache_sync: Option<bool>,
     pub log_level: Option<String>,
     pub multi_tenant_enabled: Option<bool>,
@@ -154,9 +157,9 @@ pub struct Config {
     pub connection_uri: String,
     pub grpc_port: u16,
     pub mcp_port: u16,
-    pub llm_provider: Option<String>,
-    pub llm_api_key_env: Option<String>,
-    pub voyage_api_key_env: Option<String>,
+    pub llm_api_key: Option<String>,
+    pub llm_provider_name: Option<String>,
+    pub voyage_api_key: Option<String>,
     pub compiled_cache_sync: bool,
     pub log_level: String,
     pub multi_tenant_enabled: bool,
@@ -198,14 +201,30 @@ impl Config {
             .or(file_config.mcp_port)
             .unwrap_or(DEFAULT_MCP_PORT);
 
-        let llm_provider = cli.llm_provider.clone().or(file_config.llm_provider);
-
-        let llm_api_key_env = cli.llm_api_key_env.clone().or(file_config.llm_api_key_env);
-
-        let voyage_api_key_env = cli
-            .voyage_api_key_env
+        // Resolve LLM API key: CLI/env > TOML > env var fallback
+        let anthropic_key = cli.anthropic_api_key
             .clone()
-            .or(file_config.voyage_api_key_env);
+            .or(file_config.anthropic_api_key)
+            .or_else(|| std::env::var("ANTHROPIC_API_KEY").ok());
+
+        let openai_key = cli.openai_api_key
+            .clone()
+            .or(file_config.openai_api_key)
+            .or_else(|| std::env::var("OPENAI_API_KEY").ok());
+
+        let (llm_api_key, llm_provider_name) = if let Some(key) = anthropic_key {
+            (Some(key), Some("anthropic".to_string()))
+        } else if let Some(key) = openai_key {
+            (Some(key), Some("openai".to_string()))
+        } else {
+            (None, None)
+        };
+
+        // Resolve Voyage API key: CLI/env > TOML > env var fallback
+        let voyage_api_key = cli.voyage_api_key
+            .clone()
+            .or(file_config.voyage_api_key)
+            .or_else(|| std::env::var("VOYAGE_API_KEY").ok());
 
         let compiled_cache_sync = cli
             .compiled_cache_sync
@@ -257,9 +276,9 @@ impl Config {
             connection_uri,
             grpc_port,
             mcp_port,
-            llm_provider,
-            llm_api_key_env,
-            voyage_api_key_env,
+            llm_api_key,
+            llm_provider_name,
+            voyage_api_key,
             compiled_cache_sync,
             log_level,
             multi_tenant_enabled,
@@ -288,9 +307,9 @@ mod tests {
             connection_uri: None,
             grpc_port: None,
             mcp_port: None,
-            llm_provider: None,
-            llm_api_key_env: None,
-            voyage_api_key_env: None,
+            anthropic_api_key: None,
+            openai_api_key: None,
+            voyage_api_key: None,
             compiled_cache_sync: None,
             log_level: None,
             otel_enabled: None,
@@ -304,9 +323,9 @@ mod tests {
         assert_eq!(config.mcp_port, 3000);
         assert_eq!(config.log_level, "info");
         assert!(config.compiled_cache_sync);
-        assert!(config.llm_provider.is_none());
-        assert!(config.llm_api_key_env.is_none());
-        assert!(config.voyage_api_key_env.is_none());
+        assert!(config.llm_api_key.is_none());
+        assert!(config.llm_provider_name.is_none());
+        assert!(config.voyage_api_key.is_none());
     }
 
     #[test]
@@ -315,9 +334,8 @@ mod tests {
 connection_uri = "mongodb://myhost:27018"
 grpc_port = 9090
 mcp_port = 4000
-llm_provider = "anthropic"
-llm_api_key_env = "ANTHROPIC_API_KEY"
-voyage_api_key_env = "VOYAGE_KEY"
+ANTHROPIC_API_KEY = "sk-ant-test-key"
+VOYAGE_API_KEY = "voyage-test-key"
 compiled_cache_sync = false
 log_level = "debug"
 "#;
@@ -330,9 +348,9 @@ log_level = "debug"
             connection_uri: None,
             grpc_port: None,
             mcp_port: None,
-            llm_provider: None,
-            llm_api_key_env: None,
-            voyage_api_key_env: None,
+            anthropic_api_key: None,
+            openai_api_key: None,
+            voyage_api_key: None,
             compiled_cache_sync: None,
             log_level: None,
             otel_enabled: None,
@@ -344,9 +362,9 @@ log_level = "debug"
         assert_eq!(config.connection_uri, "mongodb://myhost:27018");
         assert_eq!(config.grpc_port, 9090);
         assert_eq!(config.mcp_port, 4000);
-        assert_eq!(config.llm_provider.as_deref(), Some("anthropic"));
-        assert_eq!(config.llm_api_key_env.as_deref(), Some("ANTHROPIC_API_KEY"));
-        assert_eq!(config.voyage_api_key_env.as_deref(), Some("VOYAGE_KEY"));
+        assert_eq!(config.llm_provider_name.as_deref(), Some("anthropic"));
+        assert_eq!(config.llm_api_key.as_deref(), Some("sk-ant-test-key"));
+        assert_eq!(config.voyage_api_key.as_deref(), Some("voyage-test-key"));
         assert!(!config.compiled_cache_sync);
         assert_eq!(config.log_level, "debug");
     }
@@ -367,9 +385,9 @@ log_level = "debug"
             connection_uri: Some("mongodb://override:27019".to_string()),
             grpc_port: Some(7070),
             mcp_port: None,
-            llm_provider: None,
-            llm_api_key_env: None,
-            voyage_api_key_env: None,
+            anthropic_api_key: None,
+            openai_api_key: None,
+            voyage_api_key: None,
             compiled_cache_sync: None,
             log_level: Some("warn".to_string()),
             otel_enabled: None,
@@ -394,9 +412,9 @@ log_level = "debug"
             connection_uri: None,
             grpc_port: None,
             mcp_port: None,
-            llm_provider: None,
-            llm_api_key_env: None,
-            voyage_api_key_env: None,
+            anthropic_api_key: None,
+            openai_api_key: None,
+            voyage_api_key: None,
             compiled_cache_sync: None,
             log_level: None,
             otel_enabled: None,
@@ -433,9 +451,9 @@ connection_uri = "mongodb://other:27017"
             connection_uri: None,
             grpc_port: None,
             mcp_port: None,
-            llm_provider: None,
-            llm_api_key_env: None,
-            voyage_api_key_env: None,
+            anthropic_api_key: None,
+            openai_api_key: None,
+            voyage_api_key: None,
             compiled_cache_sync: None,
             log_level: None,
             otel_enabled: None,
@@ -471,9 +489,9 @@ connection_uri = "mongodb://other:27017"
             connection_uri: None,
             grpc_port: None,
             mcp_port: None,
-            llm_provider: None,
-            llm_api_key_env: None,
-            voyage_api_key_env: None,
+            anthropic_api_key: None,
+            openai_api_key: None,
+            voyage_api_key: None,
             compiled_cache_sync: None,
             log_level: None,
             otel_enabled: None,
@@ -523,9 +541,9 @@ conflict_strategy = "merge"
             connection_uri: None,
             grpc_port: None,
             mcp_port: None,
-            llm_provider: None,
-            llm_api_key_env: None,
-            voyage_api_key_env: None,
+            anthropic_api_key: None,
+            openai_api_key: None,
+            voyage_api_key: None,
             compiled_cache_sync: None,
             log_level: None,
             otel_enabled: None,

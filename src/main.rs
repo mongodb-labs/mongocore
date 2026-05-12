@@ -78,11 +78,8 @@ async fn main() {
         }
     };
 
-    // Resolve Voyage AI API key if configured
-    let voyage_api_key = config
-        .voyage_api_key_env
-        .as_deref()
-        .and_then(|env_var| std::env::var(env_var).ok());
+    // Voyage AI API key (already resolved from TOML or env in config)
+    let voyage_api_key = config.voyage_api_key.as_deref().map(|s| s.to_string());
 
     // Create analytics collector if enabled
     let analytics = if config.analytics_enabled {
