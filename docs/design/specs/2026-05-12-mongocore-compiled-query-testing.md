@@ -42,7 +42,7 @@ services:
       MONGODB_LOAD_SAMPLE_DATA: "true"
 ```
 
-Note: First startup is slower (~30-60s) as sample data loads. Subsequent starts are fast (data persists in the container volume).
+Note: First startup is slower (~30-60s) as sample data loads. Subsequent starts are fast (data persists in the container volume). This impacts all `just docker-up` users — existing integration tests will experience a one-time slower first startup but no behavioral change after data is loaded.
 
 ### Test File
 
@@ -109,15 +109,34 @@ The `test_llm_template_cache_reuse` test validates this by:
 3. Asserting the LLM was called only once
 4. Asserting the second result filters by year == 2020 (parameter substituted correctly)
 
+### Pre-flight Check
+
+Before running any LLM test, verify sample data is available:
+
+```rust
+async fn ensure_sample_data(pool: &ConnectionPool) {
+    let count = pool.database("sample_mflix")
+        .collection::<Document>("movies")
+        .count_documents(doc! {})
+        .await
+        .expect("Failed to count sample_mflix.movies");
+    assert!(count > 1000, "sample_mflix.movies has {} docs — expected >1000. Did you start Docker with MONGODB_LOAD_SAMPLE_DATA=true?", count);
+}
+```
+
+This fails fast with a clear message if sample data isn't loaded.
+
 ### Execution
 
 Each test:
-1. Creates a `CompiledQueryTranslator` with a real provider + in-memory cache
-2. Provides a `TranslationContext` with schema hints from `sample_mflix.movies`
-3. Calls `translator.translate(query, "sample_mflix", "movies", &context)`
-4. Matches on `CompiledMql::Find` or `CompiledMql::Aggregate`
-5. Executes the filter/pipeline against the real `sample_mflix.movies` collection
-6. Validates results
+1. Checks for LLM API key (skip if absent)
+2. Verifies sample data is loaded (fail-fast if not)
+3. Creates a `CompiledQueryTranslator` with a real provider + in-memory cache
+4. Provides a `TranslationContext` with schema hints from `sample_mflix.movies`
+5. Calls `translator.translate(query, "sample_mflix", "movies", &context)`
+6. Matches on `CompiledMql::Find` or `CompiledMql::Aggregate`
+7. Executes the filter/pipeline against the real `sample_mflix.movies` collection
+8. Validates results
 
 ### TranslationContext
 
@@ -147,9 +166,10 @@ test-llm:
 | File | Change |
 |------|--------|
 | `docker-compose.test.yml` | Add `MONGODB_LOAD_SAMPLE_DATA: "true"` |
-| `tests/integration/compiled_llm_test.rs` | Create with 6 test functions |
+| `tests/integration/compiled_llm_test.rs` | Create with 7 test functions |
 | `tests/integration.rs` | Add `mod compiled_llm_test;` |
 | `justfile` | Add `test-llm` recipe |
+| `AGENTS.md` | Add `test-llm` to testing table and note sample data requirement |
 
 ## Won't Build
 
@@ -163,7 +183,7 @@ test-llm:
 - [ ] `docker-compose.test.yml` loads sample data on startup
 - [ ] `sample_mflix.movies` is available with data after `just docker-up`
 - [ ] Tests skip cleanly when no API key is set (no failures in CI)
-- [ ] With `ANTHROPIC_API_KEY` set, all 6 tests pass
+- [ ] With `ANTHROPIC_API_KEY` set, all 7 tests pass
 - [ ] Each test validates: MQL parses, executes, returns plausible results
 - [ ] Cache reuse test confirms LLM called only once for repeated query
 - [ ] `just test-llm` runs the LLM tests specifically
