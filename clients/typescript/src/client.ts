@@ -204,7 +204,7 @@ export class MongoClient {
   async ingest(options: IngestOptions): Promise<IngestJobStatus> {
     return new Promise((resolve, reject) => {
       const request = {
-        source: options.source,
+        filePath: options.source,
         database: options.database,
         collection: options.collection,
         format: options.format || '',
@@ -220,7 +220,7 @@ export class MongoClient {
   /** Get the status of an ingestion job */
   async ingestStatus(jobId: string): Promise<IngestJobStatus> {
     return new Promise((resolve, reject) => {
-      this.getGrpcClient().ingestStatus({ jobId }, CLIENT_METADATA, (err: any, response: any) => {
+      this.getGrpcClient().getIngestStatus({ jobId }, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         resolve(response as IngestJobStatus);
       });
@@ -241,6 +241,7 @@ export class MongoClient {
   async cancelIngest(jobId: string): Promise<IngestJobStatus> {
     return new Promise((resolve, reject) => {
       this.getGrpcClient().cancelIngest({ jobId }, CLIENT_METADATA, (err: any, response: any) => {
+
         if (err) return reject(err);
         resolve(response as IngestJobStatus);
       });
