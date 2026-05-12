@@ -187,18 +187,19 @@ class Collection:
 
     async def create_index(self, keys: dict, *, unique: bool = False, name: Optional[str] = None) -> str:
         """Create an index on the collection."""
-        from .generated import mongocore_pb2
+        from .generated import mongocore_pb2, types_pb2
         stub = self._get_stub()
+        options = types_pb2.IndexOptions(unique=unique)
+        if name:
+            options.name = name
         request = mongocore_pb2.CreateIndexRequest(
             database=self._database,
             collection=self._name,
             keys=self._make_document(keys),
-            unique=unique,
+            options=options,
         )
-        if name:
-            request.name = name
         response = await stub.CreateIndex(request, metadata=_CLIENT_METADATA)
-        return response.name
+        return response.index_name
 
     def watch(self, pipeline: Optional[list[dict]] = None) -> "ChangeStream":
         """Open a change stream on this collection. Returns an async context manager."""

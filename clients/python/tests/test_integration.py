@@ -324,13 +324,13 @@ async def test_ingest_csv():
 
     async with MongoClient("localhost:50051") as client:
         csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../test_fixtures/sample.csv"))
-        job_id = await client.ingest_csv(
-            path=csv_path,
+        result = await client.ingest(
+            file_path=csv_path,
             database=TEST_DB,
             collection=unique_collection()
         )
-        assert job_id
-        assert len(job_id) > 0
+        assert result["job_id"]
+        assert len(result["job_id"]) > 0
 
 
 @pytest.mark.asyncio
@@ -339,11 +339,12 @@ async def test_ingest_status():
 
     async with MongoClient("localhost:50051") as client:
         csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../test_fixtures/sample.csv"))
-        job_id = await client.ingest_csv(
-            path=csv_path,
+        result = await client.ingest(
+            file_path=csv_path,
             database=TEST_DB,
             collection=unique_collection()
         )
+        job_id = result["job_id"]
 
         status = await client.ingest_status(job_id)
         assert status
@@ -363,11 +364,12 @@ async def test_cancel_ingest():
 
     async with MongoClient("localhost:50051") as client:
         csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../test_fixtures/sample.csv"))
-        job_id = await client.ingest_csv(
-            path=csv_path,
+        ingest_result = await client.ingest(
+            file_path=csv_path,
             database=TEST_DB,
             collection=unique_collection()
         )
+        job_id = ingest_result["job_id"]
 
         result = await client.cancel_ingest(job_id)
         assert isinstance(result, bool)

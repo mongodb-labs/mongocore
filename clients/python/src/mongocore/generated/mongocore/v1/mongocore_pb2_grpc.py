@@ -3,6 +3,7 @@
 import grpc
 import warnings
 
+from . import ingestion_pb2 as mongocore_dot_v1_dot_ingestion__pb2
 from . import mongocore_pb2 as mongocore_dot_v1_dot_mongocore__pb2
 
 GRPC_GENERATED_VERSION = '1.80.0'
@@ -138,6 +139,36 @@ class MongoCoreStub(object):
                 '/mongocore.v1.MongoCore/GetAnalytics',
                 request_serializer=mongocore_dot_v1_dot_mongocore__pb2.GetAnalyticsRequest.SerializeToString,
                 response_deserializer=mongocore_dot_v1_dot_mongocore__pb2.GetAnalyticsResponse.FromString,
+                _registered_method=True)
+        self.Ingest = channel.unary_unary(
+                '/mongocore.v1.MongoCore/Ingest',
+                request_serializer=mongocore_dot_v1_dot_ingestion__pb2.IngestRequest.SerializeToString,
+                response_deserializer=mongocore_dot_v1_dot_ingestion__pb2.IngestResponse.FromString,
+                _registered_method=True)
+        self.GetIngestStatus = channel.unary_unary(
+                '/mongocore.v1.MongoCore/GetIngestStatus',
+                request_serializer=mongocore_dot_v1_dot_ingestion__pb2.GetIngestStatusRequest.SerializeToString,
+                response_deserializer=mongocore_dot_v1_dot_ingestion__pb2.GetIngestStatusResponse.FromString,
+                _registered_method=True)
+        self.ListIngestJobs = channel.unary_unary(
+                '/mongocore.v1.MongoCore/ListIngestJobs',
+                request_serializer=mongocore_dot_v1_dot_ingestion__pb2.ListIngestJobsRequest.SerializeToString,
+                response_deserializer=mongocore_dot_v1_dot_ingestion__pb2.ListIngestJobsResponse.FromString,
+                _registered_method=True)
+        self.CancelIngest = channel.unary_unary(
+                '/mongocore.v1.MongoCore/CancelIngest',
+                request_serializer=mongocore_dot_v1_dot_ingestion__pb2.CancelIngestRequest.SerializeToString,
+                response_deserializer=mongocore_dot_v1_dot_ingestion__pb2.CancelIngestResponse.FromString,
+                _registered_method=True)
+        self.WatchDirectory = channel.unary_unary(
+                '/mongocore.v1.MongoCore/WatchDirectory',
+                request_serializer=mongocore_dot_v1_dot_ingestion__pb2.WatchDirectoryRequest.SerializeToString,
+                response_deserializer=mongocore_dot_v1_dot_ingestion__pb2.WatchDirectoryResponse.FromString,
+                _registered_method=True)
+        self.StopWatch = channel.unary_unary(
+                '/mongocore.v1.MongoCore/StopWatch',
+                request_serializer=mongocore_dot_v1_dot_ingestion__pb2.StopWatchRequest.SerializeToString,
+                response_deserializer=mongocore_dot_v1_dot_ingestion__pb2.StopWatchResponse.FromString,
                 _registered_method=True)
 
 
@@ -279,6 +310,43 @@ class MongoCoreServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Ingest(self, request, context):
+        """Ingestion
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def GetIngestStatus(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListIngestJobs(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def CancelIngest(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def WatchDirectory(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def StopWatch(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_MongoCoreServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -386,6 +454,36 @@ def add_MongoCoreServicer_to_server(servicer, server):
                     servicer.GetAnalytics,
                     request_deserializer=mongocore_dot_v1_dot_mongocore__pb2.GetAnalyticsRequest.FromString,
                     response_serializer=mongocore_dot_v1_dot_mongocore__pb2.GetAnalyticsResponse.SerializeToString,
+            ),
+            'Ingest': grpc.unary_unary_rpc_method_handler(
+                    servicer.Ingest,
+                    request_deserializer=mongocore_dot_v1_dot_ingestion__pb2.IngestRequest.FromString,
+                    response_serializer=mongocore_dot_v1_dot_ingestion__pb2.IngestResponse.SerializeToString,
+            ),
+            'GetIngestStatus': grpc.unary_unary_rpc_method_handler(
+                    servicer.GetIngestStatus,
+                    request_deserializer=mongocore_dot_v1_dot_ingestion__pb2.GetIngestStatusRequest.FromString,
+                    response_serializer=mongocore_dot_v1_dot_ingestion__pb2.GetIngestStatusResponse.SerializeToString,
+            ),
+            'ListIngestJobs': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListIngestJobs,
+                    request_deserializer=mongocore_dot_v1_dot_ingestion__pb2.ListIngestJobsRequest.FromString,
+                    response_serializer=mongocore_dot_v1_dot_ingestion__pb2.ListIngestJobsResponse.SerializeToString,
+            ),
+            'CancelIngest': grpc.unary_unary_rpc_method_handler(
+                    servicer.CancelIngest,
+                    request_deserializer=mongocore_dot_v1_dot_ingestion__pb2.CancelIngestRequest.FromString,
+                    response_serializer=mongocore_dot_v1_dot_ingestion__pb2.CancelIngestResponse.SerializeToString,
+            ),
+            'WatchDirectory': grpc.unary_unary_rpc_method_handler(
+                    servicer.WatchDirectory,
+                    request_deserializer=mongocore_dot_v1_dot_ingestion__pb2.WatchDirectoryRequest.FromString,
+                    response_serializer=mongocore_dot_v1_dot_ingestion__pb2.WatchDirectoryResponse.SerializeToString,
+            ),
+            'StopWatch': grpc.unary_unary_rpc_method_handler(
+                    servicer.StopWatch,
+                    request_deserializer=mongocore_dot_v1_dot_ingestion__pb2.StopWatchRequest.FromString,
+                    response_serializer=mongocore_dot_v1_dot_ingestion__pb2.StopWatchResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -955,6 +1053,168 @@ class MongoCore(object):
             '/mongocore.v1.MongoCore/GetAnalytics',
             mongocore_dot_v1_dot_mongocore__pb2.GetAnalyticsRequest.SerializeToString,
             mongocore_dot_v1_dot_mongocore__pb2.GetAnalyticsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Ingest(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mongocore.v1.MongoCore/Ingest',
+            mongocore_dot_v1_dot_ingestion__pb2.IngestRequest.SerializeToString,
+            mongocore_dot_v1_dot_ingestion__pb2.IngestResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def GetIngestStatus(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mongocore.v1.MongoCore/GetIngestStatus',
+            mongocore_dot_v1_dot_ingestion__pb2.GetIngestStatusRequest.SerializeToString,
+            mongocore_dot_v1_dot_ingestion__pb2.GetIngestStatusResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ListIngestJobs(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mongocore.v1.MongoCore/ListIngestJobs',
+            mongocore_dot_v1_dot_ingestion__pb2.ListIngestJobsRequest.SerializeToString,
+            mongocore_dot_v1_dot_ingestion__pb2.ListIngestJobsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CancelIngest(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mongocore.v1.MongoCore/CancelIngest',
+            mongocore_dot_v1_dot_ingestion__pb2.CancelIngestRequest.SerializeToString,
+            mongocore_dot_v1_dot_ingestion__pb2.CancelIngestResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def WatchDirectory(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mongocore.v1.MongoCore/WatchDirectory',
+            mongocore_dot_v1_dot_ingestion__pb2.WatchDirectoryRequest.SerializeToString,
+            mongocore_dot_v1_dot_ingestion__pb2.WatchDirectoryResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def StopWatch(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mongocore.v1.MongoCore/StopWatch',
+            mongocore_dot_v1_dot_ingestion__pb2.StopWatchRequest.SerializeToString,
+            mongocore_dot_v1_dot_ingestion__pb2.StopWatchResponse.FromString,
             options,
             channel_credentials,
             insecure,

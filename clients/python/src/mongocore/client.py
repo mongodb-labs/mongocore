@@ -199,21 +199,21 @@ class MongoClient:
         """Commit a transaction."""
         from .generated import mongocore_pb2, mongocore_pb2_grpc
         stub = mongocore_pb2_grpc.MongoCoreStub(self.channel)
-        response = await stub.CommitTransaction(
+        await stub.CommitTransaction(
             mongocore_pb2.CommitTransactionRequest(transaction_id=transaction_id),
             metadata=_CLIENT_METADATA,
         )
-        return response.success
+        return True
 
     async def abort_transaction(self, transaction_id: str) -> bool:
         """Abort a transaction."""
         from .generated import mongocore_pb2, mongocore_pb2_grpc
         stub = mongocore_pb2_grpc.MongoCoreStub(self.channel)
-        response = await stub.AbortTransaction(
+        await stub.AbortTransaction(
             mongocore_pb2.AbortTransactionRequest(transaction_id=transaction_id),
             metadata=_CLIENT_METADATA,
         )
-        return response.success
+        return True
 
     async def get_analytics(self) -> dict:
         """Get query analytics summary."""
