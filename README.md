@@ -15,11 +15,13 @@ An AI-native MongoDB driver implemented as a lightweight Rust sidecar. MongoCore
 - **Atlas Search & Vector Search** — Full-text and vector search with automatic `readConcern:local` handling
 - **Search fallback chain** — Vector → full-text → compiled query → clear error (no silent degradation)
 - **Change streams** — Real-time Watch with auto-close semantics in all languages
-- **Data ingestion** — Polars-powered CSV/JSON/Parquet ingestion with schema inference and transforms
+- **Data ingestion** — Polars-powered CSV/JSON/Parquet/URL/S3/GCS ingestion with schema inference and transforms
 - **Query analytics** — Real-time latency percentiles, error rates, and operation insights
 - **Multi-tenant support** — Shared sidecar with isolated caches, rate limiting, per-tenant pools
 - **Raw passthrough** — Escape hatch for arbitrary MongoDB commands with safety validation
 - **Polyglot clients** — Python, TypeScript, Go, and Java with idiomatic APIs
+- **OpenTelemetry** — Optional distributed tracing with driver-level and MongoCore-level spans
+- **Driver metadata** — MongoCore identifies itself in MongoDB handshakes, per-client-language tagging
 - **Opinionated defaults** — Majority write/read concern, retryable operations, sensible timeouts
 
 ## Architecture
@@ -188,7 +190,6 @@ mongocore/
 | Area | Description |
 |------|-------------|
 | **Demo** | Stdio MCP transport for Claude Code integration, curated restaurant dataset, scripted demo flow |
-| **Integration** | Driver metadata (handshake), URL source for ingestion, OpenTelemetry support |
 | **Performance** | Benchmarking suite comparing MongoCore vs native drivers for common workloads |
 | **Visualizations** | Configurable web UI for analytics, query flow, and ingestion progress |
 

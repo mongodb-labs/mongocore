@@ -23,10 +23,17 @@ Key directories:
 ```bash
 cargo build              # Compile + regenerate Rust proto stubs (via build.rs/tonic-build)
 cargo build --release    # Optimized binary
+cargo build --features otel  # Build with OpenTelemetry support
 docker build -t mongocore:dev .  # Container image
 ```
 
 `cargo build` automatically regenerates Rust gRPC server/client code from proto files via `build.rs` (tonic-build). No manual step needed for Rust.
+
+### Feature Flags
+
+| Feature | Description |
+|---------|-------------|
+| `otel` | Enables OpenTelemetry tracing export (adds opentelemetry, otlp exporter dependencies) |
 
 ## Proto Workflow
 

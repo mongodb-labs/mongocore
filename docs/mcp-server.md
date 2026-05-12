@@ -23,7 +23,7 @@ The MCP server runs on port 3000 (configurable) and exposes MongoDB operations a
 
 ## Available Tools
 
-The MCP server exposes 13 tools:
+The MCP server exposes 21 tools:
 
 | Tool | Description |
 |------|-------------|

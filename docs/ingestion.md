@@ -1,6 +1,6 @@
 # Data Ingestion
 
-MongoCore v3 includes a Polars-powered data ingestion engine that loads CSV, JSON, NDJSON, and Parquet files into MongoDB with parallel processing, schema inference, transforms, deduplication, and progress tracking.
+MongoCore includes a Polars-powered data ingestion engine that loads CSV, JSON, NDJSON, and Parquet from local files or remote URLs (HTTP/HTTPS, S3, GCS, Azure Blob) into MongoDB with parallel processing, schema inference, transforms, deduplication, and progress tracking.
 
 ## Overview
 
