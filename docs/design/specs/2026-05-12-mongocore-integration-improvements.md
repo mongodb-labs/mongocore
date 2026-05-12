@@ -69,23 +69,32 @@ This enables Polars to read directly from:
 
 Update `src/ingestion/reader.rs`:
 
-- **Detection:** If the source string contains `://`, treat as a URL. Otherwise treat as a local file path.
-- **Format detection for URLs:** Infer format from the URL path's extension (same logic as local files, applied to the URL path component).
-- **Pass-through:** Polars readers accept URLs directly via their `new()` constructors. No download step needed.
+No branching needed. Polars internally uses `is_cloud_url()` (matching `^(s3a?|gs|gcs|file|abfss?|azure|az|adl|https?|hf)://`) to detect cloud URLs and routes through the `object_store` crate transparently. Local file paths and URLs use the same API.
+
+The existing `read_lazy()` function already passes the source to `LazyCsvReader::new(path)` etc. — it just needs to accept a `&str` source instead of only `&Path`, since URL strings like `https://...` work as paths in Polars:
 
 ```rust
-pub fn read_lazy_from_source(
+pub fn read_lazy(
     source: &str,
     format: FileFormat,
     csv_options: &CsvOptions,
 ) -> Result<LazyFrame, MongoCoreError> {
-    if source.contains("://") {
-        read_lazy_url(source, format, csv_options)
+    let path = Path::new(source);
+    let format = if format == FileFormat::Auto {
+        detect_format(path)?
     } else {
-        read_lazy(Path::new(source), format, csv_options)
+        format
+    };
+    // LazyCsvReader::new(), LazyJsonLineReader::new(), scan_parquet()
+    // all handle local paths and cloud URLs identically
+    match format {
+        FileFormat::Csv => { /* existing code, unchanged */ }
+        // ...
     }
 }
 ```
+
+No separate URL handling, no download step, no new functions.
 
 #### No Proto/MCP Changes
 
