@@ -1,7 +1,7 @@
 import { BSON } from 'bson';
 import { MongoClient, CLIENT_METADATA } from './client';
 import { EventEmitter } from 'events';
-import type { Document, FindOptions, UpdateResult, InsertResult, InsertManyResult, SearchResult, ChangeEvent } from './types';
+import type { Document, FindOptions, UpdateResult, InsertResult, InsertManyResult, SearchResult, ChangeEvent, FindAndModifyOptions, FindAndModifyResult, CreateIndexOptions, CreateIndexResult } from './types';
 
 export class Collection {
   private client: MongoClient;
@@ -201,6 +201,48 @@ export class Collection {
           method: response.method,
           total: response.total,
         });
+      });
+    });
+  }
+
+  async findAndModify(filter: Document, update: Document, options?: FindAndModifyOptions): Promise<FindAndModifyResult> {
+    return new Promise((resolve, reject) => {
+      const request: any = {
+        database: this.database,
+        collection: this.name,
+        filter: { data: this.encodeBson(filter) },
+        update: { data: this.encodeBson(update) },
+        options: {
+          returnDocument: options?.returnDocument === 'after' ? 1 : 0,
+          upsert: options?.upsert || false,
+          sort: options?.sort ? this.encodeBson(options.sort as Document) : undefined,
+        },
+      };
+      this.client.getGrpcClient().findAndModify(request, CLIENT_METADATA, (err: any, response: any) => {
+        if (err) return reject(err);
+        const document = response.document?.data?.length > 0
+          ? this.decodeBson(response.document.data)
+          : null;
+        resolve({ document });
+      });
+    });
+  }
+
+  async createIndex(keys: Document, options?: CreateIndexOptions): Promise<CreateIndexResult> {
+    return new Promise((resolve, reject) => {
+      const request: any = {
+        database: this.database,
+        collection: this.name,
+        keys: { data: this.encodeBson(keys) },
+        options: {
+          name: options?.name,
+          unique: options?.unique,
+          sparse: options?.sparse,
+        },
+      };
+      this.client.getGrpcClient().createIndex(request, CLIENT_METADATA, (err: any, response: any) => {
+        if (err) return reject(err);
+        resolve({ indexName: response.indexName || response.index_name });
       });
     });
   }

@@ -38,3 +38,34 @@ export interface ChangeEvent {
   updateDescription?: Document;
   documentKey?: Document;
 }
+
+export interface FindAndModifyOptions {
+  returnDocument?: 'before' | 'after';
+  upsert?: boolean;
+  sort?: Record<string, 1 | -1>;
+}
+
+export interface FindAndModifyResult {
+  document: Document | null;
+}
+
+export interface CreateIndexOptions {
+  name?: string;
+  unique?: boolean;
+  sparse?: boolean;
+}
+
+export interface CreateIndexResult {
+  indexName: string;
+}
+
+export interface Analytics {
+  totalOperations: number;
+  totalErrors: number;
+  errorRate: number;
+  p50LatencyMs: number;
+  p95LatencyMs: number;
+  p99LatencyMs: number;
+  topOperations: Array<{ operation: string; count: number }>;
+  topCollections: Array<{ collection: string; count: number }>;
+}

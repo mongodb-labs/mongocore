@@ -3,6 +3,7 @@ import * as protoLoader from '@grpc/proto-loader';
 import * as path from 'path';
 import { Database } from './database';
 import { SidecarManager } from './sidecar';
+import type { Analytics } from './types';
 
 const PROTO_PATH = path.resolve(__dirname, '../../../proto/mongocore/v1/mongocore.proto');
 
@@ -134,6 +135,65 @@ export class MongoClient {
         if (err) return reject(err);
         const result = BSON.deserialize(Buffer.from(response.result.data)) as Record<string, unknown>;
         resolve(result);
+      });
+    });
+  }
+
+  // --- Transaction Methods ---
+
+  async beginTransaction(database: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const request = { database };
+      this.getGrpcClient().beginTransaction(request, CLIENT_METADATA, (err: any, response: any) => {
+        if (err) return reject(err);
+        resolve(response.transactionId || response.transaction_id);
+      });
+    });
+  }
+
+  async commitTransaction(transactionId: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      const request = { transactionId };
+      this.getGrpcClient().commitTransaction(request, CLIENT_METADATA, (err: any) => {
+        if (err) return reject(err);
+        resolve(true);
+      });
+    });
+  }
+
+  async abortTransaction(transactionId: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      const request = { transactionId };
+      this.getGrpcClient().abortTransaction(request, CLIENT_METADATA, (err: any) => {
+        if (err) return reject(err);
+        resolve(true);
+      });
+    });
+  }
+
+  // --- Analytics Methods ---
+
+  async getAnalytics(windowSeconds?: number): Promise<Analytics> {
+    return new Promise((resolve, reject) => {
+      const request = { windowSeconds: windowSeconds || 0 };
+      this.getGrpcClient().getAnalytics(request, CLIENT_METADATA, (err: any, response: any) => {
+        if (err) return reject(err);
+        resolve({
+          totalOperations: response.totalOperations || response.total_operations || 0,
+          totalErrors: response.totalErrors || response.total_errors || 0,
+          errorRate: response.errorRate || response.error_rate || 0,
+          p50LatencyMs: response.p50LatencyMs || response.p50_latency_ms || 0,
+          p95LatencyMs: response.p95LatencyMs || response.p95_latency_ms || 0,
+          p99LatencyMs: response.p99LatencyMs || response.p99_latency_ms || 0,
+          topOperations: (response.topOperations || response.top_operations || []).map((op: any) => ({
+            operation: op.operation,
+            count: op.count || 0,
+          })),
+          topCollections: (response.topCollections || response.top_collections || []).map((col: any) => ({
+            collection: col.collection,
+            count: col.count || 0,
+          })),
+        });
       });
     });
   }
