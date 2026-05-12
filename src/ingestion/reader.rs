@@ -90,6 +90,25 @@ pub fn count_rows(
     Ok(count)
 }
 
+/// Create a LazyFrame from a source string (local path or URL).
+/// Polars handles local files and cloud URLs (http://, s3://, gs://, az://) identically.
+pub fn read_lazy_from_source(
+    source: &str,
+    format: FileFormat,
+    csv_options: &CsvOptions,
+) -> Result<LazyFrame, MongoCoreError> {
+    read_lazy(Path::new(source), format, csv_options)
+}
+
+/// Count rows from a source string (local path or URL).
+pub fn count_rows_from_source(
+    source: &str,
+    format: FileFormat,
+    csv_options: &CsvOptions,
+) -> Result<u64, MongoCoreError> {
+    count_rows(Path::new(source), format, csv_options)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -196,5 +215,35 @@ mod tests {
 
         assert_eq!(df.height(), 1);
         assert_eq!(df.width(), 2);
+    }
+
+    #[test]
+    fn test_detect_format_from_url() {
+        let path = Path::new("https://example.com/data/restaurants.csv");
+        assert_eq!(detect_format(path).unwrap(), FileFormat::Csv);
+    }
+
+    #[test]
+    fn test_detect_format_from_s3_url() {
+        let path = Path::new("s3://my-bucket/exports/data.parquet");
+        assert_eq!(detect_format(path).unwrap(), FileFormat::Parquet);
+    }
+
+    #[test]
+    fn test_read_lazy_from_source_local_file() {
+        let mut file = NamedTempFile::with_suffix(".csv").unwrap();
+        writeln!(file, "name,value").unwrap();
+        writeln!(file, "test,42").unwrap();
+        file.flush().unwrap();
+
+        let opts = CsvOptions::default();
+        let lf = read_lazy_from_source(
+            file.path().to_str().unwrap(),
+            FileFormat::Csv,
+            &opts,
+        )
+        .unwrap();
+        let df = lf.collect().unwrap();
+        assert_eq!(df.height(), 1);
     }
 }

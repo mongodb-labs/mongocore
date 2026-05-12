@@ -42,27 +42,36 @@ impl IngestionEngine {
         options: IngestOptions,
     ) -> Result<IngestJob, MongoCoreError> {
         let job_id = uuid::Uuid::new_v4().to_string();
-        let path = std::path::Path::new(&options.file_path);
+        let source = &options.file_path;
 
-        // Validate file exists
-        if !path.exists() {
-            return Err(MongoCoreError::IngestionError(format!(
-                "File not found: {}",
-                options.file_path
-            )));
+        // Validate file exists (only for local paths)
+        if !source.starts_with("http://")
+            && !source.starts_with("https://")
+            && !source.starts_with("s3://")
+            && !source.starts_with("gs://")
+            && !source.starts_with("az://")
+        {
+            let path = std::path::Path::new(source);
+            if !path.exists() {
+                return Err(MongoCoreError::IngestionError(format!(
+                    "File not found: {}",
+                    source
+                )));
+            }
         }
 
         // Detect format
         let format = match options.format {
-            FileFormat::Auto => reader::detect_format(path)?,
+            FileFormat::Auto => reader::detect_format(std::path::Path::new(source))?,
             other => other,
         };
 
         // Count total rows
-        let total_rows = reader::count_rows(path, format.clone(), &options.csv_options)? as i64;
+        let total_rows =
+            reader::count_rows_from_source(source, format.clone(), &options.csv_options)? as i64;
 
         // Read LazyFrame
-        let lf = reader::read_lazy(path, format, &options.csv_options)?;
+        let lf = reader::read_lazy_from_source(source, format, &options.csv_options)?;
 
         // Sample for schema inference
         let sample_df = lf
