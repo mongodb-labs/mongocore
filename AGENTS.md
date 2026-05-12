@@ -178,6 +178,14 @@ Use `just` commands where available:
 - Don't hardcode connection strings — use config/env
 - Don't skip client stub regeneration after proto changes
 
+## Testing Rules
+
+- Every gRPC RPC must have a corresponding integration test in each client library (Python, TypeScript, Go, Java)
+- Client integration tests must produce verbose per-test output (no silent/quiet modes)
+- New tests should follow the existing pattern in each client's test file
+- Use unique collection names per test to avoid interference
+- When adding a new gRPC RPC, add integration tests to ALL 4 client test suites in the same commit
+
 ## Project Layout
 
 ```

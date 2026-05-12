@@ -26,10 +26,29 @@ test-go:
 
 # Run Java client integration tests
 test-java:
-    cd clients/java && mvn test -Dtest=IntegrationTest -q
+    cd clients/java && mvn test -Dtest=IntegrationTest
 
 # Run all client integration tests
 test-clients: test-python test-typescript test-go test-java
+
+# Run Python client unit tests
+test-unit-python:
+    cd clients/python && python3 -m pytest tests/test_client.py -v
+
+# Run TypeScript client unit tests
+test-unit-typescript:
+    cd clients/typescript && npx jest tests/unit.test.ts --no-coverage
+
+# Run Go client unit tests
+test-unit-go:
+    cd clients/go && go test ./mongocore/ -v -count=1 -run "^TestUnit"
+
+# Run Java client unit tests
+test-unit-java:
+    cd clients/java && mvn test -Dtest=MongoClientTest
+
+# Run all client unit tests
+test-unit-clients: test-unit-python test-unit-typescript test-unit-go test-unit-java
 
 # Run all tests (Rust + client integrations)
 test-all: test-rust test-clients
