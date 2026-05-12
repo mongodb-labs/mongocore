@@ -34,4 +34,16 @@ public class MongoClientTest {
         assertEquals(Integer.valueOf(10), opts.getLimit());
         assertEquals(Integer.valueOf(5), opts.getSkip());
     }
+
+    @Test
+    public void testDefaultAddress() {
+        MongoClient client = MongoClient.create();
+        assertNotNull(client);
+    }
+
+    @Test
+    public void testMetadataInterceptor() {
+        MongoClient client = MongoClient.create("localhost:50051");
+        assertNotNull(client);
+    }
 }

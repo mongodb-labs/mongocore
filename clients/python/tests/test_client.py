@@ -19,3 +19,13 @@ def test_database_collection_access():
     db = client["testdb"]
     coll = db["users"]
     assert isinstance(coll, Collection)
+
+
+def test_client_default_address():
+    client = MongoClient()
+    assert client._address == "localhost:50051"
+
+
+def test_client_metadata_constant():
+    from mongocore.client import _CLIENT_METADATA
+    assert _CLIENT_METADATA == [("x-client-language", "python")]
