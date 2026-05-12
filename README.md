@@ -8,36 +8,19 @@ An AI-native MongoDB driver implemented as a lightweight Rust sidecar. MongoCore
 
 ## Key Features
 
-- **Rust sidecar architecture** - One fast core serves every language via gRPC
-- **AI-native from the outset** - MCP interface for AI agents alongside gRPC for applications
-- **Compiled queries** - Natural language queries translated once by an LLM, cached and reused at native speed
-- **Voyage AI integration** - Embeddings, semantic vector search, and automatic fallback chain
-- **Atlas Search & Vector Search** - Full-text and vector search with `readConcern:local` handled automatically
-- **Change streams** - Real-time Watch with auto-close semantics in all languages
-- **Polyglot clients** - Python, TypeScript, Go, and Java libraries with idiomatic APIs
-- **Opinionated defaults** - Majority write/read concern, retryable operations, sensible timeouts
-
-## Documentation
-
-Full documentation with language-specific examples is available in the [`docs/`](./docs/) folder:
-
-| Guide | Description |
-|-------|-------------|
-| [Getting Started](./docs/getting-started.md) | Installation, configuration, running MongoCore |
-| [CRUD Operations](./docs/crud-operations.md) | Find, insert, update, delete in all languages |
-| [Aggregation](./docs/aggregation.md) | Pipeline operations and common patterns |
-| [Transactions](./docs/transactions.md) | Multi-document ACID transactions |
-| [Search](./docs/search.md) | Vector search, full-text search, fallback chains |
-| [Compiled Queries](./docs/compiled-queries.md) | Natural language to MQL with caching |
-| [Change Streams](./docs/streaming.md) | Real-time notifications via Watch |
-| [Admin Operations](./docs/admin-operations.md) | Collections, indexes, introspection |
-| [MCP Server](./docs/mcp-server.md) | AI agent integration via JSON-RPC |
-| [Client Libraries](./docs/client-libraries.md) | Language-specific setup and API reference |
-| [Raw Passthrough](./docs/raw-passthrough.md) | Arbitrary MongoDB commands for power users |
-| [Analytics](./docs/analytics.md) | Query performance insights and operation tracking |
-| [Multi-Tenant](./docs/multi-tenant.md) | Shared sidecar with per-tenant isolation |
-| [Ingestion](./docs/ingestion.md) | Polars-powered data ingestion and ETL |
-| [Design & Plans](./docs/design/) | Architecture specs and implementation plans |
+- **Rust sidecar architecture** — One fast core serves every language via gRPC
+- **AI-native from the outset** — MCP interface for AI agents alongside gRPC for applications
+- **Compiled queries** — Natural language queries translated once by an LLM, cached and reused at native speed
+- **Voyage AI integration** — Auto-embed on write, semantic vector search, reranking, batch embedding
+- **Atlas Search & Vector Search** — Full-text and vector search with automatic `readConcern:local` handling
+- **Search fallback chain** — Vector → full-text → compiled query → clear error (no silent degradation)
+- **Change streams** — Real-time Watch with auto-close semantics in all languages
+- **Data ingestion** — Polars-powered CSV/JSON/Parquet ingestion with schema inference and transforms
+- **Query analytics** — Real-time latency percentiles, error rates, and operation insights
+- **Multi-tenant support** — Shared sidecar with isolated caches, rate limiting, per-tenant pools
+- **Raw passthrough** — Escape hatch for arbitrary MongoDB commands with safety validation
+- **Polyglot clients** — Python, TypeScript, Go, and Java with idiomatic APIs
+- **Opinionated defaults** — Majority write/read concern, retryable operations, sensible timeouts
 
 ## Architecture
 
@@ -54,7 +37,7 @@ Full documentation with language-specific examples is available in the [`docs/`]
 ### Prerequisites
 
 - [Rust](https://rustup.rs/) (1.85+)
-- [Docker](https://docs.docker.com/get-docker/) (for integration tests)
+- [Docker](https://docs.docker.com/get-docker/) (for MongoDB)
 - [just](https://github.com/casey/just) (task runner, optional)
 
 ### Build & Run
@@ -64,208 +47,51 @@ git clone https://github.com/rozza/mongocore.git
 cd mongocore
 cargo build --release
 
-# Run with defaults (MongoDB on localhost:27017, gRPC :50051, MCP :3000)
+# Start MongoDB
+just docker-up
+
+# Run with defaults (gRPC :50051, MCP :3000)
 cargo run
 
 # Or with a config file
 cargo run -- --config config.toml
 ```
 
-### Connect from Your Language
+### Connect (Python example)
 
-**Python:**
 ```python
 from mongocore import MongoClient
 
 async with MongoClient("localhost:50051") as client:
     users = client["myapp"]["users"]
     await users.insert_one({"name": "Alice", "age": 30})
-    docs = await users.find({"age": {"$gte": 25}})
-
-    # Change streams with auto-close
-    async with users.watch() as stream:
-        async for event in stream:
-            print(event["operation_type"], event["document"])
+    results = await users.find({"age": {"$gte": 25}})
 ```
 
-**TypeScript:**
-```typescript
-import { MongoClient } from '@mongocore/client';
+See [Quick Start](./docs/quick-start.md) for all languages (Python, TypeScript, Go, Java), configuration, and testing setup.
 
-const client = new MongoClient('localhost:50051');
-await client.connect();
-const users = client.db('myapp').collection('users');
-await users.insertOne({ name: 'Alice', age: 30 });
+## Documentation
 
-// Change streams with auto-dispose
-await using stream = users.watch();
-for await (const event of stream) {
-  console.log(event.operationType, event.document);
-}
-```
-
-**Go:**
-```go
-client := mongocore.NewClient("localhost:50051")
-client.Connect(ctx)
-users := client.Database("myapp").Collection("users")
-users.InsertOne(ctx, bson.D{{Key: "name", Value: "Alice"}, {Key: "age", Value: 30}})
-
-// Change streams with io.Closer
-cs, _ := users.Watch(ctx, nil)
-defer cs.Close()
-for {
-    event, err := cs.Next()
-    if err != nil { break }
-    fmt.Println(event.OperationType, event.Document)
-}
-```
-
-**Java:**
-```java
-try (MongoClient client = MongoClient.create("localhost:50051")) {
-    MongoCollection users = client.getDatabase("myapp").getCollection("users");
-    users.insertOne(new Document("name", "Alice").append("age", 30));
-
-    // Change streams with AutoCloseable
-    try (ChangeStream stream = users.watch()) {
-        for (ChangeEvent event : stream) {
-            System.out.println(event.getOperationType() + ": " + event.getDocument());
-        }
-    }
-}
-```
-
-## Configuration
-
-MongoCore uses layered configuration (CLI args > environment variables > TOML file > defaults):
-
-```toml
-# config.toml
-connection_uri = "mongodb://localhost:27017"
-grpc_port = 50051
-mcp_port = 3000
-log_level = "info"
-compiled_cache_sync = true
-
-# Optional: LLM provider for compiled queries
-llm_provider = "anthropic"
-llm_api_key_env = "ANTHROPIC_API_KEY"
-
-# Optional: Voyage AI for embeddings
-voyage_api_key_env = "VOYAGE_API_KEY"
-```
-
-See [Getting Started](./docs/getting-started.md) for full configuration reference.
-
-## Testing
-
-### Test Configuration
-
-Copy the example config to create your local test configuration:
-
-```bash
-cp config.test.toml.example config.test.toml
-```
-
-Edit `config.test.toml` to enable AI features for testing:
-
-```toml
-# Uncomment and set to test compiled queries
-llm_provider = "anthropic"
-llm_api_key_env = "ANTHROPIC_API_KEY"
-
-# Uncomment and set to test vector search
-voyage_api_key_env = "VOYAGE_API_KEY"
-```
-
-Then run with:
-
-```bash
-cargo run -- --config config.test.toml
-```
-
-> **Note:** `config.test.toml` is gitignored since it may contain API key references. Only the `.example` template is committed.
-
-### Unit Tests
-
-No external dependencies required:
-
-```bash
-cargo test --lib
-# or
-just test-unit
-```
-
-### Integration Tests
-
-Integration tests run against `mongodb/mongodb-atlas-local`, which provides Atlas Vector Search, Atlas Search, and replica set support locally:
-
-```bash
-# Start test MongoDB (Atlas Local with vector search, Atlas Search, replica set)
-just docker-up
-# or: docker compose -f docker-compose.test.yml up -d
-
-# Run Rust integration tests (CRUD, search, transactions, admin)
-just test-integration
-# or: cargo test --test integration
-
-# Stop test MongoDB
-just docker-down
-# or: docker compose -f docker-compose.test.yml down
-```
-
-The Rust integration suite includes:
-- CRUD operations, aggregation, transactions
-- Atlas Vector Search end-to-end (with pre-computed embeddings)
-- Atlas Full-Text Search end-to-end
-- Search fallback chain (vector → fulltext → filter)
-- Change streams (Watch)
-- Admin operations (indexes, collections, databases)
-
-### Client Integration Tests
-
-Client integration tests require the MongoCore sidecar running:
-
-```bash
-# Start the sidecar
-cargo run -- --config config.test.toml &
-
-# Run all client integration tests (Python, TypeScript, Go, Java)
-just test-clients
-
-# Or run individually
-just test-python
-just test-typescript
-just test-go
-just test-java
-```
-
-Each client has 10 integration tests covering: insert, insertMany, findOne, updateOne, deleteOne, deleteMany, aggregate, findWithLimit, watch (change streams), and listDatabases.
-
-### Run Everything
-
-```bash
-# Rust tests (94 unit + 53 integration) + all client tests (40 total)
-just test-all
-```
-
-### Docker
-
-Build and run MongoCore as a container:
-
-```bash
-# Build
-docker build -t mongocore .
-
-# Run
-docker run -p 50051:50051 -p 3000:3000 mongocore \
-  --connection-uri "mongodb://host.docker.internal:27017"
-```
+| Guide | Description |
+|-------|-------------|
+| [Quick Start](./docs/quick-start.md) | All language examples, configuration, testing |
+| [Getting Started](./docs/getting-started.md) | Installation, full configuration reference |
+| [CRUD Operations](./docs/crud-operations.md) | Find, insert, update, delete in all languages |
+| [Aggregation](./docs/aggregation.md) | Pipeline operations and common patterns |
+| [Transactions](./docs/transactions.md) | Multi-document ACID transactions |
+| [Search](./docs/search.md) | Vector search, full-text search, fallback chains |
+| [Compiled Queries](./docs/compiled-queries.md) | Natural language to MQL with caching |
+| [Change Streams](./docs/streaming.md) | Real-time notifications via Watch |
+| [Data Ingestion](./docs/ingestion.md) | CSV/JSON/Parquet ingestion, transforms, dedup |
+| [Admin Operations](./docs/admin-operations.md) | Collections, indexes, introspection |
+| [MCP Server](./docs/mcp-server.md) | AI agent integration via JSON-RPC |
+| [Client Libraries](./docs/client-libraries.md) | Language-specific setup and API reference |
+| [Raw Passthrough](./docs/raw-passthrough.md) | Arbitrary MongoDB commands for power users |
+| [Analytics](./docs/analytics.md) | Query performance insights and operation tracking |
+| [Multi-Tenant](./docs/multi-tenant.md) | Shared sidecar with per-tenant isolation |
+| [Design & Plans](./docs/design/) | Architecture specs and implementation plans |
 
 ## Opinionated Defaults
-
-MongoCore enforces safe defaults that eliminate common footguns:
 
 | Setting | Default | Why |
 |---------|---------|-----|
@@ -283,7 +109,7 @@ MongoCore enforces safe defaults that eliminate common footguns:
 ```
 mongocore/
 ├── src/
-│   ├── main.rs              # Entry point, banner, startup
+│   ├── main.rs              # Entry point, startup orchestration
 │   ├── config.rs            # Layered config (CLI + env + TOML)
 │   ├── connection/          # Connection pool, capability detection
 │   ├── operations/          # CRUD, aggregation, transactions, admin, raw passthrough
@@ -297,56 +123,63 @@ mongocore/
 │   └── voyage/              # Voyage AI REST client, batch embeddings
 ├── proto/                   # Protobuf service definitions (25 RPCs)
 ├── clients/
-│   ├── python/              # Python client (async, BSON-native, change streams)
+│   ├── python/              # Python async client (BSON-native, change streams)
 │   ├── typescript/          # TypeScript/Node.js client (AsyncDisposable streams)
 │   ├── go/                  # Go client (io.Closer streams)
 │   └── java/                # Java client (AutoCloseable, try-with-resources)
 ├── docs/                    # User-facing documentation
 │   └── design/              # Design specs and implementation plans
 ├── tests/                   # Integration tests (one file per subsystem)
-├── docker-compose.test.yml  # Atlas Local for testing (vector search, Atlas Search)
+├── docker-compose.test.yml  # Atlas Local for testing
 ├── Dockerfile               # Multi-stage production build
-└── justfile                 # Task runner (test-all, test-clients, docker-up/down)
+└── justfile                 # Task runner
 ```
 
-## v0.1 Feature Set
+## Feature Sets
 
-- **19 gRPC RPCs** — Find, FindOne, Insert, InsertMany, Update, UpdateMany, Delete, DeleteMany, FindAndModify, Aggregate, Search, BeginTransaction, CommitTransaction, AbortTransaction, CreateCollection, CreateIndex, ListDatabases, ListCollections, Watch
+### v0.1 — Core
+
+- **25 gRPC RPCs** — Full CRUD, aggregation, transactions, search, admin, watch, ingestion
 - **Change streams (Watch)** — Server-streaming RPC with auto-close in all clients (Python `async with`, TypeScript `AsyncDisposable`, Go `io.Closer`, Java `AutoCloseable`)
-- **Search fallback chain** — Vector search → Atlas full-text → `$text` filter, with automatic fallthrough on empty results
+- **Search fallback chain** — Vector search → Atlas full-text → compiled query, with automatic fallthrough
 - **Atlas Vector Search** — `$vectorSearch` with Voyage AI embeddings, tested end-to-end against Atlas Local
-- **Atlas Full-Text Search** — `$search` with dynamic mappings, tested end-to-end against Atlas Local
-- **Compiled queries** — NL→MQL with in-memory, disk, and Atlas caching
-- **MCP server** — 13 tools for AI agent interaction with safety controls
-- **Polyglot clients** — Python, TypeScript, Go, and Java with full CRUD + Watch
-- **Unified test runner** — `just test-all` runs 94 unit + 53 integration + 40 client tests
-- **Deployment infrastructure** — Dockerfile, GitHub Actions CI/CD, installer script
+- **Atlas Full-Text Search** — `$search` with dynamic mappings, tested end-to-end
+- **Compiled queries** — NL→MQL with 3-level cache (memory → disk → Atlas collection)
+- **MCP server** — 21 tools for AI agent interaction with safety controls (read-only mode, command blocklist)
+- **Polyglot clients** — Python, TypeScript, Go, and Java with full CRUD, Watch, and ingestion support
+- **Opinionated defaults** — Majority concerns, retryable ops, sensible timeouts, auto `readConcern:local` for search
 
-## v0.2 Feature Set
+### v0.2 — Power Users & Operations
 
-- **Raw wire protocol passthrough** — RunCommand RPC for arbitrary MongoDB commands with safety validation
-- **Query analytics** — Real-time performance tracking with latency percentiles, error rates, and operation insights
-- **Multi-tenant support** — Shared sidecar with isolated caches, rate limiting, and per-tenant connection pools
+- **Raw wire protocol passthrough** — `RunCommand` RPC for arbitrary MongoDB commands with safety validation
+- **Command blocklist** — Dangerous commands (`dropDatabase`, `shutdown`, etc.) blocked by default, explicit opt-in override
+- **Query analytics** — Real-time event collection with ring buffer, latency percentiles (p50/p95/p99), error rates, top-N operations
+- **Analytics persistence** — Optional background flush to `__mongocore.analytics` collection
+- **`GetAnalytics` RPC + MCP tool** — Surface insights via both interfaces
+- **Multi-tenant support** — `x-tenant-id` header partitions caches and enforces per-tenant quotas
+- **Per-tenant rate limiting** — Configurable ops/sec with `RESOURCE_EXHAUSTED` on breach
+- **Tenant registry** — TOML `[[tenants]]` config with per-tenant connection URI override
 
-## v0.3 Feature Set
+### v0.3 — Intelligent Data Ingestion
 
-- **Polars-based data ingestion** — CSV, JSON, NDJSON, Parquet file ingestion with parallel processing
-- **Schema inference** — Spark-connector-inspired multi-row sampling with BSON type mapping
-- **Transform engine** — User-provided Polars expressions (rename, filter, cast, drop, select)
-- **LLM expressions (optional)** — llm_classify, llm_extract, llm_normalize, llm_embed when API key configured
-- **Deduplication** — Key-based dedup with skip/overwrite/merge conflict resolution
-- **Dead letter queue** — Failed documents routed to `__mongocore.dead_letter` for inspection
-- **Progress tracking** — Real-time job status with resumability on crash recovery
-- **Directory watching** — Auto-trigger ingestion when new files appear
-- **6 new gRPC RPCs** — Ingest, GetIngestStatus, ListIngestJobs, CancelIngest, WatchDirectory, StopWatch
-- **6 new MCP tools** — Full AI agent support for data ingestion workflows
+- **Polars-based ingestion** — CSV, JSON, NDJSON, Parquet with parallel processing via Polars LazyFrames
+- **Schema inference** — Spark-connector-inspired multi-row sampling with Polars→BSON type mapping and type widening
+- **Transform engine** — User-provided Polars expressions (rename, filter, cast, drop, select, derive)
+- **LLM expressions (optional)** — `llm_classify`, `llm_extract`, `llm_normalize`, `llm_embed` when API key configured
+- **Bulk writer** — Chunked parallel writes with DataFrame→BSON document conversion
+- **Deduplication** — Key-based dedup with skip/overwrite/merge conflict resolution strategies
+- **Dead letter queue** — Failed documents routed to `__mongocore.dead_letter` for inspection and retry
+- **Progress tracking** — Real-time job status persisted to `__mongocore.ingestion_jobs`, resumable on crash
+- **Directory watching** — Filesystem monitor with debounce, auto-triggers ingestion on new files
+- **6 gRPC RPCs** — Ingest, GetIngestStatus, ListIngestJobs, CancelIngest, WatchDirectory, StopWatch
+- **6 MCP tools** — Full AI agent support for data ingestion workflows
 
 ## Roadmap
 
 | Version | Focus | Status |
 |---------|-------|--------|
-| **v0.1** | Core sidecar, gRPC + MCP interfaces, compiled queries, Voyage AI, change streams | **Complete** |
-| **v0.2** | Power user features, query analytics, multi-tenant support | **Complete** |
+| **v0.1** | Core sidecar, gRPC + MCP, compiled queries, Voyage AI, search, change streams | **Complete** |
+| **v0.2** | Raw passthrough, query analytics, multi-tenant support | **Complete** |
 | **v0.3** | Intelligent data ingestion (Polars-powered ETL) | **Complete** |
 
 ### Current Work
@@ -369,4 +202,4 @@ mongocore/
 
 ## License
 
-Apache-2.0 - See [LICENSE](LICENSE) for details.
+Apache-2.0 — See [LICENSE](LICENSE) for details.
