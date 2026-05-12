@@ -81,12 +81,10 @@ mcp_port = 3000
 log_level = "info"
 compiled_cache_sync = true
 
-# Optional: LLM provider for compiled queries
-llm_provider = "anthropic"
-llm_api_key_env = "ANTHROPIC_API_KEY"
-
-# Optional: Voyage AI for embeddings
-voyage_api_key_env = "VOYAGE_API_KEY"
+# Optional: API keys for LLM and embeddings
+# ANTHROPIC_API_KEY = "your-api-key-here"
+# OPENAI_API_KEY = "your-api-key-here"
+# VOYAGE_API_KEY = "your-api-key-here"
 ```
 
 See [Getting Started](./getting-started.md) for full configuration reference.
@@ -105,11 +103,10 @@ Edit `config.test.toml` to enable AI features for testing:
 
 ```toml
 # Uncomment and set to test compiled queries
-llm_provider = "anthropic"
-llm_api_key_env = "ANTHROPIC_API_KEY"
+ANTHROPIC_API_KEY = "your-api-key-here"
 
 # Uncomment and set to test vector search
-voyage_api_key_env = "VOYAGE_API_KEY"
+VOYAGE_API_KEY = "your-api-key-here"
 ```
 
 > **Note:** `config.test.toml` is gitignored since it may contain API key references. Only the `.example` template is committed.

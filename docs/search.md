@@ -26,12 +26,13 @@ Filter Search ($text index, then scan)
 
 ```toml
 # mongocore.toml
-voyage_api_key_env = "VOYAGE_API_KEY"  # Enables vector search
+VOYAGE_API_KEY = "your-api-key-here"  # Enables vector search
 ```
 
 ```bash
-# Or via CLI
-mongocore --voyage-api-key-env VOYAGE_API_KEY
+# Or via environment variable
+export VOYAGE_API_KEY="your-api-key-here"
+mongocore
 ```
 
 ## Vector Search

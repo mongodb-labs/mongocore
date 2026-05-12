@@ -4,12 +4,12 @@ mcp_port = 3000
 log_level = "debug"
 compiled_cache_sync = false
 
-# Uncomment to test compiled queries with Anthropic
-# llm_provider = "anthropic"
-# llm_api_key_env = "ANTHROPIC_API_KEY"
+# API Keys for LLM providers (pick one)
+# ANTHROPIC_API_KEY = "your-api-key-here"
+# OPENAI_API_KEY = "your-api-key-here"
 
-# Uncomment to test vector search with Voyage AI
-# voyage_api_key_env = "VOYAGE_API_KEY"
+# Voyage AI for embeddings
+# VOYAGE_API_KEY = "your-api-key-here"
 
 # OpenTelemetry tracing (requires --features otel)
 # otel_enabled = true

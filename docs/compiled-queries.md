@@ -41,8 +41,7 @@ After the first translation, the query is stored at all cache levels. The hash o
 
 ```toml
 # mongocore.toml
-llm_provider = "anthropic"
-llm_api_key_env = "ANTHROPIC_API_KEY"
+ANTHROPIC_API_KEY = "your-api-key-here"
 compiled_cache_sync = true  # Enable L3 Atlas cache
 ```
 

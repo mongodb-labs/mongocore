@@ -53,11 +53,10 @@ mongocore --connection-uri "mongodb+srv://user:pass@cluster.mongodb.net"
 # Custom ports
 mongocore --grpc-port 9090 --mcp-port 4000
 
-# With AI features
-mongocore \
-  --llm-provider anthropic \
-  --llm-api-key-env ANTHROPIC_API_KEY \
-  --voyage-api-key-env VOYAGE_API_KEY
+# With AI features (requires API keys in config or environment)
+export ANTHROPIC_API_KEY="your-api-key-here"
+export VOYAGE_API_KEY="your-api-key-here"
+mongocore
 ```
 
 ### Configuration File
@@ -68,9 +67,8 @@ Create a `mongocore.toml`:
 connection_uri = "mongodb+srv://user:pass@cluster.mongodb.net"
 grpc_port = 50051
 mcp_port = 3000
-llm_provider = "anthropic"
-llm_api_key_env = "ANTHROPIC_API_KEY"
-voyage_api_key_env = "VOYAGE_API_KEY"
+ANTHROPIC_API_KEY = "your-api-key-here"
+VOYAGE_API_KEY = "your-api-key-here"
 compiled_cache_sync = true
 log_level = "info"
 ```
@@ -88,9 +86,9 @@ All config options can be set via environment variables:
 | `MONGOCORE_CONNECTION_URI` | MongoDB connection string | `mongodb://localhost:27017` |
 | `MONGOCORE_GRPC_PORT` | gRPC server port | `50051` |
 | `MONGOCORE_MCP_PORT` | MCP server port | `3000` |
-| `MONGOCORE_LLM_PROVIDER` | LLM provider (anthropic) | — |
-| `MONGOCORE_LLM_API_KEY_ENV` | Env var holding LLM API key | — |
-| `MONGOCORE_VOYAGE_API_KEY_ENV` | Env var holding Voyage AI key | — |
+| `ANTHROPIC_API_KEY` | Anthropic API key for Claude | — |
+| `OPENAI_API_KEY` | OpenAI API key | — |
+| `VOYAGE_API_KEY` | Voyage AI API key for embeddings | — |
 | `MONGOCORE_COMPILED_CACHE_SYNC` | Sync compiled queries to Atlas | `true` |
 | `MONGOCORE_LOG_LEVEL` | Log level (trace/debug/info/warn/error) | `info` |
 

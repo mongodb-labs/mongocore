@@ -117,8 +117,8 @@ dead_letter_collection = "__mongocore.dead_letter"
 # Directory watch poll interval in seconds (default: 5)
 watch_interval_secs = 5
 
-# Optional: LLM API key for llm_* expressions
-llm_api_key_env = "ANTHROPIC_API_KEY"
+# Optional: Set API key in config or environment for llm_* expressions
+# ANTHROPIC_API_KEY = "your-api-key-here"
 ```
 
 ## Schema Inference
@@ -340,6 +340,6 @@ Watched directories are polled at the configured interval (default 5 seconds). E
 | `SchemaInferenceFailure` | Cannot determine types from sample | Increase `schema_sample_size` or add explicit casts |
 | `TransformError` | Invalid transform expression | Check expression syntax |
 | `DedupKeyMissing` | Specified dedup key not found in data | Verify column name matches source |
-| `LlmUnavailable` | LLM expression used without API key | Set `llm_api_key_env` in config |
+| `LlmUnavailable` | LLM expression used without API key | Set ANTHROPIC_API_KEY in config or environment |
 | `BatchInsertFailure` | MongoDB rejected a batch | Check dead letter queue for details |
 | `JobCancelled` | Job was cancelled by user | Re-run if needed |
