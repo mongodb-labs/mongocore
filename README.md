@@ -177,6 +177,17 @@ mongocore/
 - **6 gRPC RPCs** — Ingest, GetIngestStatus, ListIngestJobs, CancelIngest, WatchDirectory, StopWatch
 - **6 MCP tools** — Full AI agent support for data ingestion workflows
 
+### v0.4 — Integration & Testing
+
+- **Driver metadata** — MongoCore identifies itself in MongoDB handshakes (`mongocore/0.1.0`), per-client-language tagging via `x-client-language` header
+- **URL-based ingestion** — Ingest from HTTP/HTTPS, S3, GCS, Azure Blob URLs via Polars cloud feature (no download step)
+- **OpenTelemetry** — Optional distributed tracing (`--features otel`) with MongoCore-level and driver-level spans, OTLP export
+- **Client methods** — Added FindAndModify, CreateIndex, BeginTransaction, CommitTransaction, AbortTransaction, GetAnalytics to all 4 clients
+- **Full test coverage** — All 27 gRPC RPCs tested in every client library (Python, TypeScript, Go, Java)
+- **Standardized unit tests** — 5+ unit tests per client library (no server required)
+- **AGENTS.md / CLAUDE.md** — Universal AI agent development guide and Claude Code specialization
+- **Testing rules** — Enforced test parity across all clients, verbose output, proto regeneration workflow documented
+
 ## Roadmap
 
 | Version | Focus | Status |
@@ -184,6 +195,7 @@ mongocore/
 | **v0.1** | Core sidecar, gRPC + MCP, compiled queries, Voyage AI, search, change streams | **Complete** |
 | **v0.2** | Raw passthrough, query analytics, multi-tenant support | **Complete** |
 | **v0.3** | Intelligent data ingestion (Polars-powered ETL) | **Complete** |
+| **v0.4** | Integration (driver metadata, URL ingestion, OpenTelemetry), full client test coverage | **Complete** |
 
 ### Current Work
 
