@@ -144,7 +144,23 @@ src/
 proto/mongocore/v1/      # Protobuf definitions (source of truth)
 clients/{python,typescript,go,java}/  # Thin gRPC client wrappers
 tests/integration/       # Integration tests (one file per subsystem)
+docs/design/
+├── specs/               # Design specifications (the "what and why")
+└── plans/               # Implementation plans (the "how", step-by-step)
 ```
+
+**10. Design Docs**
+
+Design specifications and implementation plans live in `docs/design/`:
+- `docs/design/specs/` — Design specs describing what to build and why. Named `YYYY-MM-DD-<topic>-design.md`.
+- `docs/design/plans/` — Step-by-step implementation plans with checkboxes. Named `YYYY-MM-DD-<topic>-plan.md`.
+
+**Rules:**
+- Before starting significant new work, check if a spec/plan exists
+- When implementation deviates from the plan, update the plan to reflect reality
+- Mark completed checkboxes in plans as work progresses
+- If a spec becomes outdated (feature changed, approach abandoned), update or archive it
+- The README roadmap section should stay in sync with what's actually in progress
 
 ### CLAUDE.md — Claude Code Specialization
 
