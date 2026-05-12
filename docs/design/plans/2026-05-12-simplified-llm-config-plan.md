@@ -406,6 +406,96 @@ If anything failed, fix and commit.
 
 ---
 
+## Task 5: Update All Documentation
+
+**Files:**
+- Modify: `docs/getting-started.md`
+- Modify: `docs/compiled-queries.md`
+- Modify: `docs/ingestion.md`
+- Modify: `docs/search.md`
+- Modify: `docs/quick-start.md`
+- Modify: `README.md`
+
+- [ ] **Step 1: Update docs/getting-started.md**
+
+Replace all occurrences of:
+```toml
+llm_provider = "anthropic"
+llm_api_key_env = "ANTHROPIC_API_KEY"
+voyage_api_key_env = "VOYAGE_API_KEY"
+```
+
+With:
+```toml
+ANTHROPIC_API_KEY = "your-api-key-here"
+VOYAGE_API_KEY = "your-api-key-here"
+```
+
+Replace the environment variables table entries:
+```
+| `MONGOCORE_LLM_PROVIDER` | LLM provider (anthropic) | — |
+| `MONGOCORE_LLM_API_KEY_ENV` | Env var holding LLM API key | — |
+| `MONGOCORE_VOYAGE_API_KEY_ENV` | Env var holding Voyage AI key | — |
+```
+
+With:
+```
+| `ANTHROPIC_API_KEY` | Anthropic API key for compiled queries | — |
+| `OPENAI_API_KEY` | OpenAI API key for compiled queries | — |
+| `VOYAGE_API_KEY` | Voyage AI API key for embeddings | — |
+```
+
+- [ ] **Step 2: Update docs/compiled-queries.md**
+
+Replace:
+```toml
+llm_provider = "anthropic"
+llm_api_key_env = "ANTHROPIC_API_KEY"
+```
+
+With:
+```toml
+ANTHROPIC_API_KEY = "your-api-key-here"
+```
+
+- [ ] **Step 3: Update docs/ingestion.md**
+
+Replace `llm_api_key_env = "ANTHROPIC_API_KEY"` with `ANTHROPIC_API_KEY = "your-api-key-here"`.
+
+Replace error table row `Set 'llm_api_key_env' in config` with `Set ANTHROPIC_API_KEY in config or environment`.
+
+- [ ] **Step 4: Update docs/search.md**
+
+Replace `voyage_api_key_env = "VOYAGE_API_KEY"` with `VOYAGE_API_KEY = "your-api-key-here"`.
+
+- [ ] **Step 5: Update docs/quick-start.md**
+
+Replace all occurrences of:
+```toml
+llm_provider = "anthropic"
+llm_api_key_env = "ANTHROPIC_API_KEY"
+voyage_api_key_env = "VOYAGE_API_KEY"
+```
+
+With:
+```toml
+ANTHROPIC_API_KEY = "your-api-key-here"
+VOYAGE_API_KEY = "your-api-key-here"
+```
+
+- [ ] **Step 6: Update README.md Configuration section**
+
+Check if README has a config example with old fields. If so, update to new format.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add docs/ README.md
+git commit -m "docs: update all documentation for new direct API key config format"
+```
+
+---
+
 ## Implementation Order
 
 ```
@@ -413,6 +503,7 @@ Task 1: Config struct changes (foundation — everything depends on this)
 Task 2: main.rs + test harnesses (depends on Task 1)
 Task 3: Config example file (independent, cosmetic)
 Task 4: Verification (depends on all above)
+Task 5: Documentation updates (independent, can run after Task 1)
 ```
 
 ---
@@ -428,3 +519,5 @@ Task 4: Verification (depends on all above)
 - [ ] `cargo test --lib` passes (208 tests)
 - [ ] `cargo test --test integration` passes
 - [ ] Voyage API key resolved directly (no env var indirection in main.rs)
+- [ ] All docs updated: getting-started, compiled-queries, ingestion, search, quick-start
+- [ ] No remaining references to `llm_provider`, `llm_api_key_env`, or `voyage_api_key_env` in docs
