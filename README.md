@@ -89,6 +89,7 @@ See [Quick Start](./docs/quick-start.md) for all languages (Python, TypeScript, 
 | [Raw Passthrough](./docs/raw-passthrough.md) | Arbitrary MongoDB commands for power users |
 | [Analytics](./docs/analytics.md) | Query performance insights and operation tracking |
 | [Multi-Tenant](./docs/multi-tenant.md) | Shared sidecar with per-tenant isolation |
+| [OpenTelemetry](./docs/opentelemetry.md) | Distributed tracing setup and configuration |
 | [Design & Plans](./docs/design/) | Architecture specs and implementation plans |
 
 ## Opinionated Defaults

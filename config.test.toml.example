@@ -10,3 +10,8 @@ compiled_cache_sync = false
 
 # Uncomment to test vector search with Voyage AI
 # voyage_api_key_env = "VOYAGE_API_KEY"
+
+# OpenTelemetry tracing (requires --features otel)
+# otel_enabled = true
+# otel_endpoint = "http://localhost:4317"
+# otel_service_name = "mongocore"
