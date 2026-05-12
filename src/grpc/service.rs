@@ -214,6 +214,7 @@ fn to_status(err: MongoCoreError) -> Status {
 impl MongoCore for MongoCoreService {
     // === CRUD ===
 
+    #[tracing::instrument(skip(self, request))]
     async fn find(
         &self,
         request: Request<proto::FindRequest>,
@@ -253,6 +254,7 @@ impl MongoCore for MongoCoreService {
         }))
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn find_one(
         &self,
         request: Request<proto::FindOneRequest>,
@@ -284,6 +286,7 @@ impl MongoCore for MongoCoreService {
         }))
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn insert(
         &self,
         request: Request<proto::InsertRequest>,
@@ -319,6 +322,7 @@ impl MongoCore for MongoCoreService {
         Ok(Response::new(proto::InsertResponse { inserted_id }))
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn insert_many(
         &self,
         request: Request<proto::InsertManyRequest>,
@@ -352,6 +356,7 @@ impl MongoCore for MongoCoreService {
         }))
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn update(
         &self,
         request: Request<proto::UpdateRequest>,
@@ -390,6 +395,7 @@ impl MongoCore for MongoCoreService {
         }))
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn update_many(
         &self,
         request: Request<proto::UpdateManyRequest>,
@@ -420,6 +426,7 @@ impl MongoCore for MongoCoreService {
         }))
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn delete(
         &self,
         request: Request<proto::DeleteRequest>,
@@ -452,6 +459,7 @@ impl MongoCore for MongoCoreService {
         }))
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn delete_many(
         &self,
         request: Request<proto::DeleteManyRequest>,
@@ -475,6 +483,7 @@ impl MongoCore for MongoCoreService {
         }))
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn find_and_modify(
         &self,
         request: Request<proto::FindAndModifyRequest>,
@@ -526,6 +535,7 @@ impl MongoCore for MongoCoreService {
 
     // === Aggregation ===
 
+    #[tracing::instrument(skip(self, request))]
     async fn aggregate(
         &self,
         request: Request<proto::AggregateRequest>,
@@ -565,6 +575,7 @@ impl MongoCore for MongoCoreService {
 
     // === Search ===
 
+    #[tracing::instrument(skip(self, request))]
     async fn search(
         &self,
         request: Request<proto::SearchRequest>,
@@ -602,6 +613,7 @@ impl MongoCore for MongoCoreService {
 
     // === Transactions ===
 
+    #[tracing::instrument(skip(self, request))]
     async fn begin_transaction(
         &self,
         request: Request<proto::BeginTransactionRequest>,
@@ -616,6 +628,7 @@ impl MongoCore for MongoCoreService {
         }))
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn commit_transaction(
         &self,
         request: Request<proto::CommitTransactionRequest>,
@@ -634,6 +647,7 @@ impl MongoCore for MongoCoreService {
         Ok(Response::new(proto::CommitTransactionResponse {}))
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn abort_transaction(
         &self,
         request: Request<proto::AbortTransactionRequest>,
@@ -654,6 +668,7 @@ impl MongoCore for MongoCoreService {
 
     // === Admin ===
 
+    #[tracing::instrument(skip(self, request))]
     async fn create_collection(
         &self,
         request: Request<proto::CreateCollectionRequest>,
@@ -669,6 +684,7 @@ impl MongoCore for MongoCoreService {
         Ok(Response::new(proto::CreateCollectionResponse {}))
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn create_index(
         &self,
         request: Request<proto::CreateIndexRequest>,
@@ -698,6 +714,7 @@ impl MongoCore for MongoCoreService {
 
     // === Introspection ===
 
+    #[tracing::instrument(skip(self, request))]
     async fn list_databases(
         &self,
         request: Request<proto::ListDatabasesRequest>,
@@ -713,6 +730,7 @@ impl MongoCore for MongoCoreService {
         Ok(Response::new(proto::ListDatabasesResponse { databases }))
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn list_collections(
         &self,
         request: Request<proto::ListCollectionsRequest>,
@@ -738,6 +756,7 @@ impl MongoCore for MongoCoreService {
         Box<dyn tokio_stream::Stream<Item = Result<proto::WatchEvent, Status>> + Send + 'static>,
     >;
 
+    #[tracing::instrument(skip(self, request))]
     async fn watch(
         &self,
         request: Request<proto::WatchRequest>,
@@ -833,6 +852,7 @@ impl MongoCore for MongoCoreService {
 
     // === Raw Passthrough ===
 
+    #[tracing::instrument(skip(self, request))]
     async fn run_command(
         &self,
         request: Request<proto::RunCommandRequest>,
@@ -875,6 +895,7 @@ impl MongoCore for MongoCoreService {
 
     // === Analytics ===
 
+    #[tracing::instrument(skip(self, request))]
     async fn get_analytics(
         &self,
         request: Request<proto::GetAnalyticsRequest>,
@@ -914,6 +935,7 @@ impl MongoCore for MongoCoreService {
 
     // === Ingestion ===
 
+    #[tracing::instrument(skip(self, request))]
     async fn ingest(
         &self,
         request: Request<proto::IngestRequest>,
@@ -966,6 +988,7 @@ impl MongoCore for MongoCoreService {
         }
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn get_ingest_status(
         &self,
         request: Request<proto::GetIngestStatusRequest>,
@@ -1003,6 +1026,7 @@ impl MongoCore for MongoCoreService {
         }
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn list_ingest_jobs(
         &self,
         request: Request<proto::ListIngestJobsRequest>,
@@ -1028,6 +1052,7 @@ impl MongoCore for MongoCoreService {
         }
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn cancel_ingest(
         &self,
         request: Request<proto::CancelIngestRequest>,
@@ -1043,6 +1068,7 @@ impl MongoCore for MongoCoreService {
         }
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn watch_directory(
         &self,
         request: Request<proto::WatchDirectoryRequest>,
@@ -1068,6 +1094,7 @@ impl MongoCore for MongoCoreService {
         }
     }
 
+    #[tracing::instrument(skip(self, request))]
     async fn stop_watch(
         &self,
         request: Request<proto::StopWatchRequest>,

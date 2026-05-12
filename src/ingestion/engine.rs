@@ -36,6 +36,7 @@ impl IngestionEngine {
     }
 
     /// Start an ingestion job. Returns immediately with job metadata; processing happens in background.
+    #[tracing::instrument(skip(self))]
     pub async fn ingest(
         &self,
         client: &Client,

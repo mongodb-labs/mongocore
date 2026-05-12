@@ -20,11 +20,54 @@ async fn main() {
     });
 
     // Initialize tracing/logging
-    tracing_subscriber::fmt()
-        .with_env_filter(
-            EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new(&config.log_level)),
-        )
-        .init();
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new(&config.log_level));
+
+    #[cfg(feature = "otel")]
+    {
+        if config.otel_enabled {
+            use opentelemetry::KeyValue;
+            use opentelemetry_sdk::Resource;
+            use tracing_subscriber::layer::SubscriberExt;
+            use tracing_subscriber::util::SubscriberInitExt;
+
+            let tracer = opentelemetry_otlp::new_pipeline()
+                .tracing()
+                .with_exporter(
+                    opentelemetry_otlp::new_exporter()
+                        .tonic()
+                        .with_endpoint(&config.otel_endpoint),
+                )
+                .with_trace_config(
+                    opentelemetry_sdk::trace::Config::default().with_resource(
+                        Resource::new(vec![KeyValue::new(
+                            "service.name",
+                            config.otel_service_name.clone(),
+                        )]),
+                    ),
+                )
+                .install_batch(opentelemetry_sdk::runtime::Tokio)
+                .expect("Failed to initialize OpenTelemetry tracer");
+
+            let otel_layer = tracing_opentelemetry::layer().with_tracer(tracer);
+            let fmt_layer = tracing_subscriber::fmt::layer();
+
+            tracing_subscriber::registry()
+                .with(filter)
+                .with(fmt_layer)
+                .with(otel_layer)
+                .init();
+
+            info!("OpenTelemetry tracing enabled, exporting to {}", config.otel_endpoint);
+        } else {
+            tracing_subscriber::fmt().with_env_filter(filter).init();
+        }
+    }
+
+    #[cfg(not(feature = "otel"))]
+    {
+        tracing_subscriber::fmt().with_env_filter(filter).init();
+    }
 
     print_banner(&config);
 
@@ -117,6 +160,13 @@ async fn main() {
                 Ok(()) => info!("MCP server shut down"),
                 Err(e) => error!("MCP server task panicked: {e}"),
             }
+        }
+    }
+
+    #[cfg(feature = "otel")]
+    {
+        if config.otel_enabled {
+            opentelemetry::global::shutdown_tracer_provider();
         }
     }
 }

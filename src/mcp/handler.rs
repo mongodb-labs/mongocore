@@ -46,6 +46,7 @@ impl McpHandler {
     }
 
     /// Handle a single JSON-RPC request and return a response.
+    #[tracing::instrument(skip(self), fields(method = %request.method))]
     pub async fn handle_request(&self, request: JsonRpcRequest) -> JsonRpcResponse {
         if !self.mcp_metadata_appended.load(Ordering::Relaxed) {
             self.pool.append_interface_metadata("mcp");
