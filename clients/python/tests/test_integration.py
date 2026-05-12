@@ -206,3 +206,201 @@ async def test_list_databases():
         databases = await client.list_databases()
         assert isinstance(databases, list)
         assert len(databases) > 0
+
+
+@pytest.mark.asyncio
+async def test_update_many():
+    async with MongoClient("localhost:50051") as client:
+        coll = client[TEST_DB][unique_collection()]
+
+        await coll.insert_many([
+            {"category": "test", "value": 1},
+            {"category": "test", "value": 2},
+            {"category": "other", "value": 3},
+        ])
+
+        result = await coll.update_many(
+            {"category": "test"},
+            {"$set": {"updated": True}}
+        )
+        assert result["modified_count"] == 2
+
+        docs = await coll.find({"updated": True})
+        assert len(docs) == 2
+
+
+@pytest.mark.asyncio
+async def test_find_and_modify():
+    async with MongoClient("localhost:50051") as client:
+        coll = client[TEST_DB][unique_collection()]
+
+        await coll.insert_one({"counter": 10})
+        result = await coll.find_and_modify(
+            {"counter": 10},
+            {"$inc": {"counter": 5}}
+        )
+        assert result is not None
+        assert result["counter"] == 15
+
+
+@pytest.mark.asyncio
+async def test_list_collections():
+    async with MongoClient("localhost:50051") as client:
+        db = client[TEST_DB]
+        coll_name = unique_collection()
+        coll = db[coll_name]
+
+        await coll.insert_one({"test": "data"})
+        collections = await db.list_collections()
+        assert isinstance(collections, list)
+        assert coll_name in collections
+
+
+@pytest.mark.asyncio
+async def test_create_collection():
+    async with MongoClient("localhost:50051") as client:
+        db = client[TEST_DB]
+        coll_name = unique_collection()
+
+        await db.create_collection(coll_name)
+        collections = await db.list_collections()
+        assert coll_name in collections
+
+
+@pytest.mark.asyncio
+async def test_create_index():
+    async with MongoClient("localhost:50051") as client:
+        coll = client[TEST_DB][unique_collection()]
+
+        await coll.insert_one({"field": "value"})
+        index_name = await coll.create_index({"field": 1}, unique=True)
+        assert index_name
+        assert len(index_name) > 0
+
+
+@pytest.mark.asyncio
+async def test_run_command():
+    async with MongoClient("localhost:50051") as client:
+        result = await client.run_command("admin", {"ping": 1})
+        assert result.get("ok") == 1.0
+
+
+@pytest.mark.asyncio
+async def test_get_analytics():
+    async with MongoClient("localhost:50051") as client:
+        coll = client[TEST_DB][unique_collection()]
+        await coll.insert_one({"test": "data"})
+
+        analytics = await client.get_analytics()
+        assert "total_operations" in analytics
+        assert analytics["total_operations"] >= 0
+
+
+@pytest.mark.asyncio
+async def test_transaction_commit():
+    async with MongoClient("localhost:50051") as client:
+        txn_id = await client.begin_transaction()
+        assert txn_id
+        assert len(txn_id) > 0
+
+        result = await client.commit_transaction(txn_id)
+        assert result is True
+
+
+@pytest.mark.asyncio
+async def test_transaction_abort():
+    async with MongoClient("localhost:50051") as client:
+        txn_id = await client.begin_transaction()
+        assert txn_id
+        assert len(txn_id) > 0
+
+        result = await client.abort_transaction(txn_id)
+        assert result is True
+
+
+@pytest.mark.asyncio
+async def test_ingest_csv():
+    import os
+
+    async with MongoClient("localhost:50051") as client:
+        csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../test_fixtures/sample.csv"))
+        job_id = await client.ingest_csv(
+            path=csv_path,
+            database=TEST_DB,
+            collection=unique_collection()
+        )
+        assert job_id
+        assert len(job_id) > 0
+
+
+@pytest.mark.asyncio
+async def test_ingest_status():
+    import os
+
+    async with MongoClient("localhost:50051") as client:
+        csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../test_fixtures/sample.csv"))
+        job_id = await client.ingest_csv(
+            path=csv_path,
+            database=TEST_DB,
+            collection=unique_collection()
+        )
+
+        status = await client.ingest_status(job_id)
+        assert status
+        assert status.get("job_id") == job_id
+
+
+@pytest.mark.asyncio
+async def test_list_ingest_jobs():
+    async with MongoClient("localhost:50051") as client:
+        jobs = await client.list_ingest_jobs()
+        assert isinstance(jobs, list)
+
+
+@pytest.mark.asyncio
+async def test_cancel_ingest():
+    import os
+
+    async with MongoClient("localhost:50051") as client:
+        csv_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../test_fixtures/sample.csv"))
+        job_id = await client.ingest_csv(
+            path=csv_path,
+            database=TEST_DB,
+            collection=unique_collection()
+        )
+
+        result = await client.cancel_ingest(job_id)
+        assert isinstance(result, bool)
+
+
+@pytest.mark.asyncio
+async def test_watch_directory():
+    import tempfile
+
+    async with MongoClient("localhost:50051") as client:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            watch_id = await client.watch_directory(
+                path=tmpdir,
+                database=TEST_DB,
+                collection=unique_collection()
+            )
+            assert watch_id
+            assert len(watch_id) > 0
+
+            await client.stop_watch(watch_id)
+
+
+@pytest.mark.asyncio
+async def test_stop_watch():
+    import tempfile
+
+    async with MongoClient("localhost:50051") as client:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            watch_id = await client.watch_directory(
+                path=tmpdir,
+                database=TEST_DB,
+                collection=unique_collection()
+            )
+
+            result = await client.stop_watch(watch_id)
+            assert result is True
