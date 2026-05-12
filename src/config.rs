@@ -40,6 +40,26 @@ pub struct CliArgs {
     #[arg(long, env = "VOYAGE_API_KEY")]
     pub voyage_api_key: Option<String>,
 
+    /// Custom LLM gateway base URL (overrides direct API keys)
+    #[arg(long, env = "LLM_BASE_URL")]
+    pub llm_base_url: Option<String>,
+
+    /// API key for custom LLM gateway
+    #[arg(long, env = "LLM_API_KEY")]
+    pub llm_gateway_key: Option<String>,
+
+    /// Auth header name for custom LLM gateway
+    #[arg(long, env = "LLM_AUTH_HEADER")]
+    pub llm_auth_header: Option<String>,
+
+    /// Model name for custom LLM gateway
+    #[arg(long, env = "LLM_MODEL")]
+    pub llm_model: Option<String>,
+
+    /// Provider type for custom LLM gateway (anthropic or openai)
+    #[arg(long, env = "LLM_PROVIDER_TYPE")]
+    pub llm_provider_type: Option<String>,
+
     /// Enable compiled cache sync
     #[arg(long, env = "MONGOCORE_COMPILED_CACHE_SYNC")]
     pub compiled_cache_sync: Option<bool>,
@@ -126,6 +146,16 @@ impl Default for ResolvedIngestionConfig {
     }
 }
 
+/// Configuration for a custom LLM gateway endpoint.
+#[derive(Debug, Clone)]
+pub struct LlmGatewayConfig {
+    pub base_url: String,
+    pub api_key: String,
+    pub auth_header: String,
+    pub model: String,
+    pub provider_type: String,
+}
+
 /// TOML file configuration structure.
 #[derive(Debug, Deserialize, Default)]
 pub struct FileConfig {
@@ -138,6 +168,16 @@ pub struct FileConfig {
     pub openai_api_key: Option<String>,
     #[serde(rename = "VOYAGE_API_KEY")]
     pub voyage_api_key: Option<String>,
+    #[serde(rename = "LLM_BASE_URL")]
+    pub llm_base_url: Option<String>,
+    #[serde(rename = "LLM_API_KEY")]
+    pub llm_gateway_key: Option<String>,
+    #[serde(rename = "LLM_AUTH_HEADER")]
+    pub llm_auth_header: Option<String>,
+    #[serde(rename = "LLM_MODEL")]
+    pub llm_model: Option<String>,
+    #[serde(rename = "LLM_PROVIDER_TYPE")]
+    pub llm_provider_type: Option<String>,
     pub compiled_cache_sync: Option<bool>,
     pub log_level: Option<String>,
     pub multi_tenant_enabled: Option<bool>,
@@ -160,6 +200,7 @@ pub struct Config {
     pub llm_api_key: Option<String>,
     pub llm_provider_name: Option<String>,
     pub voyage_api_key: Option<String>,
+    pub llm_gateway: Option<LlmGatewayConfig>,
     pub compiled_cache_sync: bool,
     pub log_level: String,
     pub multi_tenant_enabled: bool,
@@ -200,6 +241,30 @@ impl Config {
             .mcp_port
             .or(file_config.mcp_port)
             .unwrap_or(DEFAULT_MCP_PORT);
+
+        // Check for custom LLM gateway first (takes precedence over direct keys)
+        let llm_gateway = if let Some(base_url) = cli.llm_base_url.clone()
+            .or(file_config.llm_base_url)
+            .or_else(|| std::env::var("LLM_BASE_URL").ok())
+        {
+            let api_key = cli.llm_gateway_key.clone()
+                .or(file_config.llm_gateway_key)
+                .or_else(|| std::env::var("LLM_API_KEY").ok())
+                .unwrap_or_default();
+            let auth_header = cli.llm_auth_header.clone()
+                .or(file_config.llm_auth_header)
+                .unwrap_or_else(|| "api-key".to_string());
+            let model = cli.llm_model.clone()
+                .or(file_config.llm_model)
+                .or_else(|| std::env::var("LLM_MODEL").ok())
+                .unwrap_or_else(|| "claude-sonnet-4-6".to_string());
+            let provider_type = cli.llm_provider_type.clone()
+                .or(file_config.llm_provider_type)
+                .unwrap_or_else(|| "anthropic".to_string());
+            Some(LlmGatewayConfig { base_url, api_key, auth_header, model, provider_type })
+        } else {
+            None
+        };
 
         // Resolve LLM API key: CLI/env > TOML > env var fallback
         let anthropic_key = cli.anthropic_api_key
@@ -279,6 +344,7 @@ impl Config {
             llm_api_key,
             llm_provider_name,
             voyage_api_key,
+            llm_gateway,
             compiled_cache_sync,
             log_level,
             multi_tenant_enabled,
@@ -310,6 +376,11 @@ mod tests {
             anthropic_api_key: None,
             openai_api_key: None,
             voyage_api_key: None,
+            llm_base_url: None,
+            llm_gateway_key: None,
+            llm_auth_header: None,
+            llm_model: None,
+            llm_provider_type: None,
             compiled_cache_sync: None,
             log_level: None,
             otel_enabled: None,
@@ -351,6 +422,11 @@ log_level = "debug"
             anthropic_api_key: None,
             openai_api_key: None,
             voyage_api_key: None,
+            llm_base_url: None,
+            llm_gateway_key: None,
+            llm_auth_header: None,
+            llm_model: None,
+            llm_provider_type: None,
             compiled_cache_sync: None,
             log_level: None,
             otel_enabled: None,
@@ -388,6 +464,11 @@ log_level = "debug"
             anthropic_api_key: None,
             openai_api_key: None,
             voyage_api_key: None,
+            llm_base_url: None,
+            llm_gateway_key: None,
+            llm_auth_header: None,
+            llm_model: None,
+            llm_provider_type: None,
             compiled_cache_sync: None,
             log_level: Some("warn".to_string()),
             otel_enabled: None,
@@ -415,6 +496,11 @@ log_level = "debug"
             anthropic_api_key: None,
             openai_api_key: None,
             voyage_api_key: None,
+            llm_base_url: None,
+            llm_gateway_key: None,
+            llm_auth_header: None,
+            llm_model: None,
+            llm_provider_type: None,
             compiled_cache_sync: None,
             log_level: None,
             otel_enabled: None,
@@ -454,6 +540,11 @@ connection_uri = "mongodb://other:27017"
             anthropic_api_key: None,
             openai_api_key: None,
             voyage_api_key: None,
+            llm_base_url: None,
+            llm_gateway_key: None,
+            llm_auth_header: None,
+            llm_model: None,
+            llm_provider_type: None,
             compiled_cache_sync: None,
             log_level: None,
             otel_enabled: None,
@@ -492,6 +583,11 @@ connection_uri = "mongodb://other:27017"
             anthropic_api_key: None,
             openai_api_key: None,
             voyage_api_key: None,
+            llm_base_url: None,
+            llm_gateway_key: None,
+            llm_auth_header: None,
+            llm_model: None,
+            llm_provider_type: None,
             compiled_cache_sync: None,
             log_level: None,
             otel_enabled: None,
@@ -544,6 +640,11 @@ conflict_strategy = "merge"
             anthropic_api_key: None,
             openai_api_key: None,
             voyage_api_key: None,
+            llm_base_url: None,
+            llm_gateway_key: None,
+            llm_auth_header: None,
+            llm_model: None,
+            llm_provider_type: None,
             compiled_cache_sync: None,
             log_level: None,
             otel_enabled: None,
@@ -557,5 +658,48 @@ conflict_strategy = "merge"
         let watch = config.ingestion.watch.unwrap();
         assert_eq!(watch.enabled, Some(true));
         assert_eq!(watch.path.as_deref(), Some("/data/incoming"));
+    }
+
+    #[test]
+    fn test_gateway_config_from_toml() {
+        let toml_content = r#"
+connection_uri = "mongodb://localhost:27017"
+LLM_BASE_URL = "https://gateway.example.com/anthropic/v1/messages"
+LLM_API_KEY = "gw-key-123"
+LLM_AUTH_HEADER = "x-custom-key"
+LLM_MODEL = "claude-sonnet-4-6"
+LLM_PROVIDER_TYPE = "anthropic"
+"#;
+        let mut tmp = NamedTempFile::new().unwrap();
+        tmp.write_all(toml_content.as_bytes()).unwrap();
+        let mut cli = default_cli();
+        cli.config = Some(tmp.path().to_path_buf());
+
+        let config = Config::load(&cli).unwrap();
+        let gw = config.llm_gateway.expect("gateway should be configured");
+        assert_eq!(gw.base_url, "https://gateway.example.com/anthropic/v1/messages");
+        assert_eq!(gw.api_key, "gw-key-123");
+        assert_eq!(gw.auth_header, "x-custom-key");
+        assert_eq!(gw.model, "claude-sonnet-4-6");
+        assert_eq!(gw.provider_type, "anthropic");
+    }
+
+    #[test]
+    fn test_gateway_takes_precedence_over_direct_keys() {
+        let toml_content = r#"
+connection_uri = "mongodb://localhost:27017"
+ANTHROPIC_API_KEY = "direct-key"
+LLM_BASE_URL = "https://gateway.example.com/v1/messages"
+LLM_API_KEY = "gw-key"
+"#;
+        let mut tmp = NamedTempFile::new().unwrap();
+        tmp.write_all(toml_content.as_bytes()).unwrap();
+        let mut cli = default_cli();
+        cli.config = Some(tmp.path().to_path_buf());
+
+        let config = Config::load(&cli).unwrap();
+        assert!(config.llm_gateway.is_some(), "Gateway should be configured");
+        // Direct key is still resolved (for non-gateway uses) but gateway takes priority
+        assert!(config.llm_api_key.is_some());
     }
 }

@@ -11,6 +11,14 @@ compiled_cache_sync = false
 # Voyage AI for embeddings
 # VOYAGE_API_KEY = "your-api-key-here"
 
+# Custom LLM gateway (optional — overrides direct API keys)
+# Use this for corporate AI gateways or self-hosted endpoints
+# LLM_BASE_URL = "https://my-ai-gateway.example.com/anthropic/v1/messages"
+# LLM_API_KEY = "your-gateway-api-key"
+# LLM_AUTH_HEADER = "api-key"
+# LLM_MODEL = "claude-sonnet-4-6"
+# LLM_PROVIDER_TYPE = "anthropic"
+
 # OpenTelemetry tracing (requires --features otel)
 # otel_enabled = true
 # otel_endpoint = "http://localhost:4317"

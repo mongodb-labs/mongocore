@@ -5,7 +5,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::error::MongoCoreError;
-use crate::ingestion::types::{BsonSchema, IngestJob, IngestStatus};
+use crate::ingestion::types::{IngestJob, IngestStatus};
 
 pub struct ProgressTracker {
     collection: Collection<Document>,
@@ -204,6 +204,7 @@ impl ProgressTracker {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ingestion::types::BsonSchema;
     use chrono::Utc;
 
     #[test]

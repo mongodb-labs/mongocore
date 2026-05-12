@@ -45,6 +45,62 @@ ANTHROPIC_API_KEY = "your-api-key-here"
 compiled_cache_sync = true  # Enable L3 Atlas cache
 ```
 
+## Custom LLM Gateway
+
+For organizations using corporate AI gateways, proxies, or self-hosted endpoints:
+
+```toml
+LLM_BASE_URL = "https://my-ai-gateway.example.com/anthropic/v1/messages"
+LLM_API_KEY = "your-gateway-api-key"
+LLM_AUTH_HEADER = "api-key"
+LLM_MODEL = "claude-sonnet-4-6"
+LLM_PROVIDER_TYPE = "anthropic"  # or "openai"
+```
+
+Or via environment variables:
+
+```bash
+export LLM_BASE_URL="https://my-ai-gateway.example.com/anthropic/v1/messages"
+export LLM_API_KEY="your-gateway-api-key"
+export LLM_AUTH_HEADER="api-key"
+export LLM_MODEL="claude-sonnet-4-6"
+export LLM_PROVIDER_TYPE="anthropic"
+```
+
+### Configuration
+
+| Field | Description | Default |
+|-------|-------------|---------|
+| `LLM_BASE_URL` | Full URL for the LLM endpoint | — (activates gateway mode) |
+| `LLM_API_KEY` | API key sent in the auth header | — |
+| `LLM_AUTH_HEADER` | HTTP header name for the API key | `api-key` |
+| `LLM_MODEL` | Model identifier to send in requests | `claude-sonnet-4-6` |
+| `LLM_PROVIDER_TYPE` | Request/response format: `anthropic` or `openai` | `anthropic` |
+
+### Precedence
+
+When `LLM_BASE_URL` is set, MongoCore uses the gateway for all NL→MQL translations. Direct `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` are ignored for compiled queries (but still used for other features if configured).
+
+### Examples
+
+**Anthropic via gateway:**
+```toml
+LLM_BASE_URL = "https://my-ai-gateway.example.com/anthropic/v1/messages"
+LLM_API_KEY = "gw-key-123"
+LLM_AUTH_HEADER = "api-key"
+LLM_MODEL = "claude-sonnet-4-6"
+LLM_PROVIDER_TYPE = "anthropic"
+```
+
+**OpenAI via gateway:**
+```toml
+LLM_BASE_URL = "https://my-ai-gateway.example.com/openai/v1/chat/completions"
+LLM_API_KEY = "gw-key-456"
+LLM_AUTH_HEADER = "api-key"
+LLM_MODEL = "gpt-5.1"
+LLM_PROVIDER_TYPE = "openai"
+```
+
 ## Usage
 
 ### Python

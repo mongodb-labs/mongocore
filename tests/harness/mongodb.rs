@@ -19,6 +19,7 @@ pub async fn get_test_pool() -> ConnectionPool {
         llm_api_key: None,
         llm_provider_name: None,
         voyage_api_key: None,
+        llm_gateway: None,
         compiled_cache_sync: true,
         log_level: "info".to_string(),
         multi_tenant_enabled: false,
