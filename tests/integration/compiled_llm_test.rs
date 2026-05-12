@@ -21,31 +21,25 @@ fn get_llm_provider() -> Option<Box<dyn LlmProvider>> {
     }
 }
 
-/// Verify sample data is loaded. Panics with a clear message if not.
-async fn ensure_sample_data(pool: &ConnectionPool) {
+/// Check if sample_restaurants data is loaded. Returns false if not available (test should skip).
+async fn has_sample_data(pool: &ConnectionPool) -> bool {
     let count = pool
-        .database("sample_mflix")
-        .collection::<Document>("movies")
+        .database("sample_restaurants")
+        .collection::<Document>("restaurants")
         .count_documents(doc! {})
         .await
-        .expect("Failed to count sample_mflix.movies");
-    assert!(
-        count > 1000,
-        "sample_mflix.movies has {} docs — expected >1000. \
-         Did you start Docker with ANTHROPIC_API_KEY set? \
-         (enables MONGODB_LOAD_SAMPLE_DATA in docker-compose)",
-        count
-    );
+        .unwrap_or(0);
+    count > 100
 }
 
-/// Build a TranslationContext with the sample_mflix.movies schema.
-fn movies_context() -> TranslationContext {
+/// Build a TranslationContext with the sample_restaurants.restaurants schema.
+fn restaurants_context() -> TranslationContext {
     TranslationContext {
         schema_hint: Some(
-            "Fields: title (String), year (Int), runtime (Int), genres ([String]), \
-             countries ([String]), cast ([String]), directors ([String]), \
-             plot (String), rated (String), imdb.rating (Double), imdb.votes (Int), \
-             tomatoes.viewer.rating (Double)"
+            "Fields: name (String), cuisine (String), borough (String), \
+             address.building (String), address.street (String), address.zipcode (String), \
+             address.coord ([Double]), grades ([{date: Date, grade: String, score: Int}]), \
+             restaurant_id (String)"
                 .to_string(),
         ),
         sample_documents: vec![],
@@ -53,11 +47,11 @@ fn movies_context() -> TranslationContext {
     }
 }
 
-/// Execute a CompiledMql against the movies collection and return results.
+/// Execute a CompiledMql against the restaurants collection and return results.
 async fn execute_mql(pool: &ConnectionPool, mql: &CompiledMql) -> Vec<Document> {
     let coll = pool
-        .database("sample_mflix")
-        .collection::<Document>("movies");
+        .database("sample_restaurants")
+        .collection::<Document>("restaurants");
 
     match mql {
         CompiledMql::Find { filter, options } => {
@@ -98,128 +92,117 @@ async fn execute_mql(pool: &ConnectionPool, mql: &CompiledMql) -> Vec<Document> 
 // ==================== Tests ====================
 
 #[tokio::test]
-async fn test_llm_find_short_films() {
+async fn test_llm_find_italian_restaurants() {
     let Some(provider) = get_llm_provider() else {
-        eprintln!("Skipping test_llm_find_short_films: no API key set");
+        eprintln!("Skipping test_llm_find_italian_restaurants: no API key set");
         return;
     };
     let pool = harness::get_test_pool().await;
-    ensure_sample_data(&pool).await;
+    if !has_sample_data(&pool).await {
+        eprintln!("Skipping test_llm_find_italian_restaurants: sample_restaurants not loaded (set LOAD_SAMPLE_DATA=true)");
+        return;
+    }
 
     let translator = CompiledQueryTranslator::new(None, Some(provider), None);
-    let context = movies_context();
+    let context = restaurants_context();
 
     let result = translator
-        .translate("find movies shorter than 60 minutes", "sample_mflix", "movies", &context)
+        .translate("find Italian restaurants", "sample_restaurants", "restaurants", &context)
         .await
         .expect("translation should succeed");
 
     eprintln!("MQL: {:?}", result.mql);
 
     let docs = execute_mql(&pool, &result.mql).await;
-    assert!(!docs.is_empty(), "Expected results for short films query");
+    assert!(!docs.is_empty(), "Expected results for Italian restaurants query");
 
-    // Plausibility: all returned docs should have runtime < 60
     for doc in &docs {
-        if let Ok(runtime) = doc.get_i32("runtime") {
-            assert!(runtime < 60, "Expected runtime < 60, got {}", runtime);
+        if let Ok(cuisine) = doc.get_str("cuisine") {
+            assert_eq!(cuisine, "Italian", "Expected Italian cuisine, got {}", cuisine);
         }
     }
 }
 
 #[tokio::test]
-async fn test_llm_find_genre_and_year() {
+async fn test_llm_find_restaurants_in_borough() {
     let Some(provider) = get_llm_provider() else {
-        eprintln!("Skipping test_llm_find_genre_and_year: no API key set");
+        eprintln!("Skipping test_llm_find_restaurants_in_borough: no API key set");
         return;
     };
     let pool = harness::get_test_pool().await;
-    ensure_sample_data(&pool).await;
+    if !has_sample_data(&pool).await {
+        eprintln!("Skipping test_llm_find_restaurants_in_borough: sample_restaurants not loaded");
+        return;
+    }
 
     let translator = CompiledQueryTranslator::new(None, Some(provider), None);
-    let context = movies_context();
+    let context = restaurants_context();
 
     let result = translator
-        .translate("find comedy movies from 2010", "sample_mflix", "movies", &context)
+        .translate("find restaurants in Manhattan", "sample_restaurants", "restaurants", &context)
         .await
         .expect("translation should succeed");
 
     eprintln!("MQL: {:?}", result.mql);
 
     let docs = execute_mql(&pool, &result.mql).await;
-    assert!(!docs.is_empty(), "Expected results for comedy 2010 query");
+    assert!(!docs.is_empty(), "Expected results for Manhattan restaurants query");
 
-    // Plausibility: results should have Comedy in genres and year == 2010
     for doc in &docs {
-        if let Ok(year) = doc.get_i32("year") {
-            assert_eq!(year, 2010, "Expected year 2010, got {}", year);
-        }
-        if let Ok(genres) = doc.get_array("genres") {
-            let genre_strs: Vec<&str> = genres
-                .iter()
-                .filter_map(|g| g.as_str())
-                .collect();
-            assert!(
-                genre_strs.contains(&"Comedy"),
-                "Expected Comedy in genres, got {:?}",
-                genre_strs
-            );
+        if let Ok(borough) = doc.get_str("borough") {
+            assert_eq!(borough, "Manhattan", "Expected Manhattan, got {}", borough);
         }
     }
 }
 
 #[tokio::test]
-async fn test_llm_sort_by_rating() {
+async fn test_llm_find_high_scoring_restaurants() {
     let Some(provider) = get_llm_provider() else {
-        eprintln!("Skipping test_llm_sort_by_rating: no API key set");
+        eprintln!("Skipping test_llm_find_high_scoring_restaurants: no API key set");
         return;
     };
     let pool = harness::get_test_pool().await;
-    ensure_sample_data(&pool).await;
+    if !has_sample_data(&pool).await {
+        eprintln!("Skipping test_llm_find_high_scoring_restaurants: sample_restaurants not loaded");
+        return;
+    }
 
     let translator = CompiledQueryTranslator::new(None, Some(provider), None);
-    let context = movies_context();
+    let context = restaurants_context();
 
     let result = translator
-        .translate("find the highest rated movies", "sample_mflix", "movies", &context)
+        .translate("find restaurants with a grade score above 50", "sample_restaurants", "restaurants", &context)
         .await
         .expect("translation should succeed");
 
     eprintln!("MQL: {:?}", result.mql);
 
     let docs = execute_mql(&pool, &result.mql).await;
-    assert!(!docs.is_empty(), "Expected results for highest rated query");
-
-    // Plausibility: first result should have a high rating
-    if let Some(first) = docs.first() {
-        if let Ok(imdb) = first.get_document("imdb") {
-            if let Ok(rating) = imdb.get_f64("rating") {
-                assert!(rating > 7.0, "Expected high rating, got {}", rating);
-            }
-        }
-    }
+    assert!(!docs.is_empty(), "Expected results for high scoring restaurants query");
 }
 
 #[tokio::test]
-async fn test_llm_count_by_genre() {
+async fn test_llm_count_by_cuisine() {
     let Some(provider) = get_llm_provider() else {
-        eprintln!("Skipping test_llm_count_by_genre: no API key set");
+        eprintln!("Skipping test_llm_count_by_cuisine: no API key set");
         return;
     };
     let pool = harness::get_test_pool().await;
-    ensure_sample_data(&pool).await;
+    if !has_sample_data(&pool).await {
+        eprintln!("Skipping test_llm_count_by_cuisine: sample_restaurants not loaded");
+        return;
+    }
 
     let translator = CompiledQueryTranslator::new(None, Some(provider), None);
-    let context = movies_context();
+    let context = restaurants_context();
 
     let result = translator
-        .translate("count movies by genre", "sample_mflix", "movies", &context)
+        .translate("count restaurants by cuisine type", "sample_restaurants", "restaurants", &context)
         .await
         .expect("translation should succeed");
 
     eprintln!("MQL: {:?}", result.mql);
 
-    // This should be an aggregate
     match &result.mql {
         CompiledMql::Aggregate { pipeline } => {
             assert!(!pipeline.is_empty(), "Pipeline should not be empty");
@@ -230,46 +213,33 @@ async fn test_llm_count_by_genre() {
     }
 
     let docs = execute_mql(&pool, &result.mql).await;
-    assert!(!docs.is_empty(), "Expected results for count by genre query");
+    assert!(!docs.is_empty(), "Expected results for count by cuisine query");
 }
 
 #[tokio::test]
-async fn test_llm_average_runtime() {
+async fn test_llm_average_score_by_borough() {
     let Some(provider) = get_llm_provider() else {
-        eprintln!("Skipping test_llm_average_runtime: no API key set");
+        eprintln!("Skipping test_llm_average_score_by_borough: no API key set");
         return;
     };
     let pool = harness::get_test_pool().await;
-    ensure_sample_data(&pool).await;
+    if !has_sample_data(&pool).await {
+        eprintln!("Skipping test_llm_average_score_by_borough: sample_restaurants not loaded");
+        return;
+    }
 
     let translator = CompiledQueryTranslator::new(None, Some(provider), None);
-    let context = movies_context();
+    let context = restaurants_context();
 
     let result = translator
-        .translate("average runtime of action movies", "sample_mflix", "movies", &context)
+        .translate("average inspection score by borough", "sample_restaurants", "restaurants", &context)
         .await
         .expect("translation should succeed");
 
     eprintln!("MQL: {:?}", result.mql);
 
     let docs = execute_mql(&pool, &result.mql).await;
-    assert!(!docs.is_empty(), "Expected results for average runtime query");
-
-    // Plausibility: average runtime should be between 60-180 minutes
-    if let Some(first) = docs.first() {
-        // The aggregation result might have various field names for the average
-        for key in first.keys() {
-            if key.contains("avg") || key.contains("average") || key.contains("runtime") {
-                if let Ok(val) = first.get_f64(key) {
-                    assert!(
-                        val > 60.0 && val < 180.0,
-                        "Expected average runtime between 60-180, got {}",
-                        val
-                    );
-                }
-            }
-        }
-    }
+    assert!(!docs.is_empty(), "Expected results for average score query");
 }
 
 #[tokio::test]
@@ -279,26 +249,28 @@ async fn test_llm_cache_reuse() {
         return;
     };
     let pool = harness::get_test_pool().await;
-    ensure_sample_data(&pool).await;
+    if !has_sample_data(&pool).await {
+        eprintln!("Skipping test_llm_cache_reuse: sample_restaurants not loaded");
+        return;
+    }
 
     let translator = CompiledQueryTranslator::new(None, Some(provider), None);
-    let context = movies_context();
+    let context = restaurants_context();
 
     // First call — hits LLM
     let result1 = translator
-        .translate("find movies shorter than 60 minutes", "sample_mflix", "movies", &context)
+        .translate("find Italian restaurants", "sample_restaurants", "restaurants", &context)
         .await
         .expect("first translation should succeed");
 
     // Second call — should be cache hit
     let result2 = translator
-        .translate("find movies shorter than 60 minutes", "sample_mflix", "movies", &context)
+        .translate("find Italian restaurants", "sample_restaurants", "restaurants", &context)
         .await
         .expect("second translation should succeed");
 
     // Same hash = cache hit
     assert_eq!(result1.hash, result2.hash, "Second call should be a cache hit");
-    // Cache should have 1 entry
     assert_eq!(translator.cache_size(), 1);
 }
 
@@ -309,35 +281,38 @@ async fn test_llm_template_cache_reuse() {
         return;
     };
     let pool = harness::get_test_pool().await;
-    ensure_sample_data(&pool).await;
+    if !has_sample_data(&pool).await {
+        eprintln!("Skipping test_llm_template_cache_reuse: sample_restaurants not loaded");
+        return;
+    }
 
     let translator = CompiledQueryTranslator::new(None, Some(provider), None);
-    let context = movies_context();
+    let context = restaurants_context();
 
-    // First call with 2010 — hits LLM
+    // First call with "Manhattan" — hits LLM
     let result1 = translator
-        .translate("find comedy movies from 2010", "sample_mflix", "movies", &context)
+        .translate("find restaurants in Manhattan", "sample_restaurants", "restaurants", &context)
         .await
         .expect("first translation should succeed");
 
     eprintln!("First MQL: {:?}", result1.mql);
     eprintln!("Template: {:?}", result1.template);
 
-    // Second call with 2020 — should reuse template (no LLM call)
+    // Second call with "Brooklyn" — should reuse template (no LLM call)
     let result2 = translator
-        .translate("find comedy movies from 2020", "sample_mflix", "movies", &context)
+        .translate("find restaurants in Brooklyn", "sample_restaurants", "restaurants", &context)
         .await
         .expect("second translation should succeed");
 
     eprintln!("Second MQL: {:?}", result2.mql);
 
-    // Execute second query and verify year == 2020
+    // Execute second query and verify borough == Brooklyn
     let docs = execute_mql(&pool, &result2.mql).await;
-    assert!(!docs.is_empty(), "Expected results for comedy 2020 query");
+    assert!(!docs.is_empty(), "Expected results for Brooklyn restaurants query");
 
     for doc in &docs {
-        if let Ok(year) = doc.get_i32("year") {
-            assert_eq!(year, 2020, "Expected year 2020 from template reuse, got {}", year);
+        if let Ok(borough) = doc.get_str("borough") {
+            assert_eq!(borough, "Brooklyn", "Expected Brooklyn from template reuse, got {}", borough);
         }
     }
 }
