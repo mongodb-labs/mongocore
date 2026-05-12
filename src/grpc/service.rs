@@ -1,5 +1,7 @@
 use std::pin::Pin;
 use std::sync::Arc;
+use std::sync::Mutex;
+use std::collections::HashSet;
 
 use bson::Document;
 use dashmap::DashMap;
@@ -34,6 +36,7 @@ pub struct MongoCoreService {
     ingestion_engine: Option<Arc<crate::ingestion::IngestionEngine>>,
     directory_watcher: Option<Arc<crate::ingestion::DirectoryWatcher>>,
     client: Option<mongodb::Client>,
+    appended_languages: Mutex<HashSet<String>>,
 }
 
 impl MongoCoreService {
@@ -57,6 +60,7 @@ impl MongoCoreService {
             ingestion_engine: None,
             directory_watcher: None,
             client: None,
+            appended_languages: Mutex::new(HashSet::new()),
         }
     }
 
@@ -82,6 +86,7 @@ impl MongoCoreService {
             ingestion_engine: None,
             directory_watcher: None,
             client: None,
+            appended_languages: Mutex::new(HashSet::new()),
         }
     }
 
@@ -118,6 +123,19 @@ impl MongoCoreService {
             }
         }
         Ok(())
+    }
+
+    /// Append client language metadata from gRPC request metadata.
+    fn append_client_language(&self, request_metadata: &tonic::metadata::MetadataMap) {
+        if let Some(lang) = request_metadata.get("x-client-language") {
+            if let Ok(lang_str) = lang.to_str() {
+                let mut seen = self.appended_languages.lock().unwrap();
+                if !seen.contains(lang_str) {
+                    self.pool.append_interface_metadata(lang_str);
+                    seen.insert(lang_str.to_string());
+                }
+            }
+        }
     }
 }
 
@@ -200,6 +218,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::FindRequest>,
     ) -> Result<Response<proto::FindResponse>, Status> {
+        self.append_client_language(request.metadata());
         self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
@@ -238,6 +257,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::FindOneRequest>,
     ) -> Result<Response<proto::FindOneResponse>, Status> {
+        self.append_client_language(request.metadata());
         self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
@@ -268,6 +288,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::InsertRequest>,
     ) -> Result<Response<proto::InsertResponse>, Status> {
+        self.append_client_language(request.metadata());
         self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
@@ -302,6 +323,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::InsertManyRequest>,
     ) -> Result<Response<proto::InsertManyResponse>, Status> {
+        self.append_client_language(request.metadata());
         self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
@@ -334,6 +356,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::UpdateRequest>,
     ) -> Result<Response<proto::UpdateResponse>, Status> {
+        self.append_client_language(request.metadata());
         self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
@@ -371,6 +394,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::UpdateManyRequest>,
     ) -> Result<Response<proto::UpdateManyResponse>, Status> {
+        self.append_client_language(request.metadata());
         self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
@@ -400,6 +424,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::DeleteRequest>,
     ) -> Result<Response<proto::DeleteResponse>, Status> {
+        self.append_client_language(request.metadata());
         self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
@@ -431,6 +456,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::DeleteManyRequest>,
     ) -> Result<Response<proto::DeleteManyResponse>, Status> {
+        self.append_client_language(request.metadata());
         self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
@@ -453,6 +479,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::FindAndModifyRequest>,
     ) -> Result<Response<proto::FindAndModifyResponse>, Status> {
+        self.append_client_language(request.metadata());
         self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
@@ -503,6 +530,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::AggregateRequest>,
     ) -> Result<Response<proto::AggregateResponse>, Status> {
+        self.append_client_language(request.metadata());
         self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
@@ -541,6 +569,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::SearchRequest>,
     ) -> Result<Response<proto::SearchResponse>, Status> {
+        self.append_client_language(request.metadata());
         self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
@@ -575,8 +604,9 @@ impl MongoCore for MongoCoreService {
 
     async fn begin_transaction(
         &self,
-        _request: Request<proto::BeginTransactionRequest>,
+        request: Request<proto::BeginTransactionRequest>,
     ) -> Result<Response<proto::BeginTransactionResponse>, Status> {
+        self.append_client_language(request.metadata());
         let txn = Transaction::begin(&self.pool).await.map_err(to_status)?;
         let txn_id = Uuid::new_v4().to_string();
         self.transactions.insert(txn_id.clone(), txn);
@@ -590,6 +620,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::CommitTransactionRequest>,
     ) -> Result<Response<proto::CommitTransactionResponse>, Status> {
+        self.append_client_language(request.metadata());
         let req = request.into_inner();
         let (_, mut txn) = self
             .transactions
@@ -607,6 +638,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::AbortTransactionRequest>,
     ) -> Result<Response<proto::AbortTransactionResponse>, Status> {
+        self.append_client_language(request.metadata());
         let req = request.into_inner();
         let (_, mut txn) = self
             .transactions
@@ -626,6 +658,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::CreateCollectionRequest>,
     ) -> Result<Response<proto::CreateCollectionResponse>, Status> {
+        self.append_client_language(request.metadata());
         let req = request.into_inner();
 
         self.operations
@@ -640,6 +673,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::CreateIndexRequest>,
     ) -> Result<Response<proto::CreateIndexResponse>, Status> {
+        self.append_client_language(request.metadata());
         let req = request.into_inner();
         let keys_doc = req
             .keys
@@ -666,8 +700,9 @@ impl MongoCore for MongoCoreService {
 
     async fn list_databases(
         &self,
-        _request: Request<proto::ListDatabasesRequest>,
+        request: Request<proto::ListDatabasesRequest>,
     ) -> Result<Response<proto::ListDatabasesResponse>, Status> {
+        self.append_client_language(request.metadata());
         let databases = self
             .pool
             .client()
@@ -682,6 +717,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::ListCollectionsRequest>,
     ) -> Result<Response<proto::ListCollectionsResponse>, Status> {
+        self.append_client_language(request.metadata());
         let req = request.into_inner();
 
         let collections = self
@@ -706,6 +742,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::WatchRequest>,
     ) -> Result<Response<Self::WatchStream>, Status> {
+        self.append_client_language(request.metadata());
         let req = request.into_inner();
 
         let pipeline: Vec<Document> = if let Some(p) = req.pipeline {
@@ -800,6 +837,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::RunCommandRequest>,
     ) -> Result<Response<proto::RunCommandResponse>, Status> {
+        self.append_client_language(request.metadata());
         self.check_tenant_quota(request.metadata())?;
         let start = std::time::Instant::now();
         let req = request.into_inner();
@@ -839,8 +877,9 @@ impl MongoCore for MongoCoreService {
 
     async fn get_analytics(
         &self,
-        _request: Request<proto::GetAnalyticsRequest>,
+        request: Request<proto::GetAnalyticsRequest>,
     ) -> Result<Response<proto::GetAnalyticsResponse>, Status> {
+        self.append_client_language(request.metadata());
         let analytics = self.analytics.as_ref()
             .ok_or_else(|| Status::unavailable("Analytics not enabled"))?;
 
@@ -879,6 +918,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::IngestRequest>,
     ) -> Result<Response<proto::IngestResponse>, Status> {
+        self.append_client_language(request.metadata());
         let engine = self.ingestion_engine.as_ref()
             .ok_or_else(|| Status::unavailable("Ingestion not enabled"))?;
         let client = self.client.as_ref()
@@ -930,6 +970,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::GetIngestStatusRequest>,
     ) -> Result<Response<proto::GetIngestStatusResponse>, Status> {
+        self.append_client_language(request.metadata());
         let engine = self.ingestion_engine.as_ref()
             .ok_or_else(|| Status::unavailable("Ingestion not enabled"))?;
         let job_id = request.into_inner().job_id;
@@ -964,8 +1005,9 @@ impl MongoCore for MongoCoreService {
 
     async fn list_ingest_jobs(
         &self,
-        _request: Request<proto::ListIngestJobsRequest>,
+        request: Request<proto::ListIngestJobsRequest>,
     ) -> Result<Response<proto::ListIngestJobsResponse>, Status> {
+        self.append_client_language(request.metadata());
         let engine = self.ingestion_engine.as_ref()
             .ok_or_else(|| Status::unavailable("Ingestion not enabled"))?;
 
@@ -990,6 +1032,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::CancelIngestRequest>,
     ) -> Result<Response<proto::CancelIngestResponse>, Status> {
+        self.append_client_language(request.metadata());
         let engine = self.ingestion_engine.as_ref()
             .ok_or_else(|| Status::unavailable("Ingestion not enabled"))?;
         let job_id = request.into_inner().job_id;
@@ -1004,6 +1047,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::WatchDirectoryRequest>,
     ) -> Result<Response<proto::WatchDirectoryResponse>, Status> {
+        self.append_client_language(request.metadata());
         let watcher = self.directory_watcher.as_ref()
             .ok_or_else(|| Status::unavailable("Ingestion not enabled"))?;
         let req = request.into_inner();
@@ -1028,6 +1072,7 @@ impl MongoCore for MongoCoreService {
         &self,
         request: Request<proto::StopWatchRequest>,
     ) -> Result<Response<proto::StopWatchResponse>, Status> {
+        self.append_client_language(request.metadata());
         let watcher = self.directory_watcher.as_ref()
             .ok_or_else(|| Status::unavailable("Ingestion not enabled"))?;
         let watch_id = request.into_inner().watch_id;

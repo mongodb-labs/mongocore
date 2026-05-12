@@ -1,5 +1,6 @@
 use serde_json::{json, Value};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::analytics::AnalyticsCollector;
 use crate::connection::pool::ConnectionPool;
@@ -20,6 +21,7 @@ pub struct McpHandler {
     analytics: Option<Arc<AnalyticsCollector>>,
     ingestion: Option<Arc<IngestionEngine>>,
     watcher: Option<Arc<DirectoryWatcher>>,
+    mcp_metadata_appended: AtomicBool,
 }
 
 impl McpHandler {
@@ -39,11 +41,17 @@ impl McpHandler {
             analytics,
             ingestion,
             watcher,
+            mcp_metadata_appended: AtomicBool::new(false),
         }
     }
 
     /// Handle a single JSON-RPC request and return a response.
     pub async fn handle_request(&self, request: JsonRpcRequest) -> JsonRpcResponse {
+        if !self.mcp_metadata_appended.load(Ordering::Relaxed) {
+            self.pool.append_interface_metadata("mcp");
+            self.mcp_metadata_appended.store(true, Ordering::Relaxed);
+        }
+
         let id = request.id.clone();
         match request.method.as_str() {
             "initialize" => self.handle_initialize(id),
