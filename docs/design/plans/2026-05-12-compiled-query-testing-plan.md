@@ -3,7 +3,7 @@
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 > **For implementers:** Read and follow `AGENTS.md` at the project root.
-> Before committing: `cargo test --lib` must pass AND `cargo test --test integration` must compile.
+> Before committing: `just test-all` must pass (this runs all Rust tests + all client tests).
 > If modifying client libraries: verify imports work and run `just test-clients`.
 > If modifying shared structs (like `Config`): update ALL struct literals in `src/` AND `tests/`.
 

@@ -141,7 +141,7 @@ Design specifications and implementation plans live in `docs/design/`:
 
 ```
 > **For implementers:** Read and follow `AGENTS.md` at the project root.
-> Before committing: `cargo test --lib` must pass AND `cargo test --test integration` must compile.
+> Before committing: `just test-all` must pass (this runs all Rust tests + all client tests).
 > If modifying client libraries: verify imports work and run `just test-clients`.
 > If modifying shared structs (like `Config`): update ALL struct literals in `src/` AND `tests/`.
 ```

@@ -6,7 +6,7 @@
 
 When dispatching implementation subagents, always include in the prompt:
 1. "Read and follow `AGENTS.md` at the project root"
-2. "Before committing: run `cargo test --lib` AND verify `cargo test --test integration` compiles"
+2. "Before committing: `just test-all` must pass (runs all Rust tests + all client tests)"
 3. If changes touch client libraries: "Run `just test-clients` or verify client imports work"
 4. If changes add fields to shared structs (like `Config`): "Search for ALL struct literals across `src/` AND `tests/` and update them"
 
