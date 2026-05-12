@@ -2,7 +2,7 @@
 
 from typing import Any, AsyncIterator, Optional
 from bson import encode, decode
-from .client import _CLIENT_METADATA
+_CLIENT_METADATA = [("x-client-language", "python")]
 
 
 class Collection:

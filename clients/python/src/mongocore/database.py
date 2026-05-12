@@ -1,7 +1,7 @@
 """Database handle."""
 
 from .collection import Collection
-from .client import _CLIENT_METADATA
+_CLIENT_METADATA = [("x-client-language", "python")]
 
 
 class Database:
