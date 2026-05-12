@@ -1,5 +1,5 @@
 import { BSON } from 'bson';
-import { MongoClient } from './client';
+import { MongoClient, CLIENT_METADATA } from './client';
 import { EventEmitter } from 'events';
 import type { Document, FindOptions, UpdateResult, InsertResult, InsertManyResult, SearchResult, ChangeEvent } from './types';
 
@@ -43,7 +43,7 @@ export class Collection {
           projection: options.projection ? this.encodeBson(options.projection as Document) : undefined,
         } : undefined,
       };
-      this.client.getGrpcClient().find(request, (err: any, response: any) => {
+      this.client.getGrpcClient().find(request, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         const docs = (response.documents || []).map((d: any) => this.decodeBson(d.data));
         resolve(docs);
@@ -58,7 +58,7 @@ export class Collection {
         collection: this.name,
         filter: { data: this.encodeBson(filter || {}) },
       };
-      this.client.getGrpcClient().findOne(request, (err: any, response: any) => {
+      this.client.getGrpcClient().findOne(request, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         if (response.document && response.document.data && response.document.data.length > 0) {
           resolve(this.decodeBson(response.document.data));
@@ -76,7 +76,7 @@ export class Collection {
         collection: this.name,
         document: { data: this.encodeBson(document) },
       };
-      this.client.getGrpcClient().insert(request, (err: any, response: any) => {
+      this.client.getGrpcClient().insert(request, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         resolve({ insertedId: response.insertedId });
       });
@@ -90,7 +90,7 @@ export class Collection {
         collection: this.name,
         documents: documents.map(d => ({ data: this.encodeBson(d) })),
       };
-      this.client.getGrpcClient().insertMany(request, (err: any, response: any) => {
+      this.client.getGrpcClient().insertMany(request, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         resolve({
           insertedIds: response.insertedIds || [],
@@ -109,7 +109,7 @@ export class Collection {
         update: { data: this.encodeBson(update) },
         upsert: false,
       };
-      this.client.getGrpcClient().update(request, (err: any, response: any) => {
+      this.client.getGrpcClient().update(request, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         resolve({
           matchedCount: response.matchedCount || 0,
@@ -129,7 +129,7 @@ export class Collection {
         update: { data: this.encodeBson(update) },
         upsert: false,
       };
-      this.client.getGrpcClient().updateMany(request, (err: any, response: any) => {
+      this.client.getGrpcClient().updateMany(request, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         resolve({
           matchedCount: response.matchedCount || 0,
@@ -147,7 +147,7 @@ export class Collection {
         collection: this.name,
         filter: { data: this.encodeBson(filter) },
       };
-      this.client.getGrpcClient().delete(request, (err: any, response: any) => {
+      this.client.getGrpcClient().delete(request, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         resolve(response.deletedCount || 0);
       });
@@ -161,7 +161,7 @@ export class Collection {
         collection: this.name,
         filter: { data: this.encodeBson(filter) },
       };
-      this.client.getGrpcClient().deleteMany(request, (err: any, response: any) => {
+      this.client.getGrpcClient().deleteMany(request, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         resolve(response.deletedCount || 0);
       });
@@ -177,7 +177,7 @@ export class Collection {
           stages: pipeline.map(stage => this.encodeBson(stage)),
         },
       };
-      this.client.getGrpcClient().aggregate(request, (err: any, response: any) => {
+      this.client.getGrpcClient().aggregate(request, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         const docs = (response.documents || []).map((d: any) => this.decodeBson(d.data));
         resolve(docs);
@@ -193,7 +193,7 @@ export class Collection {
         query,
         limit,
       };
-      this.client.getGrpcClient().search(request, (err: any, response: any) => {
+      this.client.getGrpcClient().search(request, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         const docs = (response.documents || []).map((d: any) => this.decodeBson(d.data));
         resolve({
@@ -245,7 +245,7 @@ export class ChangeStream extends EventEmitter implements AsyncIterable<ChangeEv
       } : undefined,
     };
 
-    this.grpcStream = this.client.getGrpcClient().watch(request);
+    this.grpcStream = this.client.getGrpcClient().watch(request, CLIENT_METADATA);
 
     this.grpcStream.on('data', (event: any) => {
       const decoded: ChangeEvent = {

@@ -1,6 +1,7 @@
 """Database handle."""
 
 from .collection import Collection
+from .client import _CLIENT_METADATA
 
 
 class Database:
@@ -23,7 +24,8 @@ class Database:
         from .generated import mongocore_pb2, mongocore_pb2_grpc
         stub = mongocore_pb2_grpc.MongoCoreStub(self._client.channel)
         response = await stub.ListCollections(
-            mongocore_pb2.ListCollectionsRequest(database=self._name)
+            mongocore_pb2.ListCollectionsRequest(database=self._name),
+            metadata=_CLIENT_METADATA
         )
         return list(response.collections)
 
@@ -32,5 +34,6 @@ class Database:
         from .generated import mongocore_pb2, mongocore_pb2_grpc
         stub = mongocore_pb2_grpc.MongoCoreStub(self._client.channel)
         await stub.CreateCollection(
-            mongocore_pb2.CreateCollectionRequest(database=self._name, collection=name)
+            mongocore_pb2.CreateCollectionRequest(database=self._name, collection=name),
+            metadata=_CLIENT_METADATA
         )

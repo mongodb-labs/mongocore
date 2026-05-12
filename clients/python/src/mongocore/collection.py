@@ -2,6 +2,7 @@
 
 from typing import Any, AsyncIterator, Optional
 from bson import encode, decode
+from .client import _CLIENT_METADATA
 
 
 class Collection:
@@ -50,7 +51,7 @@ class Collection:
             collection=self._name,
             filter=self._make_filter(filter),
             options=options,
-        ))
+        ), metadata=_CLIENT_METADATA)
         return [self._decode_doc(doc.data) for doc in response.documents]
 
     async def find_one(self, filter: Optional[dict] = None) -> Optional[dict]:
@@ -61,7 +62,7 @@ class Collection:
             database=self._database,
             collection=self._name,
             filter=self._make_filter(filter),
-        ))
+        ), metadata=_CLIENT_METADATA)
         if response.document and response.document.data:
             return self._decode_doc(response.document.data)
         return None
@@ -74,7 +75,7 @@ class Collection:
             database=self._database,
             collection=self._name,
             document=self._make_document(document),
-        ))
+        ), metadata=_CLIENT_METADATA)
         return response.inserted_id
 
     async def insert_many(self, documents: list[dict]) -> list[str]:
@@ -85,7 +86,7 @@ class Collection:
             database=self._database,
             collection=self._name,
             documents=[self._make_document(d) for d in documents],
-        ))
+        ), metadata=_CLIENT_METADATA)
         return list(response.inserted_ids)
 
     async def update_one(self, filter: dict, update: dict) -> dict:
@@ -97,7 +98,7 @@ class Collection:
             collection=self._name,
             filter=self._make_filter(filter),
             update=self._make_document(update),
-        ))
+        ), metadata=_CLIENT_METADATA)
         return {"matched_count": response.matched_count, "modified_count": response.modified_count}
 
     async def update_many(self, filter: dict, update: dict) -> dict:
@@ -109,7 +110,7 @@ class Collection:
             collection=self._name,
             filter=self._make_filter(filter),
             update=self._make_document(update),
-        ))
+        ), metadata=_CLIENT_METADATA)
         return {"matched_count": response.matched_count, "modified_count": response.modified_count}
 
     async def delete_one(self, filter: dict) -> int:
@@ -120,7 +121,7 @@ class Collection:
             database=self._database,
             collection=self._name,
             filter=self._make_filter(filter),
-        ))
+        ), metadata=_CLIENT_METADATA)
         return response.deleted_count
 
     async def delete_many(self, filter: dict) -> int:
@@ -131,7 +132,7 @@ class Collection:
             database=self._database,
             collection=self._name,
             filter=self._make_filter(filter),
-        ))
+        ), metadata=_CLIENT_METADATA)
         return response.deleted_count
 
     async def aggregate(self, pipeline: list[dict]) -> list[dict]:
@@ -145,7 +146,7 @@ class Collection:
             database=self._database,
             collection=self._name,
             pipeline=types_pb2.Pipeline(stages=stages),
-        ))
+        ), metadata=_CLIENT_METADATA)
         return [self._decode_doc(doc.data) for doc in response.documents]
 
     async def search(self, query: str, *, limit: int = 10) -> dict:
@@ -157,7 +158,7 @@ class Collection:
             collection=self._name,
             query=query,
             limit=limit,
-        ))
+        ), metadata=_CLIENT_METADATA)
         return {
             "documents": [self._decode_doc(doc.data) for doc in response.documents],
             "method": response.method,
@@ -188,7 +189,7 @@ class ChangeStream:
             database=self._collection._database,
             collection=self._collection._name,
             pipeline=types_pb2.Pipeline(stages=stages) if stages else None,
-        ))
+        ), metadata=_CLIENT_METADATA)
         return self
 
     async def __aexit__(self, *exc):

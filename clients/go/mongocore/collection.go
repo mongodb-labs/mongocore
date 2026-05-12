@@ -87,7 +87,7 @@ func (c *Collection) Find(ctx context.Context, filter bson.D, opts *FindOptions)
 		req.Options = findOpts
 	}
 
-	resp, err := c.client.stub.Find(ctx, req)
+	resp, err := c.client.stub.Find(clientContext(ctx), req)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +110,7 @@ func (c *Collection) FindOne(ctx context.Context, filter bson.D) (bson.D, error)
 		return nil, err
 	}
 
-	resp, err := c.client.stub.FindOne(ctx, &pb.FindOneRequest{
+	resp, err := c.client.stub.FindOne(clientContext(ctx), &pb.FindOneRequest{
 		Database:   c.database,
 		Collection: c.name,
 		Filter:     &pb.Filter{Data: filterBytes},
@@ -132,7 +132,7 @@ func (c *Collection) InsertOne(ctx context.Context, document bson.D) (string, er
 		return "", err
 	}
 
-	resp, err := c.client.stub.Insert(ctx, &pb.InsertRequest{
+	resp, err := c.client.stub.Insert(clientContext(ctx), &pb.InsertRequest{
 		Database:   c.database,
 		Collection: c.name,
 		Document:   &pb.Document{Data: docBytes},
@@ -154,7 +154,7 @@ func (c *Collection) InsertMany(ctx context.Context, documents []bson.D) ([]stri
 		pbDocs = append(pbDocs, &pb.Document{Data: docBytes})
 	}
 
-	resp, err := c.client.stub.InsertMany(ctx, &pb.InsertManyRequest{
+	resp, err := c.client.stub.InsertMany(clientContext(ctx), &pb.InsertManyRequest{
 		Database:   c.database,
 		Collection: c.name,
 		Documents:  pbDocs,
@@ -176,7 +176,7 @@ func (c *Collection) UpdateOne(ctx context.Context, filter, update bson.D) (*Upd
 		return nil, err
 	}
 
-	resp, err := c.client.stub.Update(ctx, &pb.UpdateRequest{
+	resp, err := c.client.stub.Update(clientContext(ctx), &pb.UpdateRequest{
 		Database:   c.database,
 		Collection: c.name,
 		Filter:     &pb.Filter{Data: filterBytes},
@@ -202,7 +202,7 @@ func (c *Collection) UpdateMany(ctx context.Context, filter, update bson.D) (*Up
 		return nil, err
 	}
 
-	resp, err := c.client.stub.UpdateMany(ctx, &pb.UpdateManyRequest{
+	resp, err := c.client.stub.UpdateMany(clientContext(ctx), &pb.UpdateManyRequest{
 		Database:   c.database,
 		Collection: c.name,
 		Filter:     &pb.Filter{Data: filterBytes},
@@ -224,7 +224,7 @@ func (c *Collection) DeleteOne(ctx context.Context, filter bson.D) (int64, error
 		return 0, err
 	}
 
-	resp, err := c.client.stub.Delete(ctx, &pb.DeleteRequest{
+	resp, err := c.client.stub.Delete(clientContext(ctx), &pb.DeleteRequest{
 		Database:   c.database,
 		Collection: c.name,
 		Filter:     &pb.Filter{Data: filterBytes},
@@ -242,7 +242,7 @@ func (c *Collection) DeleteMany(ctx context.Context, filter bson.D) (int64, erro
 		return 0, err
 	}
 
-	resp, err := c.client.stub.DeleteMany(ctx, &pb.DeleteManyRequest{
+	resp, err := c.client.stub.DeleteMany(clientContext(ctx), &pb.DeleteManyRequest{
 		Database:   c.database,
 		Collection: c.name,
 		Filter:     &pb.Filter{Data: filterBytes},
@@ -329,7 +329,7 @@ func (c *Collection) Watch(ctx context.Context, pipeline []bson.D) (*ChangeStrea
 	}
 
 	watchCtx, cancel := context.WithCancel(ctx)
-	stream, err := c.client.stub.Watch(watchCtx, &pb.WatchRequest{
+	stream, err := c.client.stub.Watch(clientContext(watchCtx), &pb.WatchRequest{
 		Database:   c.database,
 		Collection: &c.name,
 		Pipeline:   &pb.Pipeline{Stages: stages},
@@ -356,7 +356,7 @@ func (c *Collection) Aggregate(ctx context.Context, pipeline []bson.D) ([]bson.D
 		stages = append(stages, stageBytes)
 	}
 
-	resp, err := c.client.stub.Aggregate(ctx, &pb.AggregateRequest{
+	resp, err := c.client.stub.Aggregate(clientContext(ctx), &pb.AggregateRequest{
 		Database:   c.database,
 		Collection: c.name,
 		Pipeline:   &pb.Pipeline{Stages: stages},
@@ -378,7 +378,7 @@ func (c *Collection) Aggregate(ctx context.Context, pipeline []bson.D) ([]bson.D
 
 // Search performs a unified search using the best available method (vector → fulltext → filter).
 func (c *Collection) Search(ctx context.Context, query string, limit int64) (*SearchResult, error) {
-	resp, err := c.client.stub.Search(ctx, &pb.SearchRequest{
+	resp, err := c.client.stub.Search(clientContext(ctx), &pb.SearchRequest{
 		Database:   c.database,
 		Collection: c.name,
 		Query:      query,

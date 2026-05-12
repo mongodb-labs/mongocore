@@ -1,7 +1,7 @@
 package com.mongocore;
 
-import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
+import io.grpc.*;
+import io.grpc.stub.ClientCalls;
 import mongocore.v1.MongoCoreGrpc;
 import mongocore.v1.Mongocore;
 import mongocore.v1.Ingestion;
@@ -11,6 +11,23 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class MongoClient implements AutoCloseable {
+    private static final Metadata.Key<String> CLIENT_LANG_KEY =
+            Metadata.Key.of("x-client-language", Metadata.ASCII_STRING_MARSHALLER);
+
+    private final ClientInterceptor langInterceptor = new ClientInterceptor() {
+        @Override
+        public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
+                MethodDescriptor<ReqT, RespT> method, CallOptions options, Channel next) {
+            return new ForwardingClientCall.SimpleForwardingClientCall<>(next.newCall(method, options)) {
+                @Override
+                public void start(Listener<RespT> listener, Metadata headers) {
+                    headers.put(CLIENT_LANG_KEY, "java");
+                    super.start(listener, headers);
+                }
+            };
+        }
+    };
+
     private final ManagedChannel channel;
     private final String address;
 
@@ -18,6 +35,7 @@ public class MongoClient implements AutoCloseable {
         this.address = address;
         this.channel = ManagedChannelBuilder.forTarget(address)
                 .usePlaintext()
+                .intercept(langInterceptor)
                 .build();
     }
 

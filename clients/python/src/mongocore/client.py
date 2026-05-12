@@ -5,6 +5,8 @@ from typing import Optional
 from .database import Database
 from .sidecar import SidecarManager
 
+_CLIENT_METADATA = [("x-client-language", "python")]
+
 
 class MongoClient:
     """Client for connecting to a MongoCore sidecar.
@@ -53,7 +55,7 @@ class MongoClient:
         """List all databases."""
         from .generated import mongocore_pb2, mongocore_pb2_grpc
         stub = mongocore_pb2_grpc.MongoCoreStub(self.channel)
-        response = await stub.ListDatabases(mongocore_pb2.ListDatabasesRequest())
+        response = await stub.ListDatabases(mongocore_pb2.ListDatabasesRequest(), metadata=_CLIENT_METADATA)
         return list(response.databases)
 
     async def run_command(self, database: str, command: dict, allow_all: bool = False) -> dict:
@@ -65,7 +67,7 @@ class MongoClient:
             database=database,
             command=types_pb2.Document(data=encode(command)),
             allow_all=allow_all,
-        ))
+        ), metadata=_CLIENT_METADATA)
         return decode(response.result.data)
 
     async def ingest(
@@ -113,7 +115,7 @@ class MongoClient:
             expressions=expressions or [],
             schema_overrides=schema_overrides or {},
             sample_size=sample_size,
-        ))
+        ), metadata=_CLIENT_METADATA)
         return {
             "job_id": response.job_id,
             "status": response.status,
@@ -125,7 +127,7 @@ class MongoClient:
         """Get ingestion job status."""
         from .generated import mongocore_pb2_grpc, ingestion_pb2
         stub = mongocore_pb2_grpc.MongoCoreStub(self.channel)
-        response = await stub.GetIngestStatus(ingestion_pb2.GetIngestStatusRequest(job_id=job_id))
+        response = await stub.GetIngestStatus(ingestion_pb2.GetIngestStatusRequest(job_id=job_id), metadata=_CLIENT_METADATA)
         return {
             "job_id": response.job_id,
             "status": response.status,
@@ -142,7 +144,7 @@ class MongoClient:
         """List all ingestion jobs."""
         from .generated import mongocore_pb2_grpc, ingestion_pb2
         stub = mongocore_pb2_grpc.MongoCoreStub(self.channel)
-        response = await stub.ListIngestJobs(ingestion_pb2.ListIngestJobsRequest())
+        response = await stub.ListIngestJobs(ingestion_pb2.ListIngestJobsRequest(), metadata=_CLIENT_METADATA)
         return [{"job_id": j.job_id, "file_path": j.file_path, "database": j.database,
                  "collection": j.collection, "status": j.status, "total_rows": j.total_rows,
                  "rows_processed": j.rows_processed} for j in response.jobs]
@@ -151,7 +153,7 @@ class MongoClient:
         """Cancel a running ingestion job."""
         from .generated import mongocore_pb2_grpc, ingestion_pb2
         stub = mongocore_pb2_grpc.MongoCoreStub(self.channel)
-        response = await stub.CancelIngest(ingestion_pb2.CancelIngestRequest(job_id=job_id))
+        response = await stub.CancelIngest(ingestion_pb2.CancelIngestRequest(job_id=job_id), metadata=_CLIENT_METADATA)
         return response.success
 
     async def watch_directory(
@@ -176,14 +178,14 @@ class MongoClient:
             path=path, file_pattern=file_pattern, database=database,
             collection=collection, conflict_strategy=conflict_enum,
             dedup_key=dedup_key or [],
-        ))
+        ), metadata=_CLIENT_METADATA)
         return response.watch_id
 
     async def stop_watch(self, watch_id: str) -> bool:
         """Stop watching a directory."""
         from .generated import mongocore_pb2_grpc, ingestion_pb2
         stub = mongocore_pb2_grpc.MongoCoreStub(self.channel)
-        response = await stub.StopWatch(ingestion_pb2.StopWatchRequest(watch_id=watch_id))
+        response = await stub.StopWatch(ingestion_pb2.StopWatchRequest(watch_id=watch_id), metadata=_CLIENT_METADATA)
         return response.success
 
     async def __aenter__(self):

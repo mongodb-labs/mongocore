@@ -8,7 +8,13 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/metadata"
 )
+
+// clientContext adds the x-client-language metadata to the context.
+func clientContext(ctx context.Context) context.Context {
+	return metadata.AppendToOutgoingContext(ctx, "x-client-language", "go")
+}
 
 // IngestOptions configures an ingestion job.
 type IngestOptions struct {
@@ -111,7 +117,7 @@ func (c *Client) Stub() pb.MongoCoreClient {
 
 // ListDatabases returns all database names.
 func (c *Client) ListDatabases(ctx context.Context) ([]string, error) {
-	resp, err := c.stub.ListDatabases(ctx, &pb.ListDatabasesRequest{})
+	resp, err := c.stub.ListDatabases(clientContext(ctx), &pb.ListDatabasesRequest{})
 	if err != nil {
 		return nil, err
 	}
@@ -125,7 +131,7 @@ func (c *Client) RunCommand(ctx context.Context, database string, command interf
 		return nil, fmt.Errorf("mongocore: failed to marshal command: %w", err)
 	}
 
-	resp, err := c.stub.RunCommand(ctx, &pb.RunCommandRequest{
+	resp, err := c.stub.RunCommand(clientContext(ctx), &pb.RunCommandRequest{
 		Database: database,
 		Command:  &pb.Document{Data: commandBytes},
 		AllowAll: allowAll,
@@ -143,7 +149,7 @@ func (c *Client) RunCommand(ctx context.Context, database string, command interf
 
 // Ingest starts an ingestion job to load a file into MongoDB.
 func (c *Client) Ingest(ctx context.Context, opts IngestOptions) (*IngestResult, error) {
-	resp, err := c.stub.Ingest(ctx, &pb.IngestRequest{
+	resp, err := c.stub.Ingest(clientContext(ctx), &pb.IngestRequest{
 		FilePath:         opts.FilePath,
 		Database:         opts.Database,
 		Collection:       opts.Collection,
@@ -170,7 +176,7 @@ func (c *Client) Ingest(ctx context.Context, opts IngestOptions) (*IngestResult,
 
 // IngestStatus returns the current status of an ingestion job.
 func (c *Client) IngestStatus(ctx context.Context, jobID string) (*IngestStatusResult, error) {
-	resp, err := c.stub.GetIngestStatus(ctx, &pb.GetIngestStatusRequest{
+	resp, err := c.stub.GetIngestStatus(clientContext(ctx), &pb.GetIngestStatusRequest{
 		JobId: jobID,
 	})
 	if err != nil {
@@ -191,7 +197,7 @@ func (c *Client) IngestStatus(ctx context.Context, jobID string) (*IngestStatusR
 
 // ListIngestJobs returns all ingestion jobs.
 func (c *Client) ListIngestJobs(ctx context.Context) ([]IngestJobSummary, error) {
-	resp, err := c.stub.ListIngestJobs(ctx, &pb.ListIngestJobsRequest{})
+	resp, err := c.stub.ListIngestJobs(clientContext(ctx), &pb.ListIngestJobsRequest{})
 	if err != nil {
 		return nil, err
 	}
@@ -212,7 +218,7 @@ func (c *Client) ListIngestJobs(ctx context.Context) ([]IngestJobSummary, error)
 
 // CancelIngest cancels an in-progress ingestion job.
 func (c *Client) CancelIngest(ctx context.Context, jobID string) (bool, error) {
-	resp, err := c.stub.CancelIngest(ctx, &pb.CancelIngestRequest{
+	resp, err := c.stub.CancelIngest(clientContext(ctx), &pb.CancelIngestRequest{
 		JobId: jobID,
 	})
 	if err != nil {
@@ -223,7 +229,7 @@ func (c *Client) CancelIngest(ctx context.Context, jobID string) (bool, error) {
 
 // WatchDirectory starts watching a directory for new files and automatically ingests them.
 func (c *Client) WatchDirectory(ctx context.Context, opts WatchDirectoryOptions) (string, error) {
-	resp, err := c.stub.WatchDirectory(ctx, &pb.WatchDirectoryRequest{
+	resp, err := c.stub.WatchDirectory(clientContext(ctx), &pb.WatchDirectoryRequest{
 		Path:             opts.Path,
 		FilePattern:      opts.FilePattern,
 		Database:         opts.Database,
@@ -239,7 +245,7 @@ func (c *Client) WatchDirectory(ctx context.Context, opts WatchDirectoryOptions)
 
 // StopWatch stops a previously started directory watch.
 func (c *Client) StopWatch(ctx context.Context, watchID string) (bool, error) {
-	resp, err := c.stub.StopWatch(ctx, &pb.StopWatchRequest{
+	resp, err := c.stub.StopWatch(clientContext(ctx), &pb.StopWatchRequest{
 		WatchId: watchID,
 	})
 	if err != nil {

@@ -6,6 +6,9 @@ import { SidecarManager } from './sidecar';
 
 const PROTO_PATH = path.resolve(__dirname, '../../../proto/mongocore/v1/mongocore.proto');
 
+export const CLIENT_METADATA = new grpc.Metadata();
+CLIENT_METADATA.set('x-client-language', 'typescript');
+
 function loadProto() {
   const packageDef = protoLoader.loadSync(PROTO_PATH, {
     keepCase: false,
@@ -112,7 +115,7 @@ export class MongoClient {
 
   async listDatabases(): Promise<string[]> {
     return new Promise((resolve, reject) => {
-      this.getGrpcClient().listDatabases({}, (err: any, response: any) => {
+      this.getGrpcClient().listDatabases({}, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         resolve(response.databases || []);
       });
@@ -127,7 +130,7 @@ export class MongoClient {
         command: { data: Buffer.from(BSON.serialize(command)) },
         allowAll,
       };
-      this.getGrpcClient().runCommand(request, (err: any, response: any) => {
+      this.getGrpcClient().runCommand(request, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         const result = BSON.deserialize(Buffer.from(response.result.data)) as Record<string, unknown>;
         resolve(result);
@@ -147,7 +150,7 @@ export class MongoClient {
         format: options.format || '',
         batchSize: options.batchSize || 0,
       };
-      this.getGrpcClient().ingest(request, (err: any, response: any) => {
+      this.getGrpcClient().ingest(request, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         resolve(response as IngestJobStatus);
       });
@@ -157,7 +160,7 @@ export class MongoClient {
   /** Get the status of an ingestion job */
   async ingestStatus(jobId: string): Promise<IngestJobStatus> {
     return new Promise((resolve, reject) => {
-      this.getGrpcClient().ingestStatus({ jobId }, (err: any, response: any) => {
+      this.getGrpcClient().ingestStatus({ jobId }, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         resolve(response as IngestJobStatus);
       });
@@ -167,7 +170,7 @@ export class MongoClient {
   /** List all ingestion jobs */
   async listIngestJobs(): Promise<IngestJobStatus[]> {
     return new Promise((resolve, reject) => {
-      this.getGrpcClient().listIngestJobs({}, (err: any, response: any) => {
+      this.getGrpcClient().listIngestJobs({}, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         resolve(response.jobs || []);
       });
@@ -177,7 +180,7 @@ export class MongoClient {
   /** Cancel an ingestion job */
   async cancelIngest(jobId: string): Promise<IngestJobStatus> {
     return new Promise((resolve, reject) => {
-      this.getGrpcClient().cancelIngest({ jobId }, (err: any, response: any) => {
+      this.getGrpcClient().cancelIngest({ jobId }, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         resolve(response as IngestJobStatus);
       });
@@ -194,7 +197,7 @@ export class MongoClient {
         format: options.format || '',
         recursive: options.recursive ?? true,
       };
-      this.getGrpcClient().watchDirectory(request, (err: any, response: any) => {
+      this.getGrpcClient().watchDirectory(request, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         resolve(response as WatchResult);
       });
@@ -204,7 +207,7 @@ export class MongoClient {
   /** Stop watching a directory */
   async stopWatch(watchId: string): Promise<{ watchId: string; status: string }> {
     return new Promise((resolve, reject) => {
-      this.getGrpcClient().stopWatch({ watchId }, (err: any, response: any) => {
+      this.getGrpcClient().stopWatch({ watchId }, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         resolve(response as { watchId: string; status: string });
       });

@@ -1,4 +1,4 @@
-import { MongoClient } from './client';
+import { MongoClient, CLIENT_METADATA } from './client';
 import { Collection } from './collection';
 
 export class Database {
@@ -22,6 +22,7 @@ export class Database {
     return new Promise((resolve, reject) => {
       this.client.getGrpcClient().listCollections(
         { database: this.name },
+        CLIENT_METADATA,
         (err: any, response: any) => {
           if (err) return reject(err);
           resolve(response.collections || []);
@@ -34,6 +35,7 @@ export class Database {
     return new Promise((resolve, reject) => {
       this.client.getGrpcClient().createCollection(
         { database: this.name, collection: name },
+        CLIENT_METADATA,
         (err: any) => {
           if (err) return reject(err);
           resolve();
