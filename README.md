@@ -187,7 +187,6 @@ mongocore/
 | Area | Description |
 |------|-------------|
 | **Demo** | Stdio MCP transport for Claude Code integration, curated restaurant dataset, scripted demo flow |
-| **Developer Experience** | AGENTS.md/CLAUDE.md for agentic development, proto regeneration workflow, test gates |
 | **Integration** | Driver metadata (handshake), URL source for ingestion, OpenTelemetry support |
 | **Performance** | Benchmarking suite comparing MongoCore vs native drivers for common workloads |
 | **Visualizations** | Configurable web UI for analytics, query flow, and ingestion progress |
