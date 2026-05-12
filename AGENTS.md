@@ -86,12 +86,7 @@ just docker-up    # or: docker compose -f docker-compose.test.yml up -d
 just docker-down  # stop when done
 ```
 
-**Sample data:** To load MongoDB Atlas sample datasets (sample_mflix, etc.) for LLM integration tests, set `LOAD_SAMPLE_DATA=true` before running `just docker-up`:
-```bash
-export LOAD_SAMPLE_DATA=true
-just docker-down && just docker-up  # first start takes 30-60s to load data
-```
-Without this flag, Docker starts fast with no sample data.
+**Sample data:** `just docker-up` automatically loads MongoDB Atlas sample datasets (sample_restaurants, sample_mflix, etc.) for LLM integration tests. First start takes 30-60s to load data; subsequent starts are fast.
 
 ### Test Gates
 
