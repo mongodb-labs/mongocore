@@ -77,6 +77,7 @@ cd clients/java && protoc --java_out=src/main/java --grpc-java_out=src/main/java
 | `cargo test --lib` | Unit tests (~94) | None |
 | `cargo test --test integration` | Integration tests (~53) | Docker MongoDB running |
 | `just test-clients` | Client integration tests (~40) | Docker MongoDB + running sidecar |
+| `just test-llm` | Compiled query LLM tests (7) | Docker MongoDB with sample data + ANTHROPIC_API_KEY |
 | `just test-all` | Everything | All of the above |
 
 **Starting MongoDB for tests:**
@@ -84,6 +85,8 @@ cd clients/java && protoc --java_out=src/main/java --grpc-java_out=src/main/java
 just docker-up    # or: docker compose -f docker-compose.test.yml up -d
 just docker-down  # stop when done
 ```
+
+**Sample data:** When `ANTHROPIC_API_KEY` is set, `just docker-up` automatically loads MongoDB Atlas sample datasets (sample_mflix, etc.) for LLM integration tests. Without the key, Docker starts fast with no sample data.
 
 ### Test Gates
 
