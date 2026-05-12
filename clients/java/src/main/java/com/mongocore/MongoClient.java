@@ -7,7 +7,9 @@ import mongocore.v1.Mongocore;
 import mongocore.v1.Ingestion;
 import org.bson.Document;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class MongoClient implements AutoCloseable {
@@ -170,6 +172,83 @@ public class MongoClient implements AutoCloseable {
                         .setWatchId(watchId)
                         .build());
         return new WatchResult(watchId, resp.getSuccess());
+    }
+
+    // --- Transaction Methods ---
+
+    public String beginTransaction() {
+        MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
+        Mongocore.BeginTransactionResponse resp = stub.beginTransaction(
+                Mongocore.BeginTransactionRequest.newBuilder()
+                        .setDatabase("")
+                        .build());
+        return resp.getTransactionId();
+    }
+
+    public boolean commitTransaction(String transactionId) {
+        MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
+        try {
+            stub.commitTransaction(
+                    Mongocore.CommitTransactionRequest.newBuilder()
+                            .setTransactionId(transactionId)
+                            .build());
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public boolean abortTransaction(String transactionId) {
+        MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
+        try {
+            stub.abortTransaction(
+                    Mongocore.AbortTransactionRequest.newBuilder()
+                            .setTransactionId(transactionId)
+                            .build());
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    // --- Analytics Methods ---
+
+    public Map<String, Object> getAnalytics() {
+        MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
+        Mongocore.GetAnalyticsResponse resp = stub.getAnalytics(
+                Mongocore.GetAnalyticsRequest.newBuilder()
+                        .setWindowSeconds(60)
+                        .build());
+
+        Map<String, Object> analytics = new HashMap<>();
+        analytics.put("total_operations", resp.getTotalOperations());
+        analytics.put("total_errors", resp.getTotalErrors());
+        analytics.put("error_rate", resp.getErrorRate());
+        analytics.put("p50_latency_ms", resp.getP50LatencyMs());
+        analytics.put("p95_latency_ms", resp.getP95LatencyMs());
+        analytics.put("p99_latency_ms", resp.getP99LatencyMs());
+
+        List<Map<String, Object>> topOperations = resp.getTopOperationsList().stream()
+                .map(op -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("operation", op.getOperation());
+                    m.put("count", op.getCount());
+                    return m;
+                })
+                .toList();
+        analytics.put("top_operations", topOperations);
+
+        List<Map<String, Object>> topCollections = resp.getTopCollectionsList().stream()
+                .map(col -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("collection", col.getCollection());
+                    m.put("count", col.getCount());
+                    return m;
+                })
+                .toList();
+        analytics.put("top_collections", topCollections);
+
+        return analytics;
     }
 
     ManagedChannel getChannel() {

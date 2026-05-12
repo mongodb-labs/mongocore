@@ -234,4 +234,41 @@ public class MongoCollection {
         Iterator<Mongocore.WatchEvent> stream = getStub().watch(req.build());
         return new ChangeStream(stream, this);
     }
+
+    public Document findAndModify(Document filter, Document update, boolean returnNew) {
+        Types.FindAndModifyOptions.Builder opts = Types.FindAndModifyOptions.newBuilder()
+                .setReturnDocument(returnNew ?
+                        Types.FindAndModifyOptions.ReturnDocument.AFTER :
+                        Types.FindAndModifyOptions.ReturnDocument.BEFORE)
+                .setUpsert(false);
+
+        Mongocore.FindAndModifyResponse resp = getStub().findAndModify(
+                Mongocore.FindAndModifyRequest.newBuilder()
+                        .setDatabase(database)
+                        .setCollection(name)
+                        .setFilter(makeFilter(filter))
+                        .setUpdate(makeDocument(update))
+                        .setOptions(opts.build())
+                        .build());
+
+        if (resp.hasDocument() && !resp.getDocument().getData().isEmpty()) {
+            return decodeBson(resp.getDocument().getData());
+        }
+        return null;
+    }
+
+    public String createIndex(Document keys, boolean unique) {
+        Types.IndexOptions.Builder opts = Types.IndexOptions.newBuilder()
+                .setUnique(unique);
+
+        Mongocore.CreateIndexResponse resp = getStub().createIndex(
+                Mongocore.CreateIndexRequest.newBuilder()
+                        .setDatabase(database)
+                        .setCollection(name)
+                        .setKeys(makeDocument(keys))
+                        .setOptions(opts.build())
+                        .build());
+
+        return resp.getIndexName();
+    }
 }
