@@ -19,6 +19,9 @@ compiled_cache_sync = false
 # LLM_MODEL = "claude-sonnet-4-6"
 # LLM_PROVIDER_TYPE = "anthropic"
 
+# Enable LLM integration tests (requires LLM provider configured above)
+# TEST_LLM_INTEGRATION = "true"
+
 # OpenTelemetry tracing (requires --features otel)
 # otel_enabled = true
 # otel_endpoint = "http://localhost:4317"

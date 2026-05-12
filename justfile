@@ -95,9 +95,9 @@ test-unit-clients: test-unit-python test-unit-typescript test-unit-go test-unit-
 # Run all tests (Rust + all client tests)
 test-all: test-rust test-clients
 
-# Run compiled query LLM tests (requires ANTHROPIC_API_KEY or OPENAI_API_KEY + sample data)
+# Run compiled query LLM tests (requires TEST_LLM_INTEGRATION=true + LLM configured + sample data)
 test-llm:
-    cargo test --test integration compiled_llm -- --nocapture
+    TEST_LLM_INTEGRATION=true cargo test --test integration compiled_llm -- --nocapture
 
 # Start MongoDB for testing
 docker-up:
