@@ -33,3 +33,6 @@ mod analytics_test;
 
 #[path = "integration/ingestion_test.rs"]
 mod ingestion_test;
+
+#[path = "integration/compiled_llm_test.rs"]
+mod compiled_llm_test;
