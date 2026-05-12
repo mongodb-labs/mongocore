@@ -2568,7 +2568,7 @@ var File_mongocore_v1_mongocore_proto protoreflect.FileDescriptor
 
 const file_mongocore_v1_mongocore_proto_rawDesc = "" +
 	"\n" +
-	"\x1cmongocore/v1/mongocore.proto\x12\fmongocore.v1\x1a\x18mongocore/v1/types.proto\"\xeb\x01\n" +
+	"\x1cmongocore/v1/mongocore.proto\x12\fmongocore.v1\x1a\x18mongocore/v1/types.proto\x1a\x1cmongocore/v1/ingestion.proto\"\xeb\x01\n" +
 	"\vFindRequest\x12\x1a\n" +
 	"\bdatabase\x18\x01 \x01(\tR\bdatabase\x12\x1e\n" +
 	"\n" +
@@ -2791,7 +2791,7 @@ const file_mongocore_v1_mongocore_proto_rawDesc = "" +
 	"\n" +
 	"collection\x18\x01 \x01(\tR\n" +
 	"collection\x12\x14\n" +
-	"\x05count\x18\x02 \x01(\x03R\x05count2\xc7\r\n" +
+	"\x05count\x18\x02 \x01(\x03R\x05count2\xcb\x11\n" +
 	"\tMongoCore\x12=\n" +
 	"\x04Find\x12\x19.mongocore.v1.FindRequest\x1a\x1a.mongocore.v1.FindResponse\x12F\n" +
 	"\aFindOne\x12\x1c.mongocore.v1.FindOneRequest\x1a\x1d.mongocore.v1.FindOneResponse\x12C\n" +
@@ -2817,7 +2817,13 @@ const file_mongocore_v1_mongocore_proto_rawDesc = "" +
 	"\x05Watch\x12\x1a.mongocore.v1.WatchRequest\x1a\x18.mongocore.v1.WatchEvent0\x01\x12O\n" +
 	"\n" +
 	"RunCommand\x12\x1f.mongocore.v1.RunCommandRequest\x1a .mongocore.v1.RunCommandResponse\x12U\n" +
-	"\fGetAnalytics\x12!.mongocore.v1.GetAnalyticsRequest\x1a\".mongocore.v1.GetAnalyticsResponseB-Z+github.com/rozza/mongocore/clients/go/protob\x06proto3"
+	"\fGetAnalytics\x12!.mongocore.v1.GetAnalyticsRequest\x1a\".mongocore.v1.GetAnalyticsResponse\x12C\n" +
+	"\x06Ingest\x12\x1b.mongocore.v1.IngestRequest\x1a\x1c.mongocore.v1.IngestResponse\x12^\n" +
+	"\x0fGetIngestStatus\x12$.mongocore.v1.GetIngestStatusRequest\x1a%.mongocore.v1.GetIngestStatusResponse\x12[\n" +
+	"\x0eListIngestJobs\x12#.mongocore.v1.ListIngestJobsRequest\x1a$.mongocore.v1.ListIngestJobsResponse\x12U\n" +
+	"\fCancelIngest\x12!.mongocore.v1.CancelIngestRequest\x1a\".mongocore.v1.CancelIngestResponse\x12[\n" +
+	"\x0eWatchDirectory\x12#.mongocore.v1.WatchDirectoryRequest\x1a$.mongocore.v1.WatchDirectoryResponse\x12L\n" +
+	"\tStopWatch\x12\x1e.mongocore.v1.StopWatchRequest\x1a\x1f.mongocore.v1.StopWatchResponseB-Z+github.com/rozza/mongocore/clients/go/protob\x06proto3"
 
 var (
 	file_mongocore_v1_mongocore_proto_rawDescOnce sync.Once
@@ -2886,6 +2892,18 @@ var file_mongocore_v1_mongocore_proto_goTypes = []any{
 	(*FindAndModifyOptions)(nil),      // 49: mongocore.v1.FindAndModifyOptions
 	(*Pipeline)(nil),                  // 50: mongocore.v1.Pipeline
 	(*IndexOptions)(nil),              // 51: mongocore.v1.IndexOptions
+	(*IngestRequest)(nil),             // 52: mongocore.v1.IngestRequest
+	(*GetIngestStatusRequest)(nil),    // 53: mongocore.v1.GetIngestStatusRequest
+	(*ListIngestJobsRequest)(nil),     // 54: mongocore.v1.ListIngestJobsRequest
+	(*CancelIngestRequest)(nil),       // 55: mongocore.v1.CancelIngestRequest
+	(*WatchDirectoryRequest)(nil),     // 56: mongocore.v1.WatchDirectoryRequest
+	(*StopWatchRequest)(nil),          // 57: mongocore.v1.StopWatchRequest
+	(*IngestResponse)(nil),            // 58: mongocore.v1.IngestResponse
+	(*GetIngestStatusResponse)(nil),   // 59: mongocore.v1.GetIngestStatusResponse
+	(*ListIngestJobsResponse)(nil),    // 60: mongocore.v1.ListIngestJobsResponse
+	(*CancelIngestResponse)(nil),      // 61: mongocore.v1.CancelIngestResponse
+	(*WatchDirectoryResponse)(nil),    // 62: mongocore.v1.WatchDirectoryResponse
+	(*StopWatchResponse)(nil),         // 63: mongocore.v1.StopWatchResponse
 }
 var file_mongocore_v1_mongocore_proto_depIdxs = []int32{
 	45, // 0: mongocore.v1.FindRequest.filter:type_name -> mongocore.v1.Filter
@@ -2944,29 +2962,41 @@ var file_mongocore_v1_mongocore_proto_depIdxs = []int32{
 	37, // 53: mongocore.v1.MongoCore.Watch:input_type -> mongocore.v1.WatchRequest
 	39, // 54: mongocore.v1.MongoCore.RunCommand:input_type -> mongocore.v1.RunCommandRequest
 	41, // 55: mongocore.v1.MongoCore.GetAnalytics:input_type -> mongocore.v1.GetAnalyticsRequest
-	2,  // 56: mongocore.v1.MongoCore.Find:output_type -> mongocore.v1.FindResponse
-	4,  // 57: mongocore.v1.MongoCore.FindOne:output_type -> mongocore.v1.FindOneResponse
-	6,  // 58: mongocore.v1.MongoCore.Insert:output_type -> mongocore.v1.InsertResponse
-	8,  // 59: mongocore.v1.MongoCore.InsertMany:output_type -> mongocore.v1.InsertManyResponse
-	10, // 60: mongocore.v1.MongoCore.Update:output_type -> mongocore.v1.UpdateResponse
-	12, // 61: mongocore.v1.MongoCore.UpdateMany:output_type -> mongocore.v1.UpdateManyResponse
-	14, // 62: mongocore.v1.MongoCore.Delete:output_type -> mongocore.v1.DeleteResponse
-	16, // 63: mongocore.v1.MongoCore.DeleteMany:output_type -> mongocore.v1.DeleteManyResponse
-	18, // 64: mongocore.v1.MongoCore.FindAndModify:output_type -> mongocore.v1.FindAndModifyResponse
-	20, // 65: mongocore.v1.MongoCore.Aggregate:output_type -> mongocore.v1.AggregateResponse
-	22, // 66: mongocore.v1.MongoCore.BeginTransaction:output_type -> mongocore.v1.BeginTransactionResponse
-	24, // 67: mongocore.v1.MongoCore.CommitTransaction:output_type -> mongocore.v1.CommitTransactionResponse
-	26, // 68: mongocore.v1.MongoCore.AbortTransaction:output_type -> mongocore.v1.AbortTransactionResponse
-	28, // 69: mongocore.v1.MongoCore.CreateCollection:output_type -> mongocore.v1.CreateCollectionResponse
-	30, // 70: mongocore.v1.MongoCore.CreateIndex:output_type -> mongocore.v1.CreateIndexResponse
-	32, // 71: mongocore.v1.MongoCore.ListDatabases:output_type -> mongocore.v1.ListDatabasesResponse
-	34, // 72: mongocore.v1.MongoCore.ListCollections:output_type -> mongocore.v1.ListCollectionsResponse
-	36, // 73: mongocore.v1.MongoCore.Search:output_type -> mongocore.v1.SearchResponse
-	38, // 74: mongocore.v1.MongoCore.Watch:output_type -> mongocore.v1.WatchEvent
-	40, // 75: mongocore.v1.MongoCore.RunCommand:output_type -> mongocore.v1.RunCommandResponse
-	42, // 76: mongocore.v1.MongoCore.GetAnalytics:output_type -> mongocore.v1.GetAnalyticsResponse
-	56, // [56:77] is the sub-list for method output_type
-	35, // [35:56] is the sub-list for method input_type
+	52, // 56: mongocore.v1.MongoCore.Ingest:input_type -> mongocore.v1.IngestRequest
+	53, // 57: mongocore.v1.MongoCore.GetIngestStatus:input_type -> mongocore.v1.GetIngestStatusRequest
+	54, // 58: mongocore.v1.MongoCore.ListIngestJobs:input_type -> mongocore.v1.ListIngestJobsRequest
+	55, // 59: mongocore.v1.MongoCore.CancelIngest:input_type -> mongocore.v1.CancelIngestRequest
+	56, // 60: mongocore.v1.MongoCore.WatchDirectory:input_type -> mongocore.v1.WatchDirectoryRequest
+	57, // 61: mongocore.v1.MongoCore.StopWatch:input_type -> mongocore.v1.StopWatchRequest
+	2,  // 62: mongocore.v1.MongoCore.Find:output_type -> mongocore.v1.FindResponse
+	4,  // 63: mongocore.v1.MongoCore.FindOne:output_type -> mongocore.v1.FindOneResponse
+	6,  // 64: mongocore.v1.MongoCore.Insert:output_type -> mongocore.v1.InsertResponse
+	8,  // 65: mongocore.v1.MongoCore.InsertMany:output_type -> mongocore.v1.InsertManyResponse
+	10, // 66: mongocore.v1.MongoCore.Update:output_type -> mongocore.v1.UpdateResponse
+	12, // 67: mongocore.v1.MongoCore.UpdateMany:output_type -> mongocore.v1.UpdateManyResponse
+	14, // 68: mongocore.v1.MongoCore.Delete:output_type -> mongocore.v1.DeleteResponse
+	16, // 69: mongocore.v1.MongoCore.DeleteMany:output_type -> mongocore.v1.DeleteManyResponse
+	18, // 70: mongocore.v1.MongoCore.FindAndModify:output_type -> mongocore.v1.FindAndModifyResponse
+	20, // 71: mongocore.v1.MongoCore.Aggregate:output_type -> mongocore.v1.AggregateResponse
+	22, // 72: mongocore.v1.MongoCore.BeginTransaction:output_type -> mongocore.v1.BeginTransactionResponse
+	24, // 73: mongocore.v1.MongoCore.CommitTransaction:output_type -> mongocore.v1.CommitTransactionResponse
+	26, // 74: mongocore.v1.MongoCore.AbortTransaction:output_type -> mongocore.v1.AbortTransactionResponse
+	28, // 75: mongocore.v1.MongoCore.CreateCollection:output_type -> mongocore.v1.CreateCollectionResponse
+	30, // 76: mongocore.v1.MongoCore.CreateIndex:output_type -> mongocore.v1.CreateIndexResponse
+	32, // 77: mongocore.v1.MongoCore.ListDatabases:output_type -> mongocore.v1.ListDatabasesResponse
+	34, // 78: mongocore.v1.MongoCore.ListCollections:output_type -> mongocore.v1.ListCollectionsResponse
+	36, // 79: mongocore.v1.MongoCore.Search:output_type -> mongocore.v1.SearchResponse
+	38, // 80: mongocore.v1.MongoCore.Watch:output_type -> mongocore.v1.WatchEvent
+	40, // 81: mongocore.v1.MongoCore.RunCommand:output_type -> mongocore.v1.RunCommandResponse
+	42, // 82: mongocore.v1.MongoCore.GetAnalytics:output_type -> mongocore.v1.GetAnalyticsResponse
+	58, // 83: mongocore.v1.MongoCore.Ingest:output_type -> mongocore.v1.IngestResponse
+	59, // 84: mongocore.v1.MongoCore.GetIngestStatus:output_type -> mongocore.v1.GetIngestStatusResponse
+	60, // 85: mongocore.v1.MongoCore.ListIngestJobs:output_type -> mongocore.v1.ListIngestJobsResponse
+	61, // 86: mongocore.v1.MongoCore.CancelIngest:output_type -> mongocore.v1.CancelIngestResponse
+	62, // 87: mongocore.v1.MongoCore.WatchDirectory:output_type -> mongocore.v1.WatchDirectoryResponse
+	63, // 88: mongocore.v1.MongoCore.StopWatch:output_type -> mongocore.v1.StopWatchResponse
+	62, // [62:89] is the sub-list for method output_type
+	35, // [35:62] is the sub-list for method input_type
 	35, // [35:35] is the sub-list for extension type_name
 	35, // [35:35] is the sub-list for extension extendee
 	0,  // [0:35] is the sub-list for field type_name
@@ -2978,6 +3008,7 @@ func file_mongocore_v1_mongocore_proto_init() {
 		return
 	}
 	file_mongocore_v1_types_proto_init()
+	file_mongocore_v1_ingestion_proto_init()
 	file_mongocore_v1_mongocore_proto_msgTypes[0].OneofWrappers = []any{}
 	file_mongocore_v1_mongocore_proto_msgTypes[2].OneofWrappers = []any{}
 	file_mongocore_v1_mongocore_proto_msgTypes[3].OneofWrappers = []any{}
