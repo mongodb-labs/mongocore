@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
+	pb "github.com/rozza/mongocore/clients/go/proto"
 	"github.com/rozza/mongocore/clients/go/mongocore"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -291,5 +293,365 @@ func TestListDatabases(t *testing.T) {
 	}
 	if len(dbs) == 0 {
 		t.Fatal("Expected at least one database")
+	}
+}
+
+func TestUpdateMany(t *testing.T) {
+	client, ctx := setupClient(t)
+	coll := client.Database(testDB).Collection(uniqueCollection() + "_update_many")
+
+	coll.InsertMany(ctx, []bson.D{
+		{{Key: "status", Value: "pending"}, {Key: "priority", Value: 1}},
+		{{Key: "status", Value: "pending"}, {Key: "priority", Value: 2}},
+		{{Key: "status", Value: "done"}, {Key: "priority", Value: 3}},
+	})
+
+	result, err := coll.UpdateMany(ctx,
+		bson.D{{Key: "status", Value: "pending"}},
+		bson.D{{Key: "$set", Value: bson.D{{Key: "status", Value: "active"}}}},
+	)
+	if err != nil {
+		t.Fatalf("UpdateMany failed: %v", err)
+	}
+	if result.ModifiedCount != 2 {
+		t.Fatalf("Expected 2 modified, got %d", result.ModifiedCount)
+	}
+}
+
+func TestFindAndModify(t *testing.T) {
+	client, ctx := setupClient(t)
+	coll := client.Database(testDB).Collection(uniqueCollection() + "_find_modify")
+
+	coll.InsertOne(ctx, bson.D{{Key: "counter", Value: 10}})
+
+	doc, err := coll.FindAndModify(ctx,
+		bson.D{{Key: "counter", Value: 10}},
+		bson.D{{Key: "$inc", Value: bson.D{{Key: "counter", Value: 5}}}},
+		true, // returnNew
+	)
+	if err != nil {
+		t.Fatalf("FindAndModify failed: %v", err)
+	}
+	if doc == nil {
+		t.Fatal("Expected document, got nil")
+	}
+
+	// Verify the returned document has the updated value
+	for _, elem := range doc {
+		if elem.Key == "counter" {
+			if v, ok := elem.Value.(int32); ok {
+				if v != 15 {
+					t.Fatalf("Expected counter=15, got %d", v)
+				}
+			} else if v, ok := elem.Value.(int64); ok {
+				if v != 15 {
+					t.Fatalf("Expected counter=15, got %d", v)
+				}
+			}
+		}
+	}
+}
+
+func TestListCollections(t *testing.T) {
+	client, ctx := setupClient(t)
+	db := client.Database(testDB)
+	collName := uniqueCollection() + "_list_colls"
+
+	// Insert to ensure collection exists
+	coll := db.Collection(collName)
+	_, err := coll.InsertOne(ctx, bson.D{{Key: "test", Value: true}})
+	if err != nil {
+		t.Fatalf("InsertOne failed: %v", err)
+	}
+
+	collections, err := db.ListCollections(ctx)
+	if err != nil {
+		t.Fatalf("ListCollections failed: %v", err)
+	}
+
+	found := false
+	for _, c := range collections {
+		if c == collName {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("Expected collection %s in list", collName)
+	}
+}
+
+func TestCreateCollection(t *testing.T) {
+	client, ctx := setupClient(t)
+	db := client.Database(testDB)
+	collName := uniqueCollection() + "_create_coll"
+
+	err := db.CreateCollection(ctx, collName)
+	if err != nil {
+		t.Fatalf("CreateCollection failed: %v", err)
+	}
+
+	collections, err := db.ListCollections(ctx)
+	if err != nil {
+		t.Fatalf("ListCollections failed: %v", err)
+	}
+
+	found := false
+	for _, c := range collections {
+		if c == collName {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("Expected collection %s in list", collName)
+	}
+}
+
+func TestCreateIndex(t *testing.T) {
+	client, ctx := setupClient(t)
+	coll := client.Database(testDB).Collection(uniqueCollection() + "_create_index")
+
+	// Insert a document first
+	_, err := coll.InsertOne(ctx, bson.D{{Key: "email", Value: "test@example.com"}})
+	if err != nil {
+		t.Fatalf("InsertOne failed: %v", err)
+	}
+
+	indexName, err := coll.CreateIndex(ctx,
+		bson.D{{Key: "email", Value: 1}},
+		true, // unique
+	)
+	if err != nil {
+		t.Fatalf("CreateIndex failed: %v", err)
+	}
+	if indexName == "" {
+		t.Fatal("Expected non-empty index name")
+	}
+}
+
+func TestRunCommand(t *testing.T) {
+	client, ctx := setupClient(t)
+
+	result, err := client.RunCommand(ctx, "admin", bson.D{{Key: "ping", Value: 1}}, false)
+	if err != nil {
+		t.Fatalf("RunCommand failed: %v", err)
+	}
+	if result == nil {
+		t.Fatal("Expected non-nil result")
+	}
+
+	// Verify ok field exists
+	resultMap, ok := result.(map[string]interface{})
+	if !ok {
+		t.Fatal("Expected result to be a map")
+	}
+	if _, exists := resultMap["ok"]; !exists {
+		t.Fatal("Expected 'ok' field in result")
+	}
+}
+
+func TestGetAnalytics(t *testing.T) {
+	client, ctx := setupClient(t)
+	coll := client.Database(testDB).Collection(uniqueCollection() + "_analytics")
+
+	// Do some operations
+	coll.InsertOne(ctx, bson.D{{Key: "test", Value: 1}})
+	coll.Find(ctx, bson.D{}, nil)
+
+	analytics, err := client.GetAnalytics(ctx)
+	if err != nil {
+		t.Fatalf("GetAnalytics failed: %v", err)
+	}
+	if analytics == nil {
+		t.Fatal("Expected non-nil analytics")
+	}
+	if analytics.TotalOperations < 0 {
+		t.Fatal("Expected valid TotalOperations field")
+	}
+}
+
+func TestTransactionCommit(t *testing.T) {
+	client, ctx := setupClient(t)
+
+	txnID, err := client.BeginTransaction(ctx, testDB)
+	if err != nil {
+		t.Fatalf("BeginTransaction failed: %v", err)
+	}
+	if txnID == "" {
+		t.Fatal("Expected non-empty transaction ID")
+	}
+
+	err = client.CommitTransaction(ctx, txnID)
+	if err != nil {
+		t.Fatalf("CommitTransaction failed: %v", err)
+	}
+}
+
+func TestTransactionAbort(t *testing.T) {
+	client, ctx := setupClient(t)
+
+	txnID, err := client.BeginTransaction(ctx, testDB)
+	if err != nil {
+		t.Fatalf("BeginTransaction failed: %v", err)
+	}
+	if txnID == "" {
+		t.Fatal("Expected non-empty transaction ID")
+	}
+
+	err = client.AbortTransaction(ctx, txnID)
+	if err != nil {
+		t.Fatalf("AbortTransaction failed: %v", err)
+	}
+}
+
+func TestIngestCSV(t *testing.T) {
+	client, ctx := setupClient(t)
+
+	// Resolve path to test fixture
+	csvPath, err := filepath.Abs(filepath.Join("..", "..", "test_fixtures", "sample.csv"))
+	if err != nil {
+		t.Fatalf("Failed to resolve CSV path: %v", err)
+	}
+
+	result, err := client.Ingest(ctx, mongocore.IngestOptions{
+		FilePath:   csvPath,
+		Database:   testDB,
+		Collection: uniqueCollection() + "_ingest",
+		Format:     pb.FileFormat_FILE_FORMAT_CSV,
+	})
+	if err != nil {
+		t.Fatalf("Ingest failed: %v", err)
+	}
+	if result.JobID == "" {
+		t.Fatal("Expected non-empty job ID")
+	}
+}
+
+func TestIngestStatus(t *testing.T) {
+	client, ctx := setupClient(t)
+
+	csvPath, err := filepath.Abs(filepath.Join("..", "..", "test_fixtures", "sample.csv"))
+	if err != nil {
+		t.Fatalf("Failed to resolve CSV path: %v", err)
+	}
+
+	ingestResult, err := client.Ingest(ctx, mongocore.IngestOptions{
+		FilePath:   csvPath,
+		Database:   testDB,
+		Collection: uniqueCollection() + "_ingest_status",
+		Format:     pb.FileFormat_FILE_FORMAT_CSV,
+	})
+	if err != nil {
+		t.Fatalf("Ingest failed: %v", err)
+	}
+
+	status, err := client.IngestStatus(ctx, ingestResult.JobID)
+	if err != nil {
+		t.Fatalf("IngestStatus failed: %v", err)
+	}
+	if status == nil {
+		t.Fatal("Expected non-nil status")
+	}
+	if status.JobID != ingestResult.JobID {
+		t.Fatalf("Expected JobID %s, got %s", ingestResult.JobID, status.JobID)
+	}
+}
+
+func TestListIngestJobs(t *testing.T) {
+	client, ctx := setupClient(t)
+
+	jobs, err := client.ListIngestJobs(ctx)
+	if err != nil {
+		t.Fatalf("ListIngestJobs failed: %v", err)
+	}
+	// jobs can be empty, just verify it returns a slice
+	if jobs == nil {
+		t.Fatal("Expected non-nil jobs slice")
+	}
+}
+
+func TestCancelIngest(t *testing.T) {
+	client, ctx := setupClient(t)
+
+	csvPath, err := filepath.Abs(filepath.Join("..", "..", "test_fixtures", "sample.csv"))
+	if err != nil {
+		t.Fatalf("Failed to resolve CSV path: %v", err)
+	}
+
+	ingestResult, err := client.Ingest(ctx, mongocore.IngestOptions{
+		FilePath:   csvPath,
+		Database:   testDB,
+		Collection: uniqueCollection() + "_cancel_ingest",
+		Format:     pb.FileFormat_FILE_FORMAT_CSV,
+	})
+	if err != nil {
+		t.Fatalf("Ingest failed: %v", err)
+	}
+
+	success, err := client.CancelIngest(ctx, ingestResult.JobID)
+	if err != nil {
+		t.Fatalf("CancelIngest failed: %v", err)
+	}
+	// success can be false if job already completed, just verify the call works
+	_ = success
+}
+
+func TestWatchDirectory(t *testing.T) {
+	client, ctx := setupClient(t)
+
+	// Create temp directory
+	tmpDir, err := os.MkdirTemp("", "mongocore_watch_test_*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	watchID, err := client.WatchDirectory(ctx, mongocore.WatchDirectoryOptions{
+		Path:       tmpDir,
+		Database:   testDB,
+		Collection: uniqueCollection() + "_watch_dir",
+	})
+	if err != nil {
+		t.Fatalf("WatchDirectory failed: %v", err)
+	}
+	if watchID == "" {
+		t.Fatal("Expected non-empty watch ID")
+	}
+
+	// Stop the watch
+	success, err := client.StopWatch(ctx, watchID)
+	if err != nil {
+		t.Fatalf("StopWatch failed: %v", err)
+	}
+	if !success {
+		t.Fatal("Expected StopWatch to return true")
+	}
+}
+
+func TestStopWatch(t *testing.T) {
+	client, ctx := setupClient(t)
+
+	tmpDir, err := os.MkdirTemp("", "mongocore_stop_watch_test_*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tmpDir)
+
+	watchID, err := client.WatchDirectory(ctx, mongocore.WatchDirectoryOptions{
+		Path:       tmpDir,
+		Database:   testDB,
+		Collection: uniqueCollection() + "_stop_watch",
+	})
+	if err != nil {
+		t.Fatalf("WatchDirectory failed: %v", err)
+	}
+
+	success, err := client.StopWatch(ctx, watchID)
+	if err != nil {
+		t.Fatalf("StopWatch failed: %v", err)
+	}
+	if !success {
+		t.Fatal("Expected StopWatch to return true")
 	}
 }
