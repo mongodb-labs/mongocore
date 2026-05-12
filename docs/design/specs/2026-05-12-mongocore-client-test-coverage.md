@@ -29,7 +29,7 @@ cd clients/java && mvn test -Dtest=IntegrationTest
 
 This produces per-test pass/fail output matching the other clients.
 
-### 2. Shared Test Fixture
+### 2. Shared Test Fixtures
 
 Create `clients/test_fixtures/sample.csv` for ingestion tests:
 ```csv
@@ -39,7 +39,28 @@ Bob,25,LA
 Charlie,35,Chicago
 ```
 
-All 4 clients reference this file by relative path during ingestion tests.
+Create `clients/test_fixtures/watch_drop.csv` for directory watch tests:
+```csv
+name,score
+Delta,95
+Echo,88
+```
+
+All 4 clients reference `sample.csv` by relative path during ingestion tests.
+
+For the `watch_directory` / `stop_watch` tests, the flow is:
+1. Create a temp directory (per-test, cleaned up after)
+2. Call `WatchDirectory` on that temp dir
+3. Copy `watch_drop.csv` into the watched temp dir
+4. Wait briefly for debounce (the sidecar has a 2s default debounce)
+5. Verify the ingestion was triggered (check collection for documents OR just verify watch started/stopped successfully)
+6. Call `StopWatch`
+7. Clean up temp dir
+
+Since debounce timing makes the full end-to-end flaky in CI, the tests can verify the watch lifecycle (start → stop) without requiring the file-drop trigger to complete. A simpler approach:
+- `watch_directory` test: start watch on a temp dir, verify `watch_id` is returned
+- `stop_watch` test: start watch, then stop it, verify success
+- The full file-drop-triggers-ingestion flow is already covered by the Rust integration tests
 
 ### 3. New Integration Tests (All Clients)
 
@@ -60,8 +81,8 @@ Each client adds these 16 tests to reach full 27-RPC coverage:
 | `ingest_status` | GetIngestStatus | Start an ingest, query its status, verify job_id and status fields |
 | `list_ingest_jobs` | ListIngestJobs | After ingestion, list jobs, verify at least one returned |
 | `cancel_ingest` | CancelIngest | Start an ingest, cancel it, verify cancellation acknowledged |
-| `watch_directory` | WatchDirectory | Start a directory watch, verify watch_id returned |
-| `stop_watch` | StopWatch | Start then stop a directory watch, verify success |
+| `watch_directory` | WatchDirectory | Create temp dir, start a directory watch on it, verify watch_id returned |
+| `stop_watch` | StopWatch | Start a directory watch on temp dir, stop it, verify success, clean up temp dir |
 
 ### 4. Test Isolation
 
