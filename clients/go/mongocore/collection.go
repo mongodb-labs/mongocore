@@ -402,3 +402,59 @@ func (c *Collection) Search(ctx context.Context, query string, limit int64) (*Se
 		Total:     resp.Total,
 	}, nil
 }
+
+// FindAndModify atomically modifies a document and returns it.
+func (c *Collection) FindAndModify(ctx context.Context, filter, update bson.D, returnNew bool) (bson.D, error) {
+	filterBytes, err := encodeBson(filter)
+	if err != nil {
+		return nil, err
+	}
+	updateBytes, err := encodeBson(update)
+	if err != nil {
+		return nil, err
+	}
+
+	returnDoc := pb.FindAndModifyOptions_BEFORE
+	if returnNew {
+		returnDoc = pb.FindAndModifyOptions_AFTER
+	}
+
+	resp, err := c.client.stub.FindAndModify(clientContext(ctx), &pb.FindAndModifyRequest{
+		Database:   c.database,
+		Collection: c.name,
+		Filter:     &pb.Filter{Data: filterBytes},
+		Update:     &pb.Document{Data: updateBytes},
+		Options: &pb.FindAndModifyOptions{
+			ReturnDocument: returnDoc,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Document == nil || len(resp.Document.Data) == 0 {
+		return nil, nil
+	}
+	return decodeBsonDoc(resp.Document.Data)
+}
+
+// CreateIndex creates an index on the collection.
+func (c *Collection) CreateIndex(ctx context.Context, keys bson.D, unique bool) (string, error) {
+	keysBytes, err := encodeBson(keys)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := c.client.stub.CreateIndex(clientContext(ctx), &pb.CreateIndexRequest{
+		Database:   c.database,
+		Collection: c.name,
+		Keys:       &pb.Document{Data: keysBytes},
+		Options: &pb.IndexOptions{
+			Unique: &unique,
+		},
+	})
+	if err != nil {
+		return "", err
+	}
+	return resp.IndexName, nil
+}

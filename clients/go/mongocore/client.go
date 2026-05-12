@@ -253,3 +253,62 @@ func (c *Client) StopWatch(ctx context.Context, watchID string) (bool, error) {
 	}
 	return resp.Success, nil
 }
+
+// BeginTransaction starts a new transaction.
+func (c *Client) BeginTransaction(ctx context.Context, database string) (string, error) {
+	resp, err := c.stub.BeginTransaction(clientContext(ctx), &pb.BeginTransactionRequest{
+		Database: database,
+	})
+	if err != nil {
+		return "", err
+	}
+	return resp.TransactionId, nil
+}
+
+// CommitTransaction commits an active transaction.
+func (c *Client) CommitTransaction(ctx context.Context, transactionID string) error {
+	_, err := c.stub.CommitTransaction(clientContext(ctx), &pb.CommitTransactionRequest{
+		TransactionId: transactionID,
+	})
+	return err
+}
+
+// AbortTransaction aborts an active transaction.
+func (c *Client) AbortTransaction(ctx context.Context, transactionID string) error {
+	_, err := c.stub.AbortTransaction(clientContext(ctx), &pb.AbortTransactionRequest{
+		TransactionId: transactionID,
+	})
+	return err
+}
+
+// AnalyticsData contains aggregated analytics data.
+type AnalyticsData struct {
+	TotalOperations int64
+	TotalErrors     int64
+	ErrorRate       float64
+	P50LatencyMs    float64
+	P95LatencyMs    float64
+	P99LatencyMs    float64
+	TopOperations   []*pb.OperationCount
+	TopCollections  []*pb.CollectionCount
+}
+
+// GetAnalytics returns aggregated analytics data for recent operations.
+func (c *Client) GetAnalytics(ctx context.Context) (*AnalyticsData, error) {
+	resp, err := c.stub.GetAnalytics(clientContext(ctx), &pb.GetAnalyticsRequest{
+		WindowSeconds: 60, // Default to last 60 seconds
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &AnalyticsData{
+		TotalOperations: resp.TotalOperations,
+		TotalErrors:     resp.TotalErrors,
+		ErrorRate:       resp.ErrorRate,
+		P50LatencyMs:    resp.P50LatencyMs,
+		P95LatencyMs:    resp.P95LatencyMs,
+		P99LatencyMs:    resp.P99LatencyMs,
+		TopOperations:   resp.TopOperations,
+		TopCollections:  resp.TopCollections,
+	}, nil
+}
