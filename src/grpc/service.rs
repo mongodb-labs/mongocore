@@ -25,6 +25,7 @@ use crate::voyage::VoyageClient;
 use super::proto::{self, mongo_core_server::MongoCore};
 
 /// The gRPC service implementation for MongoCore.
+#[allow(dead_code)]
 pub struct MongoCoreService {
     operations: Operations,
     pool: ConnectionPool,

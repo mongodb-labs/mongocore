@@ -81,7 +81,6 @@ pub async fn run_command(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bson::doc;
 
     #[test]
     fn test_raw_command_options_default() {
