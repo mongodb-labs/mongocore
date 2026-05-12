@@ -1086,6 +1086,74 @@ git commit -m "docs: add OpenTelemetry documentation and update config example"
 
 ---
 
+## Task 4: Regression Testing
+
+### Task 4.1: Full Test Suite Verification
+
+**Files:**
+- None (verification only)
+
+- [ ] **Step 1: Run all unit tests**
+
+Run: `cargo test --lib`
+Expected: ALL PASS — no regressions from driver metadata changes, polars cloud feature, or tracing instrumentation.
+
+- [ ] **Step 2: Run all unit tests with otel feature**
+
+Run: `cargo test --lib --features otel`
+Expected: ALL PASS — OTel feature doesn't break any existing tests.
+
+- [ ] **Step 3: Build all client libraries**
+
+Verify each client still compiles/installs after adding the `x-client-language` metadata:
+
+```bash
+cd clients/python && pip install -e . 2>&1 | tail -1
+cd clients/typescript && npm install && npx tsc --noEmit 2>&1 | tail -1
+cd clients/go && go build ./... 2>&1 | tail -1
+cd clients/java && mvn compile -q 2>&1 | tail -1
+```
+
+Expected: All succeed without errors.
+
+- [ ] **Step 4: Run integration tests (requires Docker MongoDB)**
+
+```bash
+just docker-up
+cargo test --test integration
+```
+
+Expected: ALL PASS — driver metadata, polars cloud, and tracing instrument annotations don't break existing integration tests (CRUD, search, transactions, ingestion, MCP, etc.)
+
+- [ ] **Step 5: Run integration tests with otel feature**
+
+```bash
+cargo test --test integration --features otel
+```
+
+Expected: ALL PASS — OTel initialization (with `otel_enabled = false` default) doesn't interfere with integration test behavior.
+
+- [ ] **Step 6: Verify ingestion still works with local files**
+
+Run the existing ingestion integration tests specifically:
+
+```bash
+cargo test --test integration ingestion -- --nocapture
+```
+
+Expected: ALL PASS — adding `"cloud"` to polars features and the `read_lazy_from_source` function doesn't regress local file ingestion.
+
+- [ ] **Step 7: Commit regression test run confirmation**
+
+If all tests pass, no commit needed. If any test required a fix, commit the fix:
+
+```bash
+git add -A
+git commit -m "fix: resolve regression from integration improvements"
+```
+
+---
+
 ## Implementation Order & Dependencies
 
 ```
@@ -1123,4 +1191,7 @@ Phase 4:
 - [ ] `config.test.toml.example` contains OTel params (commented out)
 - [ ] `docs/opentelemetry.md` exists with setup instructions
 - [ ] `#[tracing::instrument]` on all gRPC handlers, MCP handler, and ingestion engine
-- [ ] All existing tests pass (`cargo test --lib`)
+- [ ] All unit tests pass: `cargo test --lib` and `cargo test --lib --features otel`
+- [ ] All integration tests pass: `cargo test --test integration` and `cargo test --test integration --features otel`
+- [ ] All client libraries compile successfully with `x-client-language` header addition
+- [ ] Local file ingestion is not regressed by polars cloud feature
