@@ -28,8 +28,32 @@ test-go:
 test-java:
     cd clients/java && mvn test
 
-# Run all client integration tests
-test-clients: test-python test-typescript test-go test-java
+# Run all client tests (starts/stops sidecar automatically, requires Docker MongoDB running)
+test-clients:
+    #!/usr/bin/env bash
+    set -e
+    cargo build --release
+    ./target/release/mongocore --connection-uri "mongodb://localhost:27017" &
+    SIDECAR_PID=$!
+    trap "kill $SIDECAR_PID 2>/dev/null; wait $SIDECAR_PID 2>/dev/null" EXIT
+    # Wait for gRPC port to be ready
+    for i in $(seq 1 30); do
+        if lsof -i :50051 -sTCP:LISTEN > /dev/null 2>&1; then
+            echo "MongoCore sidecar ready (PID $SIDECAR_PID)"
+            break
+        fi
+        sleep 1
+    done
+    if ! lsof -i :50051 -sTCP:LISTEN > /dev/null 2>&1; then
+        echo "ERROR: Sidecar failed to start within 30s"
+        exit 1
+    fi
+    # Run all client tests
+    cd clients/python && python3 -m pytest tests/ -v && cd ../..
+    cd clients/typescript && npx jest --no-coverage && cd ../..
+    cd clients/go && go test ./mongocore/ -v -count=1 && cd ../..
+    cd clients/java && mvn test && cd ../..
+    echo "All client tests passed"
 
 # Run Python client unit tests
 test-unit-python:
