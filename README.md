@@ -286,21 +286,24 @@ mongocore/
 │   ├── main.rs              # Entry point, banner, startup
 │   ├── config.rs            # Layered config (CLI + env + TOML)
 │   ├── connection/          # Connection pool, capability detection
-│   ├── operations/          # CRUD, aggregation, transactions, admin
-│   ├── ingestion/           # Polars-based data ingestion, transforms, dedup
-│   ├── grpc/                # gRPC server (tonic) — 19 RPCs
+│   ├── operations/          # CRUD, aggregation, transactions, admin, raw passthrough
+│   ├── ingestion/           # Polars-based data ingestion, transforms, dedup, DLQ, watch
+│   ├── grpc/                # gRPC server (tonic) — 25 RPCs
 │   ├── mcp/                 # MCP server (axum) — JSON-RPC tools & resources
 │   ├── compiled/            # NL→MQL translation, 3-level cache, templates
 │   ├── search/              # Vector search, full-text, fallback chain
+│   ├── analytics/           # Query analytics, ring buffer, aggregator, persistence
+│   ├── tenant/              # Multi-tenant context, registry, isolation, quota
 │   └── voyage/              # Voyage AI REST client, batch embeddings
-├── proto/                   # Protobuf service definitions (19 RPCs)
+├── proto/                   # Protobuf service definitions (25 RPCs)
 ├── clients/
 │   ├── python/              # Python client (async, BSON-native, change streams)
 │   ├── typescript/          # TypeScript/Node.js client (AsyncDisposable streams)
 │   ├── go/                  # Go client (io.Closer streams)
 │   └── java/                # Java client (AutoCloseable, try-with-resources)
-├── docs/                    # Comprehensive documentation
-├── tests/                   # Integration tests (search, CRUD, transactions, watch)
+├── docs/                    # User-facing documentation
+│   └── design/              # Design specs and implementation plans
+├── tests/                   # Integration tests (one file per subsystem)
 ├── docker-compose.test.yml  # Atlas Local for testing (vector search, Atlas Search)
 ├── Dockerfile               # Multi-stage production build
 └── justfile                 # Task runner (test-all, test-clients, docker-up/down)
