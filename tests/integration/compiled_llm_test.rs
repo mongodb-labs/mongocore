@@ -6,27 +6,63 @@ use mongocore::compiled::providers::{LlmProvider, TranslationContext};
 use mongocore::compiled::translator::CompiledQueryTranslator;
 use mongocore::compiled::CompiledMql;
 use mongocore::connection::pool::ConnectionPool;
+use std::collections::HashMap;
 
 #[allow(unused_imports)]
 #[path = "../harness/mod.rs"]
 mod harness;
 
-/// Check if LLM integration tests are enabled via TEST_LLM_INTEGRATION env var.
-fn llm_tests_enabled() -> bool {
-    std::env::var("TEST_LLM_INTEGRATION")
+/// Load config.test.toml values as a flat key-value map.
+/// Falls back to env vars for each key. TOML values take precedence over env for test config.
+fn load_test_config() -> HashMap<String, String> {
+    let mut config = HashMap::new();
+
+    // Try to load config.test.toml
+    if let Ok(content) = std::fs::read_to_string("config.test.toml") {
+        if let Ok(table) = content.parse::<toml::Table>() {
+            for (key, value) in &table {
+                if let Some(s) = value.as_str() {
+                    config.insert(key.clone(), s.to_string());
+                } else if let Some(b) = value.as_bool() {
+                    config.insert(key.clone(), b.to_string());
+                }
+            }
+        }
+    }
+
+    // Env vars override TOML (for CI or explicit overrides)
+    for key in &[
+        "TEST_LLM_INTEGRATION", "LLM_BASE_URL", "LLM_API_KEY", "LLM_AUTH_HEADER",
+        "LLM_MODEL", "LLM_PROVIDER_TYPE", "ANTHROPIC_API_KEY", "OPENAI_API_KEY",
+    ] {
+        if let Ok(val) = std::env::var(key) {
+            config.insert(key.to_string(), val);
+        }
+    }
+
+    config
+}
+
+/// Get a config value (from TOML or env).
+fn get_config(config: &HashMap<String, String>, key: &str) -> Option<String> {
+    config.get(key).cloned()
+}
+
+/// Check if LLM integration tests are enabled.
+fn llm_tests_enabled(config: &HashMap<String, String>) -> bool {
+    get_config(config, "TEST_LLM_INTEGRATION")
         .map(|v| v == "true" || v == "1")
         .unwrap_or(false)
 }
 
-/// Returns a real LLM provider based on configuration, or None if not configured.
-/// Checks gateway first (LLM_BASE_URL), then direct keys (ANTHROPIC_API_KEY, OPENAI_API_KEY).
-fn get_llm_provider() -> Option<Box<dyn LlmProvider>> {
+/// Returns a real LLM provider based on config, or None if not configured.
+fn get_llm_provider(config: &HashMap<String, String>) -> Option<Box<dyn LlmProvider>> {
     // Gateway takes precedence
-    if let Ok(base_url) = std::env::var("LLM_BASE_URL") {
-        let api_key = std::env::var("LLM_API_KEY").unwrap_or_default();
-        let auth_header = std::env::var("LLM_AUTH_HEADER").unwrap_or_else(|_| "api-key".to_string());
-        let model = std::env::var("LLM_MODEL").unwrap_or_else(|_| "claude-sonnet-4-6".to_string());
-        let provider_type = std::env::var("LLM_PROVIDER_TYPE").unwrap_or_else(|_| "anthropic".to_string());
+    if let Some(base_url) = get_config(config, "LLM_BASE_URL") {
+        let api_key = get_config(config, "LLM_API_KEY").unwrap_or_default();
+        let auth_header = get_config(config, "LLM_AUTH_HEADER").unwrap_or_else(|| "api-key".to_string());
+        let model = get_config(config, "LLM_MODEL").unwrap_or_else(|| "claude-sonnet-4-6".to_string());
+        let provider_type = get_config(config, "LLM_PROVIDER_TYPE").unwrap_or_else(|| "anthropic".to_string());
         return Some(Box::new(GatewayProvider::new(GatewayConfig {
             base_url,
             api_key,
@@ -36,9 +72,9 @@ fn get_llm_provider() -> Option<Box<dyn LlmProvider>> {
         })));
     }
     // Direct API keys
-    if let Ok(key) = std::env::var("ANTHROPIC_API_KEY") {
+    if let Some(key) = get_config(config, "ANTHROPIC_API_KEY") {
         Some(Box::new(ClaudeProvider::new(key)))
-    } else if let Ok(key) = std::env::var("OPENAI_API_KEY") {
+    } else if let Some(key) = get_config(config, "OPENAI_API_KEY") {
         Some(Box::new(OpenAiProvider::new(key)))
     } else {
         None
@@ -117,11 +153,12 @@ async fn execute_mql(pool: &ConnectionPool, mql: &CompiledMql) -> Vec<Document> 
 
 #[tokio::test]
 async fn test_llm_find_italian_restaurants() {
-    if !llm_tests_enabled() {
+    let config = load_test_config();
+    if !llm_tests_enabled(&config) {
         eprintln!("Skipping: TEST_LLM_INTEGRATION not set");
         return;
     }
-    let Some(provider) = get_llm_provider() else {
+    let Some(provider) = get_llm_provider(&config) else {
         eprintln!("Skipping test_llm_find_italian_restaurants: no API key set");
         return;
     };
@@ -153,11 +190,12 @@ async fn test_llm_find_italian_restaurants() {
 
 #[tokio::test]
 async fn test_llm_find_restaurants_in_borough() {
-    if !llm_tests_enabled() {
+    let config = load_test_config();
+    if !llm_tests_enabled(&config) {
         eprintln!("Skipping: TEST_LLM_INTEGRATION not set");
         return;
     }
-    let Some(provider) = get_llm_provider() else {
+    let Some(provider) = get_llm_provider(&config) else {
         eprintln!("Skipping test_llm_find_restaurants_in_borough: no API key set");
         return;
     };
@@ -189,11 +227,12 @@ async fn test_llm_find_restaurants_in_borough() {
 
 #[tokio::test]
 async fn test_llm_find_high_scoring_restaurants() {
-    if !llm_tests_enabled() {
+    let config = load_test_config();
+    if !llm_tests_enabled(&config) {
         eprintln!("Skipping: TEST_LLM_INTEGRATION not set");
         return;
     }
-    let Some(provider) = get_llm_provider() else {
+    let Some(provider) = get_llm_provider(&config) else {
         eprintln!("Skipping test_llm_find_high_scoring_restaurants: no API key set");
         return;
     };
@@ -219,11 +258,12 @@ async fn test_llm_find_high_scoring_restaurants() {
 
 #[tokio::test]
 async fn test_llm_count_by_cuisine() {
-    if !llm_tests_enabled() {
+    let config = load_test_config();
+    if !llm_tests_enabled(&config) {
         eprintln!("Skipping: TEST_LLM_INTEGRATION not set");
         return;
     }
-    let Some(provider) = get_llm_provider() else {
+    let Some(provider) = get_llm_provider(&config) else {
         eprintln!("Skipping test_llm_count_by_cuisine: no API key set");
         return;
     };
@@ -258,11 +298,12 @@ async fn test_llm_count_by_cuisine() {
 
 #[tokio::test]
 async fn test_llm_average_score_by_borough() {
-    if !llm_tests_enabled() {
+    let config = load_test_config();
+    if !llm_tests_enabled(&config) {
         eprintln!("Skipping: TEST_LLM_INTEGRATION not set");
         return;
     }
-    let Some(provider) = get_llm_provider() else {
+    let Some(provider) = get_llm_provider(&config) else {
         eprintln!("Skipping test_llm_average_score_by_borough: no API key set");
         return;
     };
@@ -288,11 +329,12 @@ async fn test_llm_average_score_by_borough() {
 
 #[tokio::test]
 async fn test_llm_cache_reuse() {
-    if !llm_tests_enabled() {
+    let config = load_test_config();
+    if !llm_tests_enabled(&config) {
         eprintln!("Skipping: TEST_LLM_INTEGRATION not set");
         return;
     }
-    let Some(provider) = get_llm_provider() else {
+    let Some(provider) = get_llm_provider(&config) else {
         eprintln!("Skipping test_llm_cache_reuse: no API key set");
         return;
     };
@@ -324,11 +366,12 @@ async fn test_llm_cache_reuse() {
 
 #[tokio::test]
 async fn test_llm_template_cache_reuse() {
-    if !llm_tests_enabled() {
+    let config = load_test_config();
+    if !llm_tests_enabled(&config) {
         eprintln!("Skipping: TEST_LLM_INTEGRATION not set");
         return;
     }
-    let Some(provider) = get_llm_provider() else {
+    let Some(provider) = get_llm_provider(&config) else {
         eprintln!("Skipping test_llm_template_cache_reuse: no API key set");
         return;
     };
