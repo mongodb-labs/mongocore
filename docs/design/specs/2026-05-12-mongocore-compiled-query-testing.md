@@ -29,9 +29,9 @@ Enable the Atlas Local sample dataset by adding `MONGODB_LOAD_SAMPLE_DATA: "true
 
 This provides realistic, varied data for NL queries without any test-specific seed data insertion.
 
-### docker-compose.llm.yml (new file)
+### docker-compose.test.yml Change
 
-A separate compose file for LLM tests that loads sample data. The existing `docker-compose.test.yml` stays unchanged (fast startup for normal development).
+Use environment variable passthrough so sample data only loads when `ANTHROPIC_API_KEY` is set on the host:
 
 ```yaml
 services:
@@ -41,12 +41,15 @@ services:
     ports:
       - "27017:27017"
     environment:
-      MONGODB_LOAD_SAMPLE_DATA: "true"
+      MONGODB_LOAD_SAMPLE_DATA: "${ANTHROPIC_API_KEY:+true}"
 ```
 
-First startup is slower (~30-60s) as sample data loads. Subsequent starts are fast (data persists in the container volume).
+The `${ANTHROPIC_API_KEY:+true}` shell syntax means: if `ANTHROPIC_API_KEY` is set and non-empty, substitute `true`; otherwise substitute empty string (which means sample data won't load).
 
-The default `just docker-up` remains fast. A new `just docker-up-llm` command starts MongoDB with sample data for LLM testing.
+This way:
+- `just docker-up` stays fast for devs without an API key
+- `just docker-up` with `ANTHROPIC_API_KEY` set loads sample data automatically
+- `just test-all` becomes the single gateway — if you have the key, everything runs including LLM tests
 
 ### Test File
 
@@ -160,24 +163,18 @@ let context = TranslationContext {
 ### Justfile
 
 ```
-# Start MongoDB with sample data for LLM tests
-docker-up-llm:
-    docker compose -f docker-compose.llm.yml up -d
-
-# Stop LLM test MongoDB
-docker-down-llm:
-    docker compose -f docker-compose.llm.yml down
-
-# Run compiled query LLM tests (requires docker-up-llm + ANTHROPIC_API_KEY or OPENAI_API_KEY)
+# Run compiled query LLM tests (requires ANTHROPIC_API_KEY or OPENAI_API_KEY + sample data loaded)
 test-llm:
     cargo test --test integration compiled_llm -- --nocapture
 ```
+
+The existing `just docker-up` and `just test-all` commands remain unchanged — LLM tests are included in `test-all` but skip gracefully without an API key.
 
 ## Implementation Scope
 
 | File | Change |
 |------|--------|
-| `docker-compose.llm.yml` | Create with `MONGODB_LOAD_SAMPLE_DATA: "true"` |
+| `docker-compose.test.yml` | Add conditional `MONGODB_LOAD_SAMPLE_DATA: "${ANTHROPIC_API_KEY:+true}"` |
 | `tests/integration/compiled_llm_test.rs` | Create with 7 test functions |
 | `tests/integration.rs` | Add `mod compiled_llm_test;` |
 | `justfile` | Add `test-llm` recipe |
@@ -192,9 +189,9 @@ test-llm:
 
 ## Success Criteria
 
-- [ ] `docker-compose.llm.yml` exists and loads sample data on startup
-- [ ] `sample_mflix.movies` is available with data after `just docker-up-llm`
-- [ ] `just docker-up` (existing) remains unchanged and fast
+- [ ] `docker-compose.test.yml` conditionally loads sample data when `ANTHROPIC_API_KEY` is set
+- [ ] `sample_mflix.movies` is available with data after `just docker-up` (when key is set)
+- [ ] `just docker-up` remains fast when no API key is configured
 - [ ] Tests skip cleanly when no API key is set (no failures in CI)
 - [ ] With `ANTHROPIC_API_KEY` set, all 7 tests pass
 - [ ] Each test validates: MQL parses, executes, returns plausible results
