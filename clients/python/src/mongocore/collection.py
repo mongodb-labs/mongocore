@@ -165,6 +165,41 @@ class Collection:
             "total": response.total,
         }
 
+    async def find_and_modify(self, filter: dict, update: dict, *, return_new: bool = True, upsert: bool = False) -> Optional[dict]:
+        """Atomically find and modify a document, returning the result."""
+        from .generated import mongocore_pb2, types_pb2
+        stub = self._get_stub()
+        options = types_pb2.FindAndModifyOptions(
+            return_document=types_pb2.FindAndModifyOptions.AFTER if return_new else types_pb2.FindAndModifyOptions.BEFORE,
+            upsert=upsert,
+        )
+        request = mongocore_pb2.FindAndModifyRequest(
+            database=self._database,
+            collection=self._name,
+            filter=self._make_filter(filter),
+            update=self._make_document(update),
+            options=options,
+        )
+        response = await stub.FindAndModify(request, metadata=_CLIENT_METADATA)
+        if response.document and response.document.data:
+            return self._decode_doc(response.document.data)
+        return None
+
+    async def create_index(self, keys: dict, *, unique: bool = False, name: Optional[str] = None) -> str:
+        """Create an index on the collection."""
+        from .generated import mongocore_pb2
+        stub = self._get_stub()
+        request = mongocore_pb2.CreateIndexRequest(
+            database=self._database,
+            collection=self._name,
+            keys=self._make_document(keys),
+            unique=unique,
+        )
+        if name:
+            request.name = name
+        response = await stub.CreateIndex(request, metadata=_CLIENT_METADATA)
+        return response.name
+
     def watch(self, pipeline: Optional[list[dict]] = None) -> "ChangeStream":
         """Open a change stream on this collection. Returns an async context manager."""
         return ChangeStream(self, pipeline)

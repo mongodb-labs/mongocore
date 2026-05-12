@@ -188,6 +188,50 @@ class MongoClient:
         response = await stub.StopWatch(ingestion_pb2.StopWatchRequest(watch_id=watch_id), metadata=_CLIENT_METADATA)
         return response.success
 
+    async def begin_transaction(self) -> str:
+        """Begin a new transaction, returns transaction_id."""
+        from .generated import mongocore_pb2, mongocore_pb2_grpc
+        stub = mongocore_pb2_grpc.MongoCoreStub(self.channel)
+        response = await stub.BeginTransaction(mongocore_pb2.BeginTransactionRequest(), metadata=_CLIENT_METADATA)
+        return response.transaction_id
+
+    async def commit_transaction(self, transaction_id: str) -> bool:
+        """Commit a transaction."""
+        from .generated import mongocore_pb2, mongocore_pb2_grpc
+        stub = mongocore_pb2_grpc.MongoCoreStub(self.channel)
+        response = await stub.CommitTransaction(
+            mongocore_pb2.CommitTransactionRequest(transaction_id=transaction_id),
+            metadata=_CLIENT_METADATA,
+        )
+        return response.success
+
+    async def abort_transaction(self, transaction_id: str) -> bool:
+        """Abort a transaction."""
+        from .generated import mongocore_pb2, mongocore_pb2_grpc
+        stub = mongocore_pb2_grpc.MongoCoreStub(self.channel)
+        response = await stub.AbortTransaction(
+            mongocore_pb2.AbortTransactionRequest(transaction_id=transaction_id),
+            metadata=_CLIENT_METADATA,
+        )
+        return response.success
+
+    async def get_analytics(self) -> dict:
+        """Get query analytics summary."""
+        from .generated import mongocore_pb2, mongocore_pb2_grpc
+        stub = mongocore_pb2_grpc.MongoCoreStub(self.channel)
+        response = await stub.GetAnalytics(
+            mongocore_pb2.GetAnalyticsRequest(window_seconds=0),
+            metadata=_CLIENT_METADATA,
+        )
+        return {
+            "total_operations": response.total_operations,
+            "total_errors": response.total_errors,
+            "error_rate": response.error_rate,
+            "p50_latency_ms": response.p50_latency_ms,
+            "p95_latency_ms": response.p95_latency_ms,
+            "p99_latency_ms": response.p99_latency_ms,
+        }
+
     async def __aenter__(self):
         await self.connect()
         return self
