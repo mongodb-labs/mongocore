@@ -1422,7 +1422,7 @@ impl MongoCore for MongoCoreService {
 
     // === Pipeline ===
 
-    #[tracing::instrument(skip(self, request))]
+    #[tracing::instrument(skip(self, request), fields(pipeline.size = tracing::field::Empty, pipeline.succeeded = tracing::field::Empty, pipeline.failed = tracing::field::Empty))]
     async fn pipeline(
         &self,
         request: Request<proto::PipelineRequest>,
@@ -1448,7 +1448,7 @@ impl MongoCore for MongoCoreService {
             let svc = self;
             async move {
                 let _permit = sem.acquire().await.unwrap();
-                let result = svc.execute_pipeline_op(op).await;
+                let result = svc.execute_pipeline_op(i as u32, op).await;
                 proto::PipelineResult {
                     index: i as u32,
                     result: Some(result),
@@ -1466,6 +1466,11 @@ impl MongoCore for MongoCoreService {
 
         let succeeded = results.iter().filter(|r| !pipeline_result_is_error(r)).count() as u32;
         let failed = results.iter().filter(|r| pipeline_result_is_error(r)).count() as u32;
+
+        let span = tracing::Span::current();
+        span.record("pipeline.size", results.len() as u32);
+        span.record("pipeline.succeeded", succeeded);
+        span.record("pipeline.failed", failed);
 
         self.record_analytics(OperationKind::Pipeline, "", "", start.elapsed(), failed == 0);
 
@@ -1486,35 +1491,65 @@ fn pipeline_result_is_error(result: &proto::PipelineResult) -> bool {
 
 impl MongoCoreService {
     /// Dispatch a single pipeline operation.
-    async fn execute_pipeline_op(&self, op: proto::PipelineOperation) -> proto::pipeline_result::Result {
-        match op.operation {
-            None => proto::pipeline_result::Result::Error(proto::PipelineError {
-                code: 3,
-                message: "Operation not specified".to_string(),
-            }),
-            Some(operation) => match operation {
-                proto::pipeline_operation::Operation::Find(req) => self.pipeline_find(req).await,
-                proto::pipeline_operation::Operation::FindOne(req) => self.pipeline_find_one(req).await,
-                proto::pipeline_operation::Operation::Insert(req) => self.pipeline_insert(req).await,
-                proto::pipeline_operation::Operation::InsertMany(req) => self.pipeline_insert_many(req).await,
-                proto::pipeline_operation::Operation::Update(req) => self.pipeline_update(req).await,
-                proto::pipeline_operation::Operation::UpdateMany(req) => self.pipeline_update_many(req).await,
-                proto::pipeline_operation::Operation::Delete(req) => self.pipeline_delete(req).await,
-                proto::pipeline_operation::Operation::DeleteMany(req) => self.pipeline_delete_many(req).await,
-                proto::pipeline_operation::Operation::Aggregate(req) => self.pipeline_aggregate(req).await,
-                proto::pipeline_operation::Operation::FindAndModify(req) => self.pipeline_find_and_modify(req).await,
-                proto::pipeline_operation::Operation::RunCommand(req) => self.pipeline_run_command(req).await,
-                proto::pipeline_operation::Operation::Search(req) => self.pipeline_search(req).await,
-                proto::pipeline_operation::Operation::CreateCollection(req) => self.pipeline_create_collection(req).await,
-                proto::pipeline_operation::Operation::CreateIndex(req) => self.pipeline_create_index(req).await,
-                proto::pipeline_operation::Operation::ListDatabases(req) => self.pipeline_list_databases(req).await,
-                proto::pipeline_operation::Operation::ListCollections(req) => self.pipeline_list_collections(req).await,
-                proto::pipeline_operation::Operation::BeginTransaction(req) => self.pipeline_begin_transaction(req).await,
-                proto::pipeline_operation::Operation::CommitTransaction(req) => self.pipeline_commit_transaction(req).await,
-                proto::pipeline_operation::Operation::AbortTransaction(req) => self.pipeline_abort_transaction(req).await,
-                proto::pipeline_operation::Operation::GetAnalytics(req) => self.pipeline_get_analytics(req).await,
-            },
-        }
+    async fn execute_pipeline_op(&self, index: u32, op: proto::PipelineOperation) -> proto::pipeline_result::Result {
+        use tracing::Instrument;
+
+        let op_type = match &op.operation {
+            Some(proto::pipeline_operation::Operation::Find(_)) => "find",
+            Some(proto::pipeline_operation::Operation::FindOne(_)) => "find_one",
+            Some(proto::pipeline_operation::Operation::Insert(_)) => "insert",
+            Some(proto::pipeline_operation::Operation::InsertMany(_)) => "insert_many",
+            Some(proto::pipeline_operation::Operation::Update(_)) => "update",
+            Some(proto::pipeline_operation::Operation::UpdateMany(_)) => "update_many",
+            Some(proto::pipeline_operation::Operation::Delete(_)) => "delete",
+            Some(proto::pipeline_operation::Operation::DeleteMany(_)) => "delete_many",
+            Some(proto::pipeline_operation::Operation::Aggregate(_)) => "aggregate",
+            Some(proto::pipeline_operation::Operation::FindAndModify(_)) => "find_and_modify",
+            Some(proto::pipeline_operation::Operation::RunCommand(_)) => "run_command",
+            Some(proto::pipeline_operation::Operation::Search(_)) => "search",
+            Some(proto::pipeline_operation::Operation::CreateCollection(_)) => "create_collection",
+            Some(proto::pipeline_operation::Operation::CreateIndex(_)) => "create_index",
+            Some(proto::pipeline_operation::Operation::ListDatabases(_)) => "list_databases",
+            Some(proto::pipeline_operation::Operation::ListCollections(_)) => "list_collections",
+            Some(proto::pipeline_operation::Operation::BeginTransaction(_)) => "begin_transaction",
+            Some(proto::pipeline_operation::Operation::CommitTransaction(_)) => "commit_transaction",
+            Some(proto::pipeline_operation::Operation::AbortTransaction(_)) => "abort_transaction",
+            Some(proto::pipeline_operation::Operation::GetAnalytics(_)) => "get_analytics",
+            None => "empty",
+        };
+
+        let span = tracing::info_span!("pipeline.op", pipeline.op.index = index, pipeline.op.type_ = op_type);
+
+        async {
+            match op.operation {
+                None => proto::pipeline_result::Result::Error(proto::PipelineError {
+                    code: 3,
+                    message: "Operation not specified".to_string(),
+                }),
+                Some(operation) => match operation {
+                    proto::pipeline_operation::Operation::Find(req) => self.pipeline_find(req).await,
+                    proto::pipeline_operation::Operation::FindOne(req) => self.pipeline_find_one(req).await,
+                    proto::pipeline_operation::Operation::Insert(req) => self.pipeline_insert(req).await,
+                    proto::pipeline_operation::Operation::InsertMany(req) => self.pipeline_insert_many(req).await,
+                    proto::pipeline_operation::Operation::Update(req) => self.pipeline_update(req).await,
+                    proto::pipeline_operation::Operation::UpdateMany(req) => self.pipeline_update_many(req).await,
+                    proto::pipeline_operation::Operation::Delete(req) => self.pipeline_delete(req).await,
+                    proto::pipeline_operation::Operation::DeleteMany(req) => self.pipeline_delete_many(req).await,
+                    proto::pipeline_operation::Operation::Aggregate(req) => self.pipeline_aggregate(req).await,
+                    proto::pipeline_operation::Operation::FindAndModify(req) => self.pipeline_find_and_modify(req).await,
+                    proto::pipeline_operation::Operation::RunCommand(req) => self.pipeline_run_command(req).await,
+                    proto::pipeline_operation::Operation::Search(req) => self.pipeline_search(req).await,
+                    proto::pipeline_operation::Operation::CreateCollection(req) => self.pipeline_create_collection(req).await,
+                    proto::pipeline_operation::Operation::CreateIndex(req) => self.pipeline_create_index(req).await,
+                    proto::pipeline_operation::Operation::ListDatabases(req) => self.pipeline_list_databases(req).await,
+                    proto::pipeline_operation::Operation::ListCollections(req) => self.pipeline_list_collections(req).await,
+                    proto::pipeline_operation::Operation::BeginTransaction(req) => self.pipeline_begin_transaction(req).await,
+                    proto::pipeline_operation::Operation::CommitTransaction(req) => self.pipeline_commit_transaction(req).await,
+                    proto::pipeline_operation::Operation::AbortTransaction(req) => self.pipeline_abort_transaction(req).await,
+                    proto::pipeline_operation::Operation::GetAnalytics(req) => self.pipeline_get_analytics(req).await,
+                },
+            }
+        }.instrument(span).await
     }
 
     async fn pipeline_find(&self, req: proto::FindRequest) -> proto::pipeline_result::Result {
