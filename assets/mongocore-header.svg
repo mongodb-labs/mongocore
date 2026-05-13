@@ -65,7 +65,7 @@
 
 <!-- Tagline -->
 <text x="424" y="232" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif" font-size="22" font-weight="400" fill="#475569" letter-spacing="0.5">
-An experimental next generation driver to consume MongoDB — for humans and agents.
+An experimental next generation driver to consume MongoDB - for humans and agents.
 </text>
 
 <!-- Pills -->
