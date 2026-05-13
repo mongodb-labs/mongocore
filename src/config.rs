@@ -5,9 +5,9 @@ use std::path::PathBuf;
 use crate::defaults::{
     DEFAULT_COMPILED_CACHE_SYNC, DEFAULT_CONNECTION_URI, DEFAULT_GRPC_COMPRESSION,
     DEFAULT_GRPC_MAX_MESSAGE_SIZE, DEFAULT_GRPC_PORT, DEFAULT_LOG_LEVEL, DEFAULT_MCP_PORT,
-    DEFAULT_OTEL_ENDPOINT, DEFAULT_OTEL_SERVICE_NAME, DEFAULT_SOCKET_PATH,
-    DEFAULT_SOCKET_PERMISSIONS, DEFAULT_STREAM_BATCH_SIZE, DEFAULT_STREAM_IDLE_TIMEOUT_SECS,
-    DEFAULT_TRANSPORT,
+    DEFAULT_OTEL_ENDPOINT, DEFAULT_OTEL_SERVICE_NAME, DEFAULT_PIPELINE_MAX_CONCURRENCY,
+    DEFAULT_PIPELINE_TIMEOUT_SECS, DEFAULT_SOCKET_PATH, DEFAULT_SOCKET_PERMISSIONS,
+    DEFAULT_STREAM_BATCH_SIZE, DEFAULT_STREAM_IDLE_TIMEOUT_SECS, DEFAULT_TRANSPORT,
 };
 use crate::error::MongoCoreError;
 
@@ -110,6 +110,14 @@ pub struct CliArgs {
     /// gRPC compression algorithm (none, gzip, zstd)
     #[arg(long, env = "MONGOCORE_GRPC_COMPRESSION")]
     pub grpc_compression: Option<String>,
+
+    /// Pipeline timeout in seconds
+    #[arg(long, env = "MONGOCORE_PIPELINE_TIMEOUT_SECS")]
+    pub pipeline_timeout_secs: Option<u64>,
+
+    /// Pipeline maximum concurrent operations
+    #[arg(long, env = "MONGOCORE_PIPELINE_MAX_CONCURRENCY")]
+    pub pipeline_max_concurrency: Option<usize>,
 }
 
 /// Per-tenant configuration structure.
@@ -227,6 +235,8 @@ pub struct FileConfig {
     pub stream_batch_size: Option<u32>,
     pub stream_idle_timeout_secs: Option<u64>,
     pub grpc_compression: Option<String>,
+    pub pipeline_timeout_secs: Option<u64>,
+    pub pipeline_max_concurrency: Option<usize>,
 }
 
 /// Resolved configuration for MongoCore.
@@ -257,6 +267,8 @@ pub struct Config {
     pub stream_batch_size: u32,
     pub stream_idle_timeout_secs: u64,
     pub grpc_compression: String,
+    pub pipeline_timeout_secs: u64,
+    pub pipeline_max_concurrency: usize,
 }
 
 impl Config {
@@ -400,6 +412,16 @@ impl Config {
             .or(file_config.grpc_compression)
             .unwrap_or_else(|| DEFAULT_GRPC_COMPRESSION.to_string());
 
+        let pipeline_timeout_secs = cli
+            .pipeline_timeout_secs
+            .or(file_config.pipeline_timeout_secs)
+            .unwrap_or(DEFAULT_PIPELINE_TIMEOUT_SECS);
+
+        let pipeline_max_concurrency = cli
+            .pipeline_max_concurrency
+            .or(file_config.pipeline_max_concurrency)
+            .unwrap_or(DEFAULT_PIPELINE_MAX_CONCURRENCY);
+
         let otel_enabled = cli
             .otel_enabled
             .or(file_config.otel_enabled)
@@ -441,6 +463,8 @@ impl Config {
             stream_batch_size,
             stream_idle_timeout_secs,
             grpc_compression,
+            pipeline_timeout_secs,
+            pipeline_max_concurrency,
         })
     }
 }
@@ -478,6 +502,8 @@ mod tests {
             stream_batch_size: None,
             stream_idle_timeout_secs: None,
             grpc_compression: None,
+            pipeline_timeout_secs: None,
+            pipeline_max_concurrency: None,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -531,6 +557,8 @@ log_level = "debug"
             stream_batch_size: None,
             stream_idle_timeout_secs: None,
             grpc_compression: None,
+            pipeline_timeout_secs: None,
+            pipeline_max_concurrency: None,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -580,6 +608,8 @@ log_level = "debug"
             stream_batch_size: None,
             stream_idle_timeout_secs: None,
             grpc_compression: None,
+            pipeline_timeout_secs: None,
+            pipeline_max_concurrency: None,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -619,6 +649,8 @@ log_level = "debug"
             stream_batch_size: None,
             stream_idle_timeout_secs: None,
             grpc_compression: None,
+            pipeline_timeout_secs: None,
+            pipeline_max_concurrency: None,
         };
 
         let result = Config::load(&cli);
@@ -670,6 +702,8 @@ connection_uri = "mongodb://other:27017"
             stream_batch_size: None,
             stream_idle_timeout_secs: None,
             grpc_compression: None,
+            pipeline_timeout_secs: None,
+            pipeline_max_concurrency: None,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -720,6 +754,8 @@ connection_uri = "mongodb://other:27017"
             stream_batch_size: None,
             stream_idle_timeout_secs: None,
             grpc_compression: None,
+            pipeline_timeout_secs: None,
+            pipeline_max_concurrency: None,
         }
     }
 
@@ -784,6 +820,8 @@ conflict_strategy = "merge"
             stream_batch_size: None,
             stream_idle_timeout_secs: None,
             grpc_compression: None,
+            pipeline_timeout_secs: None,
+            pipeline_max_concurrency: None,
         };
         let config = Config::load(&cli).unwrap();
         assert_eq!(config.ingestion.sample_size, 2000);

@@ -38,6 +38,8 @@ pub async fn get_test_pool() -> ConnectionPool {
         stream_batch_size: 1000,
         stream_idle_timeout_secs: 60,
         grpc_compression: "none".to_string(),
+        pipeline_timeout_secs: 30,
+        pipeline_max_concurrency: 20,
     };
 
     ConnectionPool::connect(&config)
