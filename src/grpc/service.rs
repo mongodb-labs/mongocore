@@ -1,6 +1,7 @@
 use std::pin::Pin;
 use std::sync::Arc;
 use std::sync::Mutex;
+use std::time::Duration;
 use std::collections::HashSet;
 
 use bson::Document;
@@ -10,6 +11,7 @@ use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
 use crate::analytics::{AnalyticsCollector, AnalyticsEvent, OperationKind};
+use crate::defaults::{MAX_STREAM_BATCH_SIZE, MIN_STREAM_BATCH_SIZE};
 use crate::connection::pool::ConnectionPool;
 use crate::error::MongoCoreError;
 use crate::operations::{
@@ -37,6 +39,7 @@ pub struct MongoCoreService {
     ingestion_engine: Option<Arc<crate::ingestion::IngestionEngine>>,
     directory_watcher: Option<Arc<crate::ingestion::DirectoryWatcher>>,
     client: Option<mongodb::Client>,
+    stream_idle_timeout: Duration,
     appended_languages: Mutex<HashSet<String>>,
 }
 
@@ -47,6 +50,7 @@ impl MongoCoreService {
         analytics: Option<Arc<AnalyticsCollector>>,
         tenant_registry: Option<Arc<TenantRegistry>>,
         quota_manager: Option<Arc<QuotaManager>>,
+        stream_idle_timeout: Duration,
     ) -> Self {
         let operations = Operations::new(pool.clone());
         let search_engine = SearchEngine::new(pool.clone(), None);
@@ -61,6 +65,7 @@ impl MongoCoreService {
             ingestion_engine: None,
             directory_watcher: None,
             client: None,
+            stream_idle_timeout,
             appended_languages: Mutex::new(HashSet::new()),
         }
     }
@@ -72,6 +77,7 @@ impl MongoCoreService {
         analytics: Option<Arc<AnalyticsCollector>>,
         tenant_registry: Option<Arc<TenantRegistry>>,
         quota_manager: Option<Arc<QuotaManager>>,
+        stream_idle_timeout: Duration,
     ) -> Self {
         let operations = Operations::new(pool.clone());
         let voyage_client = Arc::new(VoyageClient::new(voyage_api_key.to_string()));
@@ -87,6 +93,7 @@ impl MongoCoreService {
             ingestion_engine: None,
             directory_watcher: None,
             client: None,
+            stream_idle_timeout,
             appended_languages: Mutex::new(HashSet::new()),
         }
     }
@@ -757,6 +764,18 @@ impl MongoCore for MongoCoreService {
         Box<dyn tokio_stream::Stream<Item = Result<proto::WatchEvent, Status>> + Send + 'static>,
     >;
 
+    type FindStreamStream = Pin<
+        Box<dyn tokio_stream::Stream<Item = Result<proto::DocumentBatch, Status>> + Send + 'static>,
+    >;
+
+    type AggregateStreamStream = Pin<
+        Box<dyn tokio_stream::Stream<Item = Result<proto::DocumentBatch, Status>> + Send + 'static>,
+    >;
+
+    type InsertManyBidiStream = Pin<
+        Box<dyn tokio_stream::Stream<Item = Result<proto::InsertBatchAck, Status>> + Send + 'static>,
+    >;
+
     #[tracing::instrument(skip(self, request))]
     async fn watch(
         &self,
@@ -849,6 +868,281 @@ impl MongoCore for MongoCoreService {
         };
 
         Ok(Response::new(Box::pin(stream) as Self::WatchStream))
+    }
+
+    // === Streaming Bulk ===
+
+    async fn find_stream(
+        &self,
+        request: Request<proto::FindStreamRequest>,
+    ) -> Result<Response<Self::FindStreamStream>, Status> {
+        self.append_client_language(request.metadata());
+        self.check_tenant_quota(request.metadata())?;
+        let req = request.into_inner();
+        let filter = proto_filter_to_bson(&req.filter)?;
+        let options = convert_find_options(&req.options)?;
+
+        let batch_size = if req.batch_size == 0 {
+            crate::defaults::DEFAULT_STREAM_BATCH_SIZE
+        } else {
+            req.batch_size.clamp(MIN_STREAM_BATCH_SIZE, MAX_STREAM_BATCH_SIZE)
+        };
+
+        let cursor = self
+            .operations
+            .find_cursor(&req.database, &req.collection, filter, options)
+            .await
+            .map_err(to_status)?;
+
+        let idle_timeout = self.stream_idle_timeout;
+        let stream = async_stream::stream! {
+            let mut cursor = cursor;
+            let mut batch_index: u32 = 0;
+            let mut batch: Vec<proto::Document> = Vec::with_capacity(batch_size as usize);
+
+            loop {
+                match tokio::time::timeout(idle_timeout, cursor.advance()).await {
+                    Ok(Ok(true)) => {
+                        match cursor.deserialize_current() {
+                            Ok(doc) => {
+                                let bytes = bson::to_vec(&doc).unwrap_or_default();
+                                batch.push(proto::Document { data: bytes });
+
+                                if batch.len() >= batch_size as usize {
+                                    yield Ok(proto::DocumentBatch {
+                                        documents: std::mem::take(&mut batch),
+                                        batch_index,
+                                        has_more: true,
+                                    });
+                                    batch_index += 1;
+                                    batch = Vec::with_capacity(batch_size as usize);
+                                }
+                            }
+                            Err(e) => {
+                                yield Err(Status::internal(format!("Cursor error: {}", e)));
+                                return;
+                            }
+                        }
+                    }
+                    Ok(Ok(false)) => break, // cursor exhausted
+                    Ok(Err(e)) => {
+                        yield Err(Status::internal(format!("Cursor error: {}", e)));
+                        return;
+                    }
+                    Err(_) => {
+                        yield Err(Status::deadline_exceeded("Stream idle timeout"));
+                        return;
+                    }
+                }
+            }
+
+            // Final batch
+            yield Ok(proto::DocumentBatch {
+                documents: batch,
+                batch_index,
+                has_more: false,
+            });
+        };
+
+        Ok(Response::new(Box::pin(stream)))
+    }
+
+    async fn aggregate_stream(
+        &self,
+        request: Request<proto::AggregateStreamRequest>,
+    ) -> Result<Response<Self::AggregateStreamStream>, Status> {
+        self.append_client_language(request.metadata());
+        self.check_tenant_quota(request.metadata())?;
+        let req = request.into_inner();
+
+        let pipeline: Vec<bson::Document> = match req.pipeline {
+            Some(p) => p
+                .stages
+                .iter()
+                .map(|stage| decode_bson(stage))
+                .collect::<Result<Vec<_>, _>>()?,
+            None => Vec::new(),
+        };
+
+        let batch_size = if req.batch_size == 0 {
+            crate::defaults::DEFAULT_STREAM_BATCH_SIZE
+        } else {
+            req.batch_size.clamp(MIN_STREAM_BATCH_SIZE, MAX_STREAM_BATCH_SIZE)
+        };
+
+        let cursor = self
+            .operations
+            .aggregate_cursor(&req.database, &req.collection, pipeline)
+            .await
+            .map_err(to_status)?;
+
+        let idle_timeout = self.stream_idle_timeout;
+        let stream = async_stream::stream! {
+            let mut cursor = cursor;
+            let mut batch_index: u32 = 0;
+            let mut batch: Vec<proto::Document> = Vec::with_capacity(batch_size as usize);
+
+            loop {
+                match tokio::time::timeout(idle_timeout, cursor.advance()).await {
+                    Ok(Ok(true)) => {
+                        match cursor.deserialize_current() {
+                            Ok(doc) => {
+                                let bytes = bson::to_vec(&doc).unwrap_or_default();
+                                batch.push(proto::Document { data: bytes });
+
+                                if batch.len() >= batch_size as usize {
+                                    yield Ok(proto::DocumentBatch {
+                                        documents: std::mem::take(&mut batch),
+                                        batch_index,
+                                        has_more: true,
+                                    });
+                                    batch_index += 1;
+                                    batch = Vec::with_capacity(batch_size as usize);
+                                }
+                            }
+                            Err(e) => {
+                                yield Err(Status::internal(format!("Cursor error: {}", e)));
+                                return;
+                            }
+                        }
+                    }
+                    Ok(Ok(false)) => break, // cursor exhausted
+                    Ok(Err(e)) => {
+                        yield Err(Status::internal(format!("Cursor error: {}", e)));
+                        return;
+                    }
+                    Err(_) => {
+                        yield Err(Status::deadline_exceeded("Stream idle timeout"));
+                        return;
+                    }
+                }
+            }
+
+            yield Ok(proto::DocumentBatch {
+                documents: batch,
+                batch_index,
+                has_more: false,
+            });
+        };
+
+        Ok(Response::new(Box::pin(stream)))
+    }
+
+    async fn insert_many_stream(
+        &self,
+        request: Request<tonic::Streaming<proto::InsertBatch>>,
+    ) -> Result<Response<proto::InsertManyStreamResponse>, Status> {
+        self.append_client_language(request.metadata());
+        let mut stream = request.into_inner();
+        let mut total_inserted: u64 = 0;
+        let mut errors: Vec<proto::InsertError> = Vec::new();
+        let mut database = String::new();
+        let mut collection = String::new();
+        let mut global_index: u32 = 0;
+
+        while let Some(batch) = stream
+            .message()
+            .await
+            .map_err(|e| Status::internal(format!("Stream error: {}", e)))?
+        {
+            if database.is_empty() {
+                database.clone_from(&batch.database);
+                collection.clone_from(&batch.collection);
+            }
+
+            let docs: Result<Vec<bson::Document>, Status> =
+                batch.documents.iter().map(|d| proto_doc_to_bson(d)).collect();
+            let docs = docs?;
+            let batch_len = docs.len() as u32;
+
+            match self
+                .operations
+                .insert_many(&database, &collection, docs)
+                .await
+            {
+                Ok(result) => {
+                    total_inserted += result.inserted_ids.len() as u64;
+                }
+                Err(e) => {
+                    errors.push(proto::InsertError {
+                        index: global_index,
+                        message: e.to_string(),
+                        code: 0,
+                    });
+                }
+            }
+            global_index += batch_len;
+        }
+
+        Ok(Response::new(proto::InsertManyStreamResponse {
+            total_inserted,
+            errors,
+        }))
+    }
+
+    async fn insert_many_bidi(
+        &self,
+        request: Request<tonic::Streaming<proto::InsertBatch>>,
+    ) -> Result<Response<Self::InsertManyBidiStream>, Status> {
+        self.append_client_language(request.metadata());
+        let mut inbound = request.into_inner();
+        let operations = self.operations.clone();
+
+        let stream = async_stream::stream! {
+            let mut database = String::new();
+            let mut collection = String::new();
+            let mut batch_index: u32 = 0;
+
+            loop {
+                match inbound.message().await {
+                    Ok(Some(batch)) => {
+                        if database.is_empty() {
+                            database.clone_from(&batch.database);
+                            collection.clone_from(&batch.collection);
+                        }
+
+                        let docs: std::result::Result<Vec<bson::Document>, Status> =
+                            batch.documents.iter().map(|d| proto_doc_to_bson(d)).collect();
+                        match docs {
+                            Ok(docs) => {
+                                match operations.insert_many(&database, &collection, docs).await {
+                                    Ok(result) => {
+                                        yield Ok(proto::InsertBatchAck {
+                                            batch_index,
+                                            inserted_count: result.inserted_ids.len() as u32,
+                                            errors: vec![],
+                                        });
+                                    }
+                                    Err(e) => {
+                                        yield Ok(proto::InsertBatchAck {
+                                            batch_index,
+                                            inserted_count: 0,
+                                            errors: vec![proto::InsertError {
+                                                index: 0,
+                                                message: e.to_string(),
+                                                code: 0,
+                                            }],
+                                        });
+                                    }
+                                }
+                            }
+                            Err(e) => {
+                                yield Err(e);
+                                return;
+                            }
+                        }
+                        batch_index += 1;
+                    }
+                    Ok(None) => break,
+                    Err(e) => {
+                        yield Err(Status::internal(format!("Stream error: {}", e)));
+                        return;
+                    }
+                }
+            }
+        };
+
+        Ok(Response::new(Box::pin(stream)))
     }
 
     // === Raw Passthrough ===

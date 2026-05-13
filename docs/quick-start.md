@@ -7,7 +7,8 @@
 ```python
 from mongocore import MongoClient
 
-async with MongoClient("localhost:50051") as client:
+# Auto-discovers sidecar (UDS preferred, TCP fallback)
+async with MongoClient() as client:
     users = client["myapp"]["users"]
     await users.insert_one({"name": "Alice", "age": 30})
     docs = await users.find({"age": {"$gte": 25}})
@@ -16,6 +17,10 @@ async with MongoClient("localhost:50051") as client:
     async with users.watch() as stream:
         async for event in stream:
             print(event["operation_type"], event["document"])
+
+# Or explicit address
+async with MongoClient("localhost:50051") as client:
+    ...
 ```
 
 ### TypeScript
@@ -38,7 +43,7 @@ for await (const event of stream) {
 ### Go
 
 ```go
-client := mongocore.NewClient("localhost:50051")
+client := mongocore.MongoClient()  // auto-discovers UDS/TCP
 client.Connect(ctx)
 users := client.Database("myapp").Collection("users")
 users.InsertOne(ctx, bson.D{{Key: "name", Value: "Alice"}, {Key: "age", Value: 30}})

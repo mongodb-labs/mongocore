@@ -279,3 +279,35 @@ See [Roadmap](./roadmap.md) for the full future roadmap including:
 - Hybrid search with reciprocal rank fusion
 - Window functions, graph queries
 - Enterprise compliance (audit trail, RBAC, governance)
+
+---
+
+## Session: Performance Tier 1 (2026-05-13)
+
+### The Question
+"How do we close the performance gap between MongoCore and native drivers?"
+
+### The Approach
+Started with benchmarking data showing -40% to -76% overhead for small operations. Researched how Polars, DuckDB, Arrow Flight, and Redis achieve near-native IPC performance. Settled on a pragmatic three-part strategy:
+
+1. **Raise message limits** — From 4MB to 64MB, immediately enabling large bulk operations
+2. **Unix Domain Sockets** — ~36% latency reduction for same-machine deployments
+3. **Streaming RPCs** — Eliminate message size constraints entirely for bulk operations
+
+### What Was Built
+- `--transport` flag with both/uds/tcp modes (sensible default: both)
+- 4 new streaming RPCs: FindStream, AggregateStream, InsertManyStream, InsertManyBidi
+- gRPC compression support (gzip/zstd)
+- Client auto-discovery (try UDS, fall back to TCP)
+- Stream idle timeout and graceful socket lifecycle management
+
+### What Was Learned
+- **UDS + grpc-python incompatibility**: tonic 0.12's UDS server returns RST_STREAM when grpc-python 1.80 connects. Works fine with Rust clients. This is a known C-core vs non-C-core HTTP/2 negotiation issue.
+- **Large payloads benefit most**: bulk_insert_large (-14%) and find_many_large (-8%) show minimal overhead because data transfer dominates fixed costs.
+- **Go beats native on bulk**: MongoCore's Rust connection pool gives Go clients a 5% edge on bulk inserts vs the native Go driver.
+- **Benchmarking is essential**: Without the v0.7 benchmark suite, we couldn't have measured any of this.
+
+### Next Steps
+- Performance Tier 2: Request pipelining (batch N operations in one round-trip)
+- Investigate grpc-python UDS fix (upgrade grpcio or use pure-Python transport)
+- Performance Tier 3: Native FFI embedding (PyO3, Neon, cgo)

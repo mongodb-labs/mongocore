@@ -1,0 +1,1683 @@
+{
+  "timestamp": "2026-05-13T13:04:30.529163+00:00",
+  "results": [
+    {
+      "benchmark": "run_command",
+      "category": "single_doc",
+      "driver": "mongocore+python",
+      "dataset_size_bytes": 1000000,
+      "batch_size": 10000,
+      "iterations": 14,
+      "total_time_secs": 61.575,
+      "ops_per_sec": 2293.0,
+      "mb_per_sec": 0.229,
+      "percentiles": {
+        "p10": 4.2614,
+        "p25": 4.293208,
+        "p50": 4.361171,
+        "p75": 4.469072,
+        "p90": 4.580236,
+        "p95": 4.775559,
+        "p99": 4.775559
+      },
+      "timestamp": "2026-05-13T12:30:36.021703+00:00",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "mongocore_version": "0.6.0",
+        "driver": "mongocore+python"
+      }
+    },
+    {
+      "benchmark": "find_one_by_id",
+      "category": "single_doc",
+      "driver": "mongocore+python",
+      "dataset_size_bytes": 12470000,
+      "batch_size": 10000,
+      "iterations": 12,
+      "total_time_secs": 60.091,
+      "ops_per_sec": 2026.2,
+      "mb_per_sec": 2.527,
+      "percentiles": {
+        "p10": 4.845886,
+        "p25": 4.856535,
+        "p50": 4.935318,
+        "p75": 5.094858,
+        "p90": 5.302551,
+        "p95": 5.381425,
+        "p99": 5.381425
+      },
+      "timestamp": "2026-05-13T12:31:51.086664+00:00",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "mongocore_version": "0.6.0",
+        "driver": "mongocore+python"
+      }
+    },
+    {
+      "benchmark": "insert_one_small",
+      "category": "single_doc",
+      "driver": "mongocore+python",
+      "dataset_size_bytes": 1760000,
+      "batch_size": 10000,
+      "iterations": 7,
+      "total_time_secs": 61.315,
+      "ops_per_sec": 1152.7,
+      "mb_per_sec": 0.203,
+      "percentiles": {
+        "p10": 8.43317,
+        "p25": 8.586679,
+        "p50": 8.675112,
+        "p75": 9.074721,
+        "p90": 9.262263,
+        "p95": 9.262263,
+        "p99": 9.262263
+      },
+      "timestamp": "2026-05-13T12:33:19.531439+00:00",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "mongocore_version": "0.6.0",
+        "driver": "mongocore+python"
+      }
+    },
+    {
+      "benchmark": "insert_one_large",
+      "category": "single_doc",
+      "driver": "mongocore+python",
+      "dataset_size_bytes": 27500380,
+      "batch_size": 10,
+      "iterations": 100,
+      "total_time_secs": 26.531,
+      "ops_per_sec": 37.8,
+      "mb_per_sec": 103.876,
+      "percentiles": {
+        "p10": 0.255542,
+        "p25": 0.25996,
+        "p50": 0.264741,
+        "p75": 0.269958,
+        "p90": 0.274169,
+        "p95": 0.277147,
+        "p99": 0.285973
+      },
+      "timestamp": "2026-05-13T12:33:47.109126+00:00",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "mongocore_version": "0.6.0",
+        "driver": "mongocore+python"
+      }
+    },
+    {
+      "benchmark": "bulk_insert_small",
+      "category": "multi_doc",
+      "driver": "mongocore+python",
+      "dataset_size_bytes": 1760000,
+      "batch_size": 10000,
+      "iterations": 100,
+      "total_time_secs": 8.744,
+      "ops_per_sec": 114858.6,
+      "mb_per_sec": 20.215,
+      "percentiles": {
+        "p10": 0.084118,
+        "p25": 0.08551,
+        "p50": 0.087064,
+        "p75": 0.089007,
+        "p90": 0.091046,
+        "p95": 0.091413,
+        "p99": 0.093734
+      },
+      "timestamp": "2026-05-13T12:33:56.340889+00:00",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "mongocore_version": "0.6.0",
+        "driver": "mongocore+python"
+      }
+    },
+    {
+      "benchmark": "find_many",
+      "category": "multi_doc",
+      "driver": "mongocore+python",
+      "dataset_size_bytes": 352000,
+      "batch_size": 2000,
+      "iterations": 100,
+      "total_time_secs": 0.902,
+      "ops_per_sec": 225271.7,
+      "mb_per_sec": 39.648,
+      "percentiles": {
+        "p10": 0.008251,
+        "p25": 0.008513,
+        "p50": 0.008878,
+        "p75": 0.009349,
+        "p90": 0.010155,
+        "p95": 0.010206,
+        "p99": 0.010598
+      },
+      "timestamp": "2026-05-13T12:33:57.298990+00:00",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "mongocore_version": "0.6.0",
+        "driver": "mongocore+python"
+      }
+    },
+    {
+      "benchmark": "run_command",
+      "category": "single_doc",
+      "driver": "mongodb-java-sync",
+      "dataset_size_bytes": 1000000,
+      "batch_size": 10000,
+      "iterations": 37,
+      "total_time_secs": 61.341,
+      "ops_per_sec": 6001.7,
+      "mb_per_sec": 0.6,
+      "percentiles": {
+        "p10": 1.569967,
+        "p25": 1.60907,
+        "p50": 1.666181,
+        "p75": 1.695704,
+        "p90": 1.737554,
+        "p95": 1.74937,
+        "p99": 1.801322
+      },
+      "timestamp": "2026-05-13T12:53:05.121417Z",
+      "system": {
+        "os": "mac os x",
+        "arch": "aarch64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "native",
+        "driver": "mongodb-java-sync"
+      }
+    },
+    {
+      "benchmark": "find_one_by_id",
+      "category": "single_doc",
+      "driver": "mongodb-java-sync",
+      "dataset_size_bytes": 12470000,
+      "batch_size": 10000,
+      "iterations": 34,
+      "total_time_secs": 61.181,
+      "ops_per_sec": 5557.7,
+      "mb_per_sec": 6.93,
+      "percentiles": {
+        "p10": 1.72313,
+        "p25": 1.771242,
+        "p50": 1.799297,
+        "p75": 1.844298,
+        "p90": 1.867046,
+        "p95": 1.870683,
+        "p99": 1.901521
+      },
+      "timestamp": "2026-05-13T12:54:24.703130Z",
+      "system": {
+        "os": "mac os x",
+        "arch": "aarch64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "native",
+        "driver": "mongodb-java-sync"
+      }
+    },
+    {
+      "benchmark": "insert_one_small",
+      "category": "single_doc",
+      "driver": "mongodb-java-sync",
+      "dataset_size_bytes": 1760000,
+      "batch_size": 10000,
+      "iterations": 13,
+      "total_time_secs": 61.969,
+      "ops_per_sec": 2124.6,
+      "mb_per_sec": 0.374,
+      "percentiles": {
+        "p10": 4.640982,
+        "p25": 4.689194,
+        "p50": 4.706691,
+        "p75": 4.785516,
+        "p90": 5.033737,
+        "p95": 5.078073,
+        "p99": 5.078073
+      },
+      "timestamp": "2026-05-13T12:56:13.419338Z",
+      "system": {
+        "os": "mac os x",
+        "arch": "aarch64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "native",
+        "driver": "mongodb-java-sync"
+      }
+    },
+    {
+      "benchmark": "insert_one_large",
+      "category": "single_doc",
+      "driver": "mongodb-java-sync",
+      "dataset_size_bytes": 27500380,
+      "batch_size": 10,
+      "iterations": 100,
+      "total_time_secs": 32.59,
+      "ops_per_sec": 30.9,
+      "mb_per_sec": 85.005,
+      "percentiles": {
+        "p10": 0.312687,
+        "p25": 0.317008,
+        "p50": 0.323514,
+        "p75": 0.330098,
+        "p90": 0.335578,
+        "p95": 0.34182,
+        "p99": 0.400778
+      },
+      "timestamp": "2026-05-13T12:56:49.468438Z",
+      "system": {
+        "os": "mac os x",
+        "arch": "aarch64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "native",
+        "driver": "mongodb-java-sync"
+      }
+    },
+    {
+      "benchmark": "bulk_insert_small",
+      "category": "multi_doc",
+      "driver": "mongodb-java-sync",
+      "dataset_size_bytes": 1760000,
+      "batch_size": 10000,
+      "iterations": 100,
+      "total_time_secs": 5.415,
+      "ops_per_sec": 187097.3,
+      "mb_per_sec": 32.929,
+      "percentiles": {
+        "p10": 0.050916,
+        "p25": 0.051594,
+        "p50": 0.053448,
+        "p75": 0.055291,
+        "p90": 0.058323,
+        "p95": 0.060442,
+        "p99": 0.0653
+      },
+      "timestamp": "2026-05-13T12:56:55.655421Z",
+      "system": {
+        "os": "mac os x",
+        "arch": "aarch64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "native",
+        "driver": "mongodb-java-sync"
+      }
+    },
+    {
+      "benchmark": "find_many",
+      "category": "multi_doc",
+      "driver": "mongodb-java-sync",
+      "dataset_size_bytes": 1760000,
+      "batch_size": 10000,
+      "iterations": 100,
+      "total_time_secs": 1.88,
+      "ops_per_sec": 522413.7,
+      "mb_per_sec": 91.945,
+      "percentiles": {
+        "p10": 0.017048,
+        "p25": 0.017497,
+        "p50": 0.019142,
+        "p75": 0.019952,
+        "p90": 0.02034,
+        "p95": 0.020762,
+        "p99": 0.02089
+      },
+      "timestamp": "2026-05-13T12:56:57.807322Z",
+      "system": {
+        "os": "mac os x",
+        "arch": "aarch64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "native",
+        "driver": "mongodb-java-sync"
+      }
+    },
+    {
+      "benchmark": "run_command",
+      "category": "single_doc",
+      "driver": "mongo-go-driver",
+      "dataset_size_bytes": 1000000,
+      "batch_size": 10000,
+      "iterations": 35,
+      "total_time_secs": 60.998,
+      "ops_per_sec": 5725.5,
+      "mb_per_sec": 0.573,
+      "percentiles": {
+        "p10": 1.632283,
+        "p25": 1.717063,
+        "p50": 1.746562,
+        "p75": 1.783327,
+        "p90": 1.826282,
+        "p95": 1.851721,
+        "p99": 1.88335
+      },
+      "timestamp": "2026-05-13T12:44:25Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "mongocore_version": "native",
+        "driver": "mongo-go-driver"
+      }
+    },
+    {
+      "benchmark": "find_one_by_id",
+      "category": "single_doc",
+      "driver": "mongo-go-driver",
+      "dataset_size_bytes": 12470000,
+      "batch_size": 10000,
+      "iterations": 34,
+      "total_time_secs": 61.769,
+      "ops_per_sec": 5461.6,
+      "mb_per_sec": 6.811,
+      "percentiles": {
+        "p10": 1.720595,
+        "p25": 1.751102,
+        "p50": 1.830971,
+        "p75": 1.870813,
+        "p90": 1.904732,
+        "p95": 1.93992,
+        "p99": 1.940625
+      },
+      "timestamp": "2026-05-13T12:45:32Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "mongocore_version": "native",
+        "driver": "mongo-go-driver"
+      }
+    },
+    {
+      "benchmark": "insert_one_small",
+      "category": "single_doc",
+      "driver": "mongo-go-driver",
+      "dataset_size_bytes": 1760000,
+      "batch_size": 10000,
+      "iterations": 13,
+      "total_time_secs": 61.06,
+      "ops_per_sec": 2092.7,
+      "mb_per_sec": 0.368,
+      "percentiles": {
+        "p10": 4.364965,
+        "p25": 4.582163,
+        "p50": 4.778531,
+        "p75": 4.836565,
+        "p90": 4.897386,
+        "p95": 4.965598,
+        "p99": 4.965598
+      },
+      "timestamp": "2026-05-13T12:46:48Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "mongocore_version": "native",
+        "driver": "mongo-go-driver"
+      }
+    },
+    {
+      "benchmark": "insert_one_large",
+      "category": "single_doc",
+      "driver": "mongo-go-driver",
+      "dataset_size_bytes": 27500380,
+      "batch_size": 10,
+      "iterations": 100,
+      "total_time_secs": 23.706,
+      "ops_per_sec": 45.9,
+      "mb_per_sec": 126.227,
+      "percentiles": {
+        "p10": 0.205892,
+        "p25": 0.211352,
+        "p50": 0.217864,
+        "p75": 0.224595,
+        "p90": 0.23373,
+        "p95": 0.26823,
+        "p99": 0.394515
+      },
+      "timestamp": "2026-05-13T12:47:12Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "mongocore_version": "native",
+        "driver": "mongo-go-driver"
+      }
+    },
+    {
+      "benchmark": "bulk_insert_small",
+      "category": "multi_doc",
+      "driver": "mongo-go-driver",
+      "dataset_size_bytes": 1760000,
+      "batch_size": 10000,
+      "iterations": 100,
+      "total_time_secs": 7.32,
+      "ops_per_sec": 140825.5,
+      "mb_per_sec": 24.785,
+      "percentiles": {
+        "p10": 0.066865,
+        "p25": 0.068046,
+        "p50": 0.07101,
+        "p75": 0.075338,
+        "p90": 0.077479,
+        "p95": 0.080979,
+        "p99": 0.11363
+      },
+      "timestamp": "2026-05-13T12:47:20Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "mongocore_version": "native",
+        "driver": "mongo-go-driver"
+      }
+    },
+    {
+      "benchmark": "find_many",
+      "category": "multi_doc",
+      "driver": "mongo-go-driver",
+      "dataset_size_bytes": 1760000,
+      "batch_size": 10000,
+      "iterations": 100,
+      "total_time_secs": 3.929,
+      "ops_per_sec": 259145.4,
+      "mb_per_sec": 45.61,
+      "percentiles": {
+        "p10": 0.036834,
+        "p25": 0.037411,
+        "p50": 0.038588,
+        "p75": 0.040855,
+        "p90": 0.04245,
+        "p95": 0.042954,
+        "p99": 0.044373
+      },
+      "timestamp": "2026-05-13T12:47:24Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "mongocore_version": "native",
+        "driver": "mongo-go-driver"
+      }
+    },
+    {
+      "benchmark": "run_command",
+      "category": "single_doc",
+      "driver": "mongocore+go",
+      "dataset_size_bytes": 1000000,
+      "batch_size": 10000,
+      "iterations": 23,
+      "total_time_secs": 61.873,
+      "ops_per_sec": 3718.7,
+      "mb_per_sec": 0.372,
+      "percentiles": {
+        "p10": 2.586095,
+        "p25": 2.652362,
+        "p50": 2.689146,
+        "p75": 2.742969,
+        "p90": 2.772793,
+        "p95": 2.782465,
+        "p99": 2.881523
+      },
+      "timestamp": "2026-05-13T12:48:36Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "mongocore_version": "0.6.0",
+        "driver": "mongocore+go"
+      }
+    },
+    {
+      "benchmark": "find_one_by_id",
+      "category": "single_doc",
+      "driver": "mongocore+go",
+      "dataset_size_bytes": 12470000,
+      "batch_size": 10000,
+      "iterations": 21,
+      "total_time_secs": 61.496,
+      "ops_per_sec": 3431.4,
+      "mb_per_sec": 4.279,
+      "percentiles": {
+        "p10": 2.883193,
+        "p25": 2.891035,
+        "p50": 2.91426,
+        "p75": 2.961764,
+        "p90": 2.984748,
+        "p95": 3.008991,
+        "p99": 3.035868
+      },
+      "timestamp": "2026-05-13T12:49:47Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "mongocore_version": "0.6.0",
+        "driver": "mongocore+go"
+      }
+    },
+    {
+      "benchmark": "insert_one_small",
+      "category": "single_doc",
+      "driver": "mongocore+go",
+      "dataset_size_bytes": 1760000,
+      "batch_size": 10000,
+      "iterations": 11,
+      "total_time_secs": 62.637,
+      "ops_per_sec": 1752,
+      "mb_per_sec": 0.308,
+      "percentiles": {
+        "p10": 5.543539,
+        "p25": 5.586177,
+        "p50": 5.707868,
+        "p75": 5.775243,
+        "p90": 5.891286,
+        "p95": 5.915702,
+        "p99": 5.915702
+      },
+      "timestamp": "2026-05-13T12:51:07Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "mongocore_version": "0.6.0",
+        "driver": "mongocore+go"
+      }
+    },
+    {
+      "benchmark": "insert_one_large",
+      "category": "single_doc",
+      "driver": "mongocore+go",
+      "dataset_size_bytes": 27500380,
+      "batch_size": 10,
+      "iterations": 100,
+      "total_time_secs": 27.066,
+      "ops_per_sec": 37.2,
+      "mb_per_sec": 102.168,
+      "percentiles": {
+        "p10": 0.256796,
+        "p25": 0.26283,
+        "p50": 0.269169,
+        "p75": 0.275699,
+        "p90": 0.281005,
+        "p95": 0.287755,
+        "p99": 0.324086
+      },
+      "timestamp": "2026-05-13T12:51:35Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "mongocore_version": "0.6.0",
+        "driver": "mongocore+go"
+      }
+    },
+    {
+      "benchmark": "bulk_insert_small",
+      "category": "multi_doc",
+      "driver": "mongocore+go",
+      "dataset_size_bytes": 1760000,
+      "batch_size": 10000,
+      "iterations": 100,
+      "total_time_secs": 7.043,
+      "ops_per_sec": 145972.4,
+      "mb_per_sec": 25.691,
+      "percentiles": {
+        "p10": 0.066084,
+        "p25": 0.066868,
+        "p50": 0.068506,
+        "p75": 0.070768,
+        "p90": 0.072405,
+        "p95": 0.073862,
+        "p99": 0.133864
+      },
+      "timestamp": "2026-05-13T12:51:43Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "mongocore_version": "0.6.0",
+        "driver": "mongocore+go"
+      }
+    },
+    {
+      "benchmark": "find_many",
+      "category": "multi_doc",
+      "driver": "mongocore+go",
+      "dataset_size_bytes": 352000,
+      "batch_size": 2000,
+      "iterations": 100,
+      "total_time_secs": 1.323,
+      "ops_per_sec": 152289.1,
+      "mb_per_sec": 26.803,
+      "percentiles": {
+        "p10": 0.012039,
+        "p25": 0.012429,
+        "p50": 0.013133,
+        "p75": 0.013973,
+        "p90": 0.014434,
+        "p95": 0.014889,
+        "p99": 0.01553
+      },
+      "timestamp": "2026-05-13T12:51:44Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "mongocore_version": "0.6.0",
+        "driver": "mongocore+go"
+      }
+    },
+    {
+      "benchmark": "run_command",
+      "category": "single_doc",
+      "driver": "mongocore+java",
+      "dataset_size_bytes": 1000000,
+      "batch_size": 10000,
+      "iterations": 24,
+      "total_time_secs": 62.43,
+      "ops_per_sec": 3848.9,
+      "mb_per_sec": 0.385,
+      "percentiles": {
+        "p10": 2.488885,
+        "p25": 2.54365,
+        "p50": 2.598157,
+        "p75": 2.674063,
+        "p90": 2.686183,
+        "p95": 2.724113,
+        "p99": 2.738467
+      },
+      "timestamp": "2026-05-13T12:58:43.195758Z",
+      "system": {
+        "os": "mac os x",
+        "arch": "aarch64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "0.6.0",
+        "driver": "mongocore+java"
+      }
+    },
+    {
+      "benchmark": "find_one_by_id",
+      "category": "single_doc",
+      "driver": "mongocore+java",
+      "dataset_size_bytes": 12470000,
+      "batch_size": 10000,
+      "iterations": 21,
+      "total_time_secs": 60.846,
+      "ops_per_sec": 3429.5,
+      "mb_per_sec": 4.277,
+      "percentiles": {
+        "p10": 2.829833,
+        "p25": 2.839689,
+        "p50": 2.915915,
+        "p75": 2.933609,
+        "p90": 2.96699,
+        "p95": 2.987283,
+        "p99": 3.020335
+      },
+      "timestamp": "2026-05-13T13:00:12.200904Z",
+      "system": {
+        "os": "mac os x",
+        "arch": "aarch64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "0.6.0",
+        "driver": "mongocore+java"
+      }
+    },
+    {
+      "benchmark": "insert_one_small",
+      "category": "single_doc",
+      "driver": "mongocore+java",
+      "dataset_size_bytes": 1760000,
+      "batch_size": 10000,
+      "iterations": 9,
+      "total_time_secs": 63.58,
+      "ops_per_sec": 1399.6,
+      "mb_per_sec": 0.246,
+      "percentiles": {
+        "p10": 6.694573,
+        "p25": 6.890588,
+        "p50": 7.144916,
+        "p75": 7.189077,
+        "p90": 7.401408,
+        "p95": 7.401408,
+        "p99": 7.401408
+      },
+      "timestamp": "2026-05-13T13:02:22.551887Z",
+      "system": {
+        "os": "mac os x",
+        "arch": "aarch64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "0.6.0",
+        "driver": "mongocore+java"
+      }
+    },
+    {
+      "benchmark": "insert_one_large",
+      "category": "single_doc",
+      "driver": "mongocore+java",
+      "dataset_size_bytes": 27500380,
+      "batch_size": 10,
+      "iterations": 100,
+      "total_time_secs": 32.736,
+      "ops_per_sec": 31.0,
+      "mb_per_sec": 85.198,
+      "percentiles": {
+        "p10": 0.309769,
+        "p25": 0.315484,
+        "p50": 0.322781,
+        "p75": 0.331249,
+        "p90": 0.343201,
+        "p95": 0.366758,
+        "p99": 0.403782
+      },
+      "timestamp": "2026-05-13T13:02:58.715563Z",
+      "system": {
+        "os": "mac os x",
+        "arch": "aarch64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "0.6.0",
+        "driver": "mongocore+java"
+      }
+    },
+    {
+      "benchmark": "bulk_insert_small",
+      "category": "multi_doc",
+      "driver": "mongocore+java",
+      "dataset_size_bytes": 1760000,
+      "batch_size": 10000,
+      "iterations": 100,
+      "total_time_secs": 6.959,
+      "ops_per_sec": 147493.3,
+      "mb_per_sec": 25.959,
+      "percentiles": {
+        "p10": 0.063848,
+        "p25": 0.065773,
+        "p50": 0.0678,
+        "p75": 0.070057,
+        "p90": 0.074795,
+        "p95": 0.083119,
+        "p99": 0.094633
+      },
+      "timestamp": "2026-05-13T13:03:06.686577Z",
+      "system": {
+        "os": "mac os x",
+        "arch": "aarch64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "0.6.0",
+        "driver": "mongocore+java"
+      }
+    },
+    {
+      "benchmark": "find_many",
+      "category": "multi_doc",
+      "driver": "mongocore+java",
+      "dataset_size_bytes": 352000,
+      "batch_size": 2000,
+      "iterations": 100,
+      "total_time_secs": 0.869,
+      "ops_per_sec": 227688.9,
+      "mb_per_sec": 40.073,
+      "percentiles": {
+        "p10": 0.00798,
+        "p25": 0.008254,
+        "p50": 0.008784,
+        "p75": 0.009045,
+        "p90": 0.009389,
+        "p95": 0.009587,
+        "p99": 0.009827
+      },
+      "timestamp": "2026-05-13T13:03:07.702633Z",
+      "system": {
+        "os": "mac os x",
+        "arch": "aarch64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "0.6.0",
+        "driver": "mongocore+java"
+      }
+    },
+    {
+      "benchmark": "run_command",
+      "category": "single_doc",
+      "driver": "mongodb-node",
+      "dataset_size_bytes": 1000000,
+      "batch_size": 10000,
+      "iterations": 29,
+      "total_time_secs": 61.038,
+      "ops_per_sec": 4752.8,
+      "mb_per_sec": 0.475,
+      "percentiles": {
+        "p10": 2.055118,
+        "p25": 2.0863,
+        "p50": 2.10401,
+        "p75": 2.129295,
+        "p90": 2.13834,
+        "p95": 2.175052,
+        "p99": 2.175822
+      },
+      "timestamp": "2026-05-13T12:35:11.268Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "ram_gb": 32,
+        "mongocore_version": "native",
+        "driver": "mongodb-node"
+      }
+    },
+    {
+      "benchmark": "find_one_by_id",
+      "category": "single_doc",
+      "driver": "mongodb-node",
+      "dataset_size_bytes": 11640000,
+      "batch_size": 10000,
+      "iterations": 27,
+      "total_time_secs": 60.498,
+      "ops_per_sec": 4488.1,
+      "mb_per_sec": 5.224,
+      "percentiles": {
+        "p10": 2.165892,
+        "p25": 2.194071,
+        "p50": 2.228106,
+        "p75": 2.285642,
+        "p90": 2.336902,
+        "p95": 2.345103,
+        "p99": 2.364186
+      },
+      "timestamp": "2026-05-13T12:36:23.419Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "ram_gb": 32,
+        "mongocore_version": "native",
+        "driver": "mongodb-node"
+      }
+    },
+    {
+      "benchmark": "insert_one_small",
+      "category": "single_doc",
+      "driver": "mongodb-node",
+      "dataset_size_bytes": 1670000,
+      "batch_size": 10000,
+      "iterations": 12,
+      "total_time_secs": 63.595,
+      "ops_per_sec": 1882,
+      "mb_per_sec": 0.314,
+      "percentiles": {
+        "p10": 5.17353,
+        "p25": 5.174863,
+        "p50": 5.313391,
+        "p75": 5.367535,
+        "p90": 5.390834,
+        "p95": 5.49822,
+        "p99": 5.49822
+      },
+      "timestamp": "2026-05-13T12:37:54.266Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "ram_gb": 32,
+        "mongocore_version": "native",
+        "driver": "mongodb-node"
+      }
+    },
+    {
+      "benchmark": "insert_one_large",
+      "category": "single_doc",
+      "driver": "mongodb-node",
+      "dataset_size_bytes": 27500350,
+      "batch_size": 10,
+      "iterations": 100,
+      "total_time_secs": 22.243,
+      "ops_per_sec": 45.1,
+      "mb_per_sec": 123.979,
+      "percentiles": {
+        "p10": 0.210113,
+        "p25": 0.215371,
+        "p50": 0.221814,
+        "p75": 0.22716,
+        "p90": 0.234567,
+        "p95": 0.237672,
+        "p99": 0.24972
+      },
+      "timestamp": "2026-05-13T12:38:17.948Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "ram_gb": 32,
+        "mongocore_version": "native",
+        "driver": "mongodb-node"
+      }
+    },
+    {
+      "benchmark": "bulk_insert_small",
+      "category": "multi_doc",
+      "driver": "mongodb-node",
+      "dataset_size_bytes": 1670000,
+      "batch_size": 10000,
+      "iterations": 100,
+      "total_time_secs": 4.754,
+      "ops_per_sec": 212198.4,
+      "mb_per_sec": 35.437,
+      "percentiles": {
+        "p10": 0.044227,
+        "p25": 0.045337,
+        "p50": 0.047126,
+        "p75": 0.049018,
+        "p90": 0.050694,
+        "p95": 0.052679,
+        "p99": 0.056143
+      },
+      "timestamp": "2026-05-13T12:38:23.151Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "ram_gb": 32,
+        "mongocore_version": "native",
+        "driver": "mongodb-node"
+      }
+    },
+    {
+      "benchmark": "find_many",
+      "category": "multi_doc",
+      "driver": "mongodb-node",
+      "dataset_size_bytes": 1670000,
+      "batch_size": 10000,
+      "iterations": 100,
+      "total_time_secs": 2.878,
+      "ops_per_sec": 351770,
+      "mb_per_sec": 58.746,
+      "percentiles": {
+        "p10": 0.026701,
+        "p25": 0.027185,
+        "p50": 0.028428,
+        "p75": 0.029924,
+        "p90": 0.031607,
+        "p95": 0.032472,
+        "p99": 0.034774
+      },
+      "timestamp": "2026-05-13T12:38:26.235Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "ram_gb": 32,
+        "mongocore_version": "native",
+        "driver": "mongodb-node"
+      }
+    },
+    {
+      "benchmark": "run_command",
+      "category": "single_doc",
+      "driver": "pymongo",
+      "dataset_size_bytes": 1000000,
+      "batch_size": 10000,
+      "iterations": 28,
+      "total_time_secs": 61.368,
+      "ops_per_sec": 4572.8,
+      "mb_per_sec": 0.457,
+      "percentiles": {
+        "p10": 2.141332,
+        "p25": 2.152572,
+        "p50": 2.186848,
+        "p75": 2.214646,
+        "p90": 2.253393,
+        "p95": 2.270838,
+        "p99": 2.281775
+      },
+      "timestamp": "2026-05-13T12:25:45.527822+00:00",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "native",
+        "driver": "pymongo"
+      }
+    },
+    {
+      "benchmark": "find_one_by_id",
+      "category": "single_doc",
+      "driver": "pymongo",
+      "dataset_size_bytes": 12470000,
+      "batch_size": 10000,
+      "iterations": 25,
+      "total_time_secs": 62.234,
+      "ops_per_sec": 4034.2,
+      "mb_per_sec": 5.031,
+      "percentiles": {
+        "p10": 2.432311,
+        "p25": 2.446315,
+        "p50": 2.478801,
+        "p75": 2.520755,
+        "p90": 2.55897,
+        "p95": 2.574542,
+        "p99": 2.615389
+      },
+      "timestamp": "2026-05-13T12:26:55.624868+00:00",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "native",
+        "driver": "pymongo"
+      }
+    },
+    {
+      "benchmark": "insert_one_small",
+      "category": "single_doc",
+      "driver": "pymongo",
+      "dataset_size_bytes": 1760000,
+      "batch_size": 10000,
+      "iterations": 24,
+      "total_time_secs": 62.278,
+      "ops_per_sec": 3872.7,
+      "mb_per_sec": 0.682,
+      "percentiles": {
+        "p10": 2.505699,
+        "p25": 2.545348,
+        "p50": 2.582203,
+        "p75": 2.619729,
+        "p90": 2.670615,
+        "p95": 2.744904,
+        "p99": 2.810234
+      },
+      "timestamp": "2026-05-13T12:28:05.884720+00:00",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "native",
+        "driver": "pymongo"
+      }
+    },
+    {
+      "benchmark": "insert_one_large",
+      "category": "single_doc",
+      "driver": "pymongo",
+      "dataset_size_bytes": 27500380,
+      "batch_size": 10,
+      "iterations": 100,
+      "total_time_secs": 23.899,
+      "ops_per_sec": 43.3,
+      "mb_per_sec": 118.945,
+      "percentiles": {
+        "p10": 0.220583,
+        "p25": 0.225546,
+        "p50": 0.231202,
+        "p75": 0.248319,
+        "p90": 0.267151,
+        "p95": 0.277144,
+        "p99": 0.290759
+      },
+      "timestamp": "2026-05-13T12:28:30.638724+00:00",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "native",
+        "driver": "pymongo"
+      }
+    },
+    {
+      "benchmark": "bulk_insert_small",
+      "category": "multi_doc",
+      "driver": "pymongo",
+      "dataset_size_bytes": 1760000,
+      "batch_size": 10000,
+      "iterations": 100,
+      "total_time_secs": 6.147,
+      "ops_per_sec": 165573.6,
+      "mb_per_sec": 29.141,
+      "percentiles": {
+        "p10": 0.057345,
+        "p25": 0.058921,
+        "p50": 0.060396,
+        "p75": 0.063519,
+        "p90": 0.065107,
+        "p95": 0.066625,
+        "p99": 0.068892
+      },
+      "timestamp": "2026-05-13T12:28:37.065063+00:00",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "native",
+        "driver": "pymongo"
+      }
+    },
+    {
+      "benchmark": "bulk_insert_large",
+      "category": "multi_doc",
+      "driver": "pymongo",
+      "dataset_size_bytes": 27500380,
+      "batch_size": 10,
+      "iterations": 100,
+      "total_time_secs": 21.177,
+      "ops_per_sec": 47.1,
+      "mb_per_sec": 129.627,
+      "percentiles": {
+        "p10": 0.202838,
+        "p25": 0.207995,
+        "p50": 0.212151,
+        "p75": 0.215501,
+        "p90": 0.217688,
+        "p95": 0.218815,
+        "p99": 0.225567
+      },
+      "timestamp": "2026-05-13T12:28:59.040465+00:00",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "native",
+        "driver": "pymongo"
+      }
+    },
+    {
+      "benchmark": "find_many",
+      "category": "multi_doc",
+      "driver": "pymongo",
+      "dataset_size_bytes": 1760000,
+      "batch_size": 10000,
+      "iterations": 100,
+      "total_time_secs": 2.61,
+      "ops_per_sec": 395683.7,
+      "mb_per_sec": 69.64,
+      "percentiles": {
+        "p10": 0.023522,
+        "p25": 0.024225,
+        "p50": 0.025273,
+        "p75": 0.026493,
+        "p90": 0.029397,
+        "p95": 0.030149,
+        "p99": 0.032821
+      },
+      "timestamp": "2026-05-13T12:29:01.800105+00:00",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "native",
+        "driver": "pymongo"
+      }
+    },
+    {
+      "benchmark": "find_many_large",
+      "category": "multi_doc",
+      "driver": "pymongo",
+      "dataset_size_bytes": 27500380,
+      "batch_size": 10,
+      "iterations": 100,
+      "total_time_secs": 17.766,
+      "ops_per_sec": 56.1,
+      "mb_per_sec": 154.149,
+      "percentiles": {
+        "p10": 0.172333,
+        "p25": 0.175068,
+        "p50": 0.178402,
+        "p75": 0.180115,
+        "p90": 0.181426,
+        "p95": 0.182294,
+        "p99": 0.186631
+      },
+      "timestamp": "2026-05-13T12:29:20.313869+00:00",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "ram_gb": 32.0,
+        "mongocore_version": "native",
+        "driver": "pymongo"
+      }
+    },
+    {
+      "benchmark": "native_bulk_1mb_csv",
+      "category": "ingestion",
+      "driver": "pymongo_native",
+      "dataset_size_bytes": 822271,
+      "batch_size": 8333,
+      "iterations": 5,
+      "total_time_secs": 0.245,
+      "ops_per_sec": 178847.7,
+      "mb_per_sec": 17.648,
+      "percentiles": {
+        "p50": 0.0466
+      },
+      "timestamp": "2026-05-13T13:03:09.519598+00:00",
+      "system": {
+        "driver": "pymongo_native",
+        "operation": "insertMany",
+        "file_size": "1mb",
+        "format": "csv"
+      }
+    },
+    {
+      "benchmark": "mongocore_ingest_1mb_csv",
+      "category": "ingestion",
+      "driver": "mongocore+polars",
+      "dataset_size_bytes": 822271,
+      "batch_size": 1,
+      "iterations": 5,
+      "total_time_secs": 0.538,
+      "ops_per_sec": 9.442,
+      "mb_per_sec": 7.764,
+      "percentiles": {
+        "p50": 0.1059
+      },
+      "timestamp": "2026-05-13T13:03:10.137466+00:00",
+      "system": {
+        "driver": "mongocore+polars",
+        "operation": "ingest",
+        "file_size": "1mb",
+        "format": "csv"
+      }
+    },
+    {
+      "benchmark": "native_bulk_1mb_ndjson",
+      "category": "ingestion",
+      "driver": "pymongo_native",
+      "dataset_size_bytes": 947636,
+      "batch_size": 5555,
+      "iterations": 5,
+      "total_time_secs": 0.171,
+      "ops_per_sec": 167309.8,
+      "mb_per_sec": 28.542,
+      "percentiles": {
+        "p50": 0.0332
+      },
+      "timestamp": "2026-05-13T13:03:10.328358+00:00",
+      "system": {
+        "driver": "pymongo_native",
+        "operation": "insertMany",
+        "file_size": "1mb",
+        "format": "ndjson"
+      }
+    },
+    {
+      "benchmark": "mongocore_ingest_1mb_ndjson",
+      "category": "ingestion",
+      "driver": "mongocore+polars",
+      "dataset_size_bytes": 947636,
+      "batch_size": 1,
+      "iterations": 5,
+      "total_time_secs": 0.546,
+      "ops_per_sec": 9.139,
+      "mb_per_sec": 8.66,
+      "percentiles": {
+        "p50": 0.1094
+      },
+      "timestamp": "2026-05-13T13:03:10.892869+00:00",
+      "system": {
+        "driver": "mongocore+polars",
+        "operation": "ingest",
+        "file_size": "1mb",
+        "format": "ndjson"
+      }
+    },
+    {
+      "benchmark": "native_bulk_10mb_csv",
+      "category": "ingestion",
+      "driver": "pymongo_native",
+      "dataset_size_bytes": 8305366,
+      "batch_size": 83333,
+      "iterations": 5,
+      "total_time_secs": 2.211,
+      "ops_per_sec": 194820.9,
+      "mb_per_sec": 19.417,
+      "percentiles": {
+        "p50": 0.4277
+      },
+      "timestamp": "2026-05-13T13:03:13.238204+00:00",
+      "system": {
+        "driver": "pymongo_native",
+        "operation": "insertMany",
+        "file_size": "10mb",
+        "format": "csv"
+      }
+    },
+    {
+      "benchmark": "mongocore_ingest_10mb_csv",
+      "category": "ingestion",
+      "driver": "mongocore+polars",
+      "dataset_size_bytes": 8305366,
+      "batch_size": 1,
+      "iterations": 5,
+      "total_time_secs": 4.035,
+      "ops_per_sec": 1.287,
+      "mb_per_sec": 10.689,
+      "percentiles": {
+        "p50": 0.777
+      },
+      "timestamp": "2026-05-13T13:03:17.301340+00:00",
+      "system": {
+        "driver": "mongocore+polars",
+        "operation": "ingest",
+        "file_size": "10mb",
+        "format": "csv"
+      }
+    },
+    {
+      "benchmark": "native_bulk_10mb_ndjson",
+      "category": "ingestion",
+      "driver": "pymongo_native",
+      "dataset_size_bytes": 9533272,
+      "batch_size": 55555,
+      "iterations": 5,
+      "total_time_secs": 1.531,
+      "ops_per_sec": 187825.4,
+      "mb_per_sec": 32.231,
+      "percentiles": {
+        "p50": 0.2958
+      },
+      "timestamp": "2026-05-13T13:03:18.968123+00:00",
+      "system": {
+        "driver": "pymongo_native",
+        "operation": "insertMany",
+        "file_size": "10mb",
+        "format": "ndjson"
+      }
+    },
+    {
+      "benchmark": "mongocore_ingest_10mb_ndjson",
+      "category": "ingestion",
+      "driver": "mongocore+polars",
+      "dataset_size_bytes": 9533272,
+      "batch_size": 1,
+      "iterations": 5,
+      "total_time_secs": 2.897,
+      "ops_per_sec": 1.726,
+      "mb_per_sec": 16.455,
+      "percentiles": {
+        "p50": 0.5793
+      },
+      "timestamp": "2026-05-13T13:03:21.895946+00:00",
+      "system": {
+        "driver": "mongocore+polars",
+        "operation": "ingest",
+        "file_size": "10mb",
+        "format": "ndjson"
+      }
+    },
+    {
+      "benchmark": "native_bulk_100mb_csv",
+      "category": "ingestion",
+      "driver": "pymongo_native",
+      "dataset_size_bytes": 83889486,
+      "batch_size": 833333,
+      "iterations": 3,
+      "total_time_secs": 14.228,
+      "ops_per_sec": 199439.8,
+      "mb_per_sec": 20.077,
+      "percentiles": {
+        "p50": 4.1784
+      },
+      "timestamp": "2026-05-13T13:03:37.296054+00:00",
+      "system": {
+        "driver": "pymongo_native",
+        "operation": "insertMany",
+        "file_size": "100mb",
+        "format": "csv"
+      }
+    },
+    {
+      "benchmark": "mongocore_ingest_100mb_csv",
+      "category": "ingestion",
+      "driver": "mongocore+polars",
+      "dataset_size_bytes": 83889486,
+      "batch_size": 1,
+      "iterations": 3,
+      "total_time_secs": 23.165,
+      "ops_per_sec": 0.128,
+      "mb_per_sec": 10.772,
+      "percentiles": {
+        "p50": 7.7877
+      },
+      "timestamp": "2026-05-13T13:04:00.583273+00:00",
+      "system": {
+        "driver": "mongocore+polars",
+        "operation": "ingest",
+        "file_size": "100mb",
+        "format": "csv"
+      }
+    },
+    {
+      "benchmark": "native_bulk_100mb_ndjson",
+      "category": "ingestion",
+      "driver": "pymongo_native",
+      "dataset_size_bytes": 95889263,
+      "batch_size": 555555,
+      "iterations": 3,
+      "total_time_secs": 9.974,
+      "ops_per_sec": 182121.4,
+      "mb_per_sec": 31.434,
+      "percentiles": {
+        "p50": 3.0505
+      },
+      "timestamp": "2026-05-13T13:04:12.489731+00:00",
+      "system": {
+        "driver": "pymongo_native",
+        "operation": "insertMany",
+        "file_size": "100mb",
+        "format": "ndjson"
+      }
+    },
+    {
+      "benchmark": "mongocore_ingest_100mb_ndjson",
+      "category": "ingestion",
+      "driver": "mongocore+polars",
+      "dataset_size_bytes": 95889263,
+      "batch_size": 1,
+      "iterations": 3,
+      "total_time_secs": 16.686,
+      "ops_per_sec": 0.18,
+      "mb_per_sec": 17.238,
+      "percentiles": {
+        "p50": 5.5626
+      },
+      "timestamp": "2026-05-13T13:04:29.284169+00:00",
+      "system": {
+        "driver": "mongocore+polars",
+        "operation": "ingest",
+        "file_size": "100mb",
+        "format": "ndjson"
+      }
+    },
+    {
+      "benchmark": "run_command",
+      "category": "single_doc",
+      "driver": "mongocore+typescript",
+      "dataset_size_bytes": 1000000,
+      "batch_size": 10000,
+      "iterations": 19,
+      "total_time_secs": 61.56,
+      "ops_per_sec": 3082,
+      "mb_per_sec": 0.308,
+      "percentiles": {
+        "p10": 3.140068,
+        "p25": 3.213976,
+        "p50": 3.244698,
+        "p75": 3.294771,
+        "p90": 3.304648,
+        "p95": 3.317441,
+        "p99": 3.317441
+      },
+      "timestamp": "2026-05-13T12:39:45.419Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "driver": "mongocore+typescript",
+        "mongocore_version": "0.6.0"
+      }
+    },
+    {
+      "benchmark": "find_one_by_id",
+      "category": "single_doc",
+      "driver": "mongocore+typescript",
+      "dataset_size_bytes": 11640000,
+      "batch_size": 10000,
+      "iterations": 18,
+      "total_time_secs": 60.949,
+      "ops_per_sec": 2947.5,
+      "mb_per_sec": 3.431,
+      "percentiles": {
+        "p10": 3.278766,
+        "p25": 3.293389,
+        "p50": 3.392704,
+        "p75": 3.44178,
+        "p90": 3.522928,
+        "p95": 3.545469,
+        "p99": 3.545469
+      },
+      "timestamp": "2026-05-13T12:41:03.743Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "driver": "mongocore+typescript",
+        "mongocore_version": "0.6.0"
+      }
+    },
+    {
+      "benchmark": "insert_one_small",
+      "category": "single_doc",
+      "driver": "mongocore+typescript",
+      "dataset_size_bytes": 1670000,
+      "batch_size": 10000,
+      "iterations": 9,
+      "total_time_secs": 61.161,
+      "ops_per_sec": 1456.8,
+      "mb_per_sec": 0.243,
+      "percentiles": {
+        "p10": 6.392351,
+        "p25": 6.647999,
+        "p50": 6.864368,
+        "p75": 6.919817,
+        "p90": 7.048727,
+        "p95": 7.048727,
+        "p99": 7.048727
+      },
+      "timestamp": "2026-05-13T12:42:39.371Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "driver": "mongocore+typescript",
+        "mongocore_version": "0.6.0"
+      }
+    },
+    {
+      "benchmark": "insert_one_large",
+      "category": "single_doc",
+      "driver": "mongocore+typescript",
+      "dataset_size_bytes": 27500350,
+      "batch_size": 10,
+      "iterations": 100,
+      "total_time_secs": 26.698,
+      "ops_per_sec": 37.7,
+      "mb_per_sec": 103.78,
+      "percentiles": {
+        "p10": 0.24633,
+        "p25": 0.253743,
+        "p50": 0.264987,
+        "p75": 0.276852,
+        "p90": 0.285915,
+        "p95": 0.296426,
+        "p99": 0.313649
+      },
+      "timestamp": "2026-05-13T12:43:07.610Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "driver": "mongocore+typescript",
+        "mongocore_version": "0.6.0"
+      }
+    },
+    {
+      "benchmark": "bulk_insert_small",
+      "category": "multi_doc",
+      "driver": "mongocore+typescript",
+      "dataset_size_bytes": 1670000,
+      "batch_size": 10000,
+      "iterations": 100,
+      "total_time_secs": 7.519,
+      "ops_per_sec": 136921,
+      "mb_per_sec": 22.866,
+      "percentiles": {
+        "p10": 0.070772,
+        "p25": 0.071721,
+        "p50": 0.073035,
+        "p75": 0.076048,
+        "p90": 0.083532,
+        "p95": 0.090711,
+        "p99": 0.095426
+      },
+      "timestamp": "2026-05-13T12:43:15.754Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "driver": "mongocore+typescript",
+        "mongocore_version": "0.6.0"
+      }
+    },
+    {
+      "benchmark": "find_many",
+      "category": "multi_doc",
+      "driver": "mongocore+typescript",
+      "dataset_size_bytes": 334000,
+      "batch_size": 2000,
+      "iterations": 100,
+      "total_time_secs": 0.767,
+      "ops_per_sec": 262973.3,
+      "mb_per_sec": 43.917,
+      "percentiles": {
+        "p10": 0.007163,
+        "p25": 0.007356,
+        "p50": 0.007605,
+        "p75": 0.007917,
+        "p90": 0.008237,
+        "p95": 0.008455,
+        "p99": 0.008641
+      },
+      "timestamp": "2026-05-13T12:43:16.585Z",
+      "system": {
+        "os": "darwin",
+        "arch": "arm64",
+        "cpus": 12,
+        "driver": "mongocore+typescript",
+        "mongocore_version": "0.6.0"
+      }
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 """MongoCore Python client."""
 
+import os
 import grpc
 from typing import Optional
 from .database import Database
@@ -7,21 +8,50 @@ from .sidecar import SidecarManager
 
 _CLIENT_METADATA = [("x-client-language", "python")]
 
+DEFAULT_SOCKET_PATH = "/tmp/mongocore.sock"
+DEFAULT_ADDRESS = "localhost:50051"
+
 
 class MongoClient:
     """Client for connecting to a MongoCore sidecar.
 
+    Connection priority (auto-discovery when no explicit config):
+      1. MONGOCORE_SOCKET_PATH env var → UDS
+      2. /tmp/mongocore.sock exists → UDS
+      3. MONGOCORE_ADDRESS env var → TCP
+      4. localhost:50051 → TCP
+
     Usage:
-        client = MongoClient("localhost:50051")
-        db = client["mydb"]
-        result = await db["users"].find({"active": True})
+        # Auto-discover (prefers UDS, falls back to TCP)
+        client = MongoClient()
+
+        # Explicit UDS
+        client = MongoClient(socket_path="/tmp/mongocore.sock")
+
+        # Explicit TCP
+        client = MongoClient(address="custom-host:50051")
     """
 
-    def __init__(self, address: str = "localhost:50051", *, auto_spawn: bool = False):
+    def __init__(
+        self,
+        address: Optional[str] = None,
+        *,
+        socket_path: Optional[str] = None,
+        auto_spawn: bool = False,
+        max_message_size: int = 64 * 1024 * 1024,
+    ):
         self._address = address
+        self._socket_path = socket_path
         self._auto_spawn = auto_spawn
+        self._max_message_size = max_message_size
         self._sidecar = None
         self._channel = None
+        self._transport = None
+
+    @property
+    def transport(self) -> Optional[str]:
+        """The transport in use after connect(): 'uds' or 'tcp'."""
+        return self._transport
 
     async def connect(self):
         """Connect to the MongoCore sidecar."""
@@ -29,9 +59,45 @@ class MongoClient:
             self._sidecar = SidecarManager()
             await self._sidecar.ensure_running()
 
-        self._channel = grpc.aio.insecure_channel(self._address)
+        options = [
+            ("grpc.max_send_message_length", self._max_message_size),
+            ("grpc.max_receive_message_length", self._max_message_size),
+        ]
+
+        target = self._resolve_target()
+        self._channel = grpc.aio.insecure_channel(target, options=options)
         await self._channel.channel_ready()
         return self
+
+    def _resolve_target(self) -> str:
+        """Resolve the gRPC target using auto-discovery."""
+        # Explicit socket_path takes highest priority
+        if self._socket_path:
+            self._transport = "uds"
+            return f"unix://{self._socket_path}"
+
+        # Explicit address (no socket_path) → TCP
+        if self._address:
+            self._transport = "tcp"
+            return self._address
+
+        # Auto-discovery
+        env_socket = os.environ.get("MONGOCORE_SOCKET_PATH")
+        if env_socket:
+            self._transport = "uds"
+            return f"unix://{env_socket}"
+
+        if os.path.exists(DEFAULT_SOCKET_PATH):
+            self._transport = "uds"
+            return f"unix://{DEFAULT_SOCKET_PATH}"
+
+        env_addr = os.environ.get("MONGOCORE_ADDRESS")
+        if env_addr:
+            self._transport = "tcp"
+            return env_addr
+
+        self._transport = "tcp"
+        return DEFAULT_ADDRESS
 
     async def close(self):
         """Close the connection."""

@@ -1,0 +1,170 @@
+[
+  {
+    "benchmark": "run_command",
+    "category": "single_doc",
+    "driver": "mongocore+python",
+    "dataset_size_bytes": 1000000,
+    "batch_size": 10000,
+    "iterations": 14,
+    "total_time_secs": 61.575,
+    "ops_per_sec": 2293.0,
+    "mb_per_sec": 0.229,
+    "percentiles": {
+      "p10": 4.2614,
+      "p25": 4.293208,
+      "p50": 4.361171,
+      "p75": 4.469072,
+      "p90": 4.580236,
+      "p95": 4.775559,
+      "p99": 4.775559
+    },
+    "timestamp": "2026-05-13T12:30:36.021703+00:00",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "mongocore_version": "0.6.0",
+      "driver": "mongocore+python"
+    }
+  },
+  {
+    "benchmark": "find_one_by_id",
+    "category": "single_doc",
+    "driver": "mongocore+python",
+    "dataset_size_bytes": 12470000,
+    "batch_size": 10000,
+    "iterations": 12,
+    "total_time_secs": 60.091,
+    "ops_per_sec": 2026.2,
+    "mb_per_sec": 2.527,
+    "percentiles": {
+      "p10": 4.845886,
+      "p25": 4.856535,
+      "p50": 4.935318,
+      "p75": 5.094858,
+      "p90": 5.302551,
+      "p95": 5.381425,
+      "p99": 5.381425
+    },
+    "timestamp": "2026-05-13T12:31:51.086664+00:00",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "mongocore_version": "0.6.0",
+      "driver": "mongocore+python"
+    }
+  },
+  {
+    "benchmark": "insert_one_small",
+    "category": "single_doc",
+    "driver": "mongocore+python",
+    "dataset_size_bytes": 1760000,
+    "batch_size": 10000,
+    "iterations": 7,
+    "total_time_secs": 61.315,
+    "ops_per_sec": 1152.7,
+    "mb_per_sec": 0.203,
+    "percentiles": {
+      "p10": 8.43317,
+      "p25": 8.586679,
+      "p50": 8.675112,
+      "p75": 9.074721,
+      "p90": 9.262263,
+      "p95": 9.262263,
+      "p99": 9.262263
+    },
+    "timestamp": "2026-05-13T12:33:19.531439+00:00",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "mongocore_version": "0.6.0",
+      "driver": "mongocore+python"
+    }
+  },
+  {
+    "benchmark": "insert_one_large",
+    "category": "single_doc",
+    "driver": "mongocore+python",
+    "dataset_size_bytes": 27500380,
+    "batch_size": 10,
+    "iterations": 100,
+    "total_time_secs": 26.531,
+    "ops_per_sec": 37.8,
+    "mb_per_sec": 103.876,
+    "percentiles": {
+      "p10": 0.255542,
+      "p25": 0.25996,
+      "p50": 0.264741,
+      "p75": 0.269958,
+      "p90": 0.274169,
+      "p95": 0.277147,
+      "p99": 0.285973
+    },
+    "timestamp": "2026-05-13T12:33:47.109126+00:00",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "mongocore_version": "0.6.0",
+      "driver": "mongocore+python"
+    }
+  },
+  {
+    "benchmark": "bulk_insert_small",
+    "category": "multi_doc",
+    "driver": "mongocore+python",
+    "dataset_size_bytes": 1760000,
+    "batch_size": 10000,
+    "iterations": 100,
+    "total_time_secs": 8.744,
+    "ops_per_sec": 114858.6,
+    "mb_per_sec": 20.215,
+    "percentiles": {
+      "p10": 0.084118,
+      "p25": 0.08551,
+      "p50": 0.087064,
+      "p75": 0.089007,
+      "p90": 0.091046,
+      "p95": 0.091413,
+      "p99": 0.093734
+    },
+    "timestamp": "2026-05-13T12:33:56.340889+00:00",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "mongocore_version": "0.6.0",
+      "driver": "mongocore+python"
+    }
+  },
+  {
+    "benchmark": "find_many",
+    "category": "multi_doc",
+    "driver": "mongocore+python",
+    "dataset_size_bytes": 352000,
+    "batch_size": 2000,
+    "iterations": 100,
+    "total_time_secs": 0.902,
+    "ops_per_sec": 225271.7,
+    "mb_per_sec": 39.648,
+    "percentiles": {
+      "p10": 0.008251,
+      "p25": 0.008513,
+      "p50": 0.008878,
+      "p75": 0.009349,
+      "p90": 0.010155,
+      "p95": 0.010206,
+      "p99": 0.010598
+    },
+    "timestamp": "2026-05-13T12:33:57.298990+00:00",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "mongocore_version": "0.6.0",
+      "driver": "mongocore+python"
+    }
+  }
+]

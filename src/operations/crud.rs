@@ -71,6 +71,20 @@ impl Operations {
         Ok(docs)
     }
 
+    /// Find documents and return the raw cursor for streaming.
+    pub async fn find_cursor(
+        &self,
+        db: &str,
+        collection: &str,
+        filter: Document,
+        options: Option<FindOptions>,
+    ) -> Result<mongodb::Cursor<Document>> {
+        let coll = self.pool.collection(db, collection);
+        let driver_opts = options.map(|o| o.to_driver_options());
+        let cursor = coll.find(filter).with_options(driver_opts).await?;
+        Ok(cursor)
+    }
+
     /// Find a single document matching the filter.
     pub async fn find_one(
         &self,

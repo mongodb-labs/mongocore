@@ -24,7 +24,10 @@ MAX_ITERS = CONFIG["max_iterations"]
 MAX_TIME = CONFIG["max_time_secs"]
 DB_NAME = CONFIG["database"]
 ADDR = CONFIG["mongocore_address"]
+SOCKET_PATH = CONFIG.get("mongocore_socket_path", "/tmp/mongocore.sock")
 
+
+_ACTUAL_TRANSPORT = "tcp"
 
 def get_system_info():
     return {
@@ -33,13 +36,30 @@ def get_system_info():
         "cpus": os.cpu_count(),
         "mongocore_version": "0.6.0",
         "driver": "mongocore+python",
+        "transport": _ACTUAL_TRANSPORT,
     }
 
 
 async def run_benchmark(name, category, setup_fn, before_task_fn, task_fn, after_task_fn, teardown_fn, dataset_size_bytes, batch_size=1):
     """Run a benchmark following MongoDB spec methodology."""
-    client = MongoClient(ADDR)
-    await client.connect()
+    # Try UDS first if socket exists, fall back to TCP on connection issues
+    client = None
+    if os.path.exists(SOCKET_PATH):
+        try:
+            client = MongoClient(ADDR, socket_path=SOCKET_PATH)
+            await client.connect()
+            # Quick smoke test to verify UDS actually works
+            await client.run_command("admin", {"hello": 1})
+        except Exception:
+            await client.close() if client else None
+            client = None
+
+    if client is None:
+        client = MongoClient(ADDR)
+        await client.connect()
+    else:
+        global _ACTUAL_TRANSPORT
+        _ACTUAL_TRANSPORT = "uds"
 
     await setup_fn(client)
 
@@ -110,7 +130,7 @@ async def run_benchmark(name, category, setup_fn, before_task_fn, task_fn, after
 
 
 async def main():
-    print("=== MongoCore+Python benchmarks ===")
+    print(f"=== MongoCore+Python benchmarks (will try UDS then TCP) ===")
     results = []
 
     small_doc = json.loads((DATA_DIR / "small_doc.json").read_text())
@@ -230,16 +250,14 @@ async def main():
         dataset_size_bytes=small_size * 10_000, batch_size=10_000,
     ))
 
-    # Find Many (2K docs — limited by gRPC 4MB message size)
-    # NOTE: Native pymongo does 10K but proto-encoded response exceeds 4MB at higher counts
-    # TODO: Increase gRPC max_receive_message_length or implement response streaming
+    # Find Many (10K docs — now enabled with 64MB message limit)
     async def setup_find_many(c):
         from bson import ObjectId
         try:
             await c.run_command(DB_NAME, {"drop": "bench_find_many_mc"})
         except:
             pass
-        docs = [{**small_doc, "_id": str(ObjectId())} for _ in range(2_000)]
+        docs = [{**small_doc, "_id": str(ObjectId())} for _ in range(10_000)]
         await c[DB_NAME]["bench_find_many_mc"].insert_many(docs)
 
     async def task_find_many(c):
@@ -252,16 +270,53 @@ async def main():
         task_fn=task_find_many,
         after_task_fn=lambda c: asyncio.sleep(0),
         teardown_fn=lambda c: asyncio.sleep(0),
-        dataset_size_bytes=small_size * 2_000, batch_size=2_000,
+        dataset_size_bytes=small_size * 10_000, batch_size=10_000,
     ))
 
-    # Bulk Insert Large — SKIPPED: exceeds gRPC default 4MB message limit (10 x 2.75MB = 27.5MB)
-    # TODO: Increase gRPC max_message_size in MongoCore config to enable this benchmark
-    print("  bulk_insert_large: SKIPPED (exceeds gRPC 4MB message limit)")
+    # Bulk Insert Large (10 x 2.75MB docs per iteration — enabled with 64MB message limit)
+    async def task_bulk_large(c):
+        from bson import ObjectId
+        docs = [{**large_doc, "_id": str(ObjectId())} for _ in range(10)]
+        await c[DB_NAME]["bench_bulk_large_mc"].insert_many(docs)
 
-    # Find Many Large — SKIPPED: 10 x 2.75MB = 27.5MB response exceeds gRPC 4MB limit
-    # TODO: Implement streaming/pagination in MongoCore Find RPC to handle large result sets
-    print("  find_many_large: SKIPPED (response exceeds gRPC 4MB message limit)")
+    async def before_bulk_large(c):
+        try:
+            await c.run_command(DB_NAME, {"drop": "bench_bulk_large_mc"})
+        except:
+            pass
+
+    results.append(await run_benchmark(
+        "bulk_insert_large", "multi_doc",
+        setup_fn=lambda c: asyncio.sleep(0),
+        before_task_fn=before_bulk_large,
+        task_fn=task_bulk_large,
+        after_task_fn=lambda c: asyncio.sleep(0),
+        teardown_fn=lambda c: asyncio.sleep(0),
+        dataset_size_bytes=large_size * 10, batch_size=10,
+    ))
+
+    # Find Many Large (10 x 2.75MB docs — enabled with 64MB message limit)
+    async def setup_find_many_large(c):
+        from bson import ObjectId
+        try:
+            await c.run_command(DB_NAME, {"drop": "bench_find_many_large_mc"})
+        except:
+            pass
+        docs = [{**large_doc, "_id": str(ObjectId())} for _ in range(10)]
+        await c[DB_NAME]["bench_find_many_large_mc"].insert_many(docs)
+
+    async def task_find_many_large(c):
+        await c[DB_NAME]["bench_find_many_large_mc"].find({})
+
+    results.append(await run_benchmark(
+        "find_many_large", "multi_doc",
+        setup_fn=setup_find_many_large,
+        before_task_fn=lambda c: asyncio.sleep(0),
+        task_fn=task_find_many_large,
+        after_task_fn=lambda c: asyncio.sleep(0),
+        teardown_fn=lambda c: asyncio.sleep(0),
+        dataset_size_bytes=large_size * 10, batch_size=10,
+    ))
 
     # Save results
     output_path = RESULTS_DIR / "python_mongocore.json"

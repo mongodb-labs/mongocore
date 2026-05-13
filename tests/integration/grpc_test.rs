@@ -8,7 +8,7 @@ use mongocore::grpc::proto::{
     InsertRequest, ListDatabasesRequest, UpdateRequest,
 };
 use mongocore::grpc::proto::{Document, Filter, IndexOptions, Pipeline};
-use mongocore::grpc::start_grpc_server;
+use mongocore::grpc::{start_grpc_server, GrpcServerConfig};
 
 #[path = "../harness/mod.rs"]
 mod harness;
@@ -50,7 +50,7 @@ async fn start_test_server() -> MongoCoreClient<tonic::transport::Channel> {
     drop(listener);
 
     // Start the gRPC server
-    let _handle = start_grpc_server(pool, port, None, None, None, None);
+    let _handle = start_grpc_server(pool, GrpcServerConfig { port, transport: "tcp".to_string(), socket_path: "/tmp/mongocore.sock".to_string(), socket_permissions: 0o600, max_message_size: 64 * 1024 * 1024, compression: "none".to_string(), stream_idle_timeout_secs: 60 }, None, None, None, None);
 
     // Give the server time to bind
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;

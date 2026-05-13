@@ -124,3 +124,63 @@ For `UPDATE` events, `update_description` contains the specific fields that chan
 - The stream automatically resumes from the last received event if the connection drops
 - Use the pipeline parameter to filter events server-side for efficiency
 - An `INVALIDATE` event terminates the stream (e.g., when the watched collection is dropped)
+
+---
+
+## Bulk Streaming RPCs
+
+Separate from change streams, MongoCore provides streaming RPCs for large result sets and bulk data transfer. These eliminate message size constraints by sending data in configurable batches (default: 1000 documents per frame).
+
+### FindStream
+
+Server-streaming RPC for large query results. Instead of returning all documents in a single response (limited by message size), `FindStream` sends documents in batches:
+
+```protobuf
+rpc FindStream(FindStreamRequest) returns (stream FindStreamResponse);
+```
+
+Use when a `Find` would exceed the gRPC message limit or when you want to process results incrementally without loading everything into memory.
+
+### AggregateStream
+
+Server-streaming RPC for aggregation pipelines that produce large result sets:
+
+```protobuf
+rpc AggregateStream(AggregateStreamRequest) returns (stream AggregateStreamResponse);
+```
+
+Same benefits as `FindStream` — results arrive in batches, no message size limit.
+
+### InsertManyStream
+
+Server-streaming RPC for bulk inserts with progress reporting:
+
+```protobuf
+rpc InsertManyStream(InsertManyStreamRequest) returns (stream InsertManyStreamResponse);
+```
+
+Sends acknowledgments as batches are written, allowing clients to track progress on large inserts.
+
+### InsertManyBidi
+
+Bidirectional streaming for bulk inserts. The client streams document batches and the server acknowledges each batch:
+
+```protobuf
+rpc InsertManyBidi(stream InsertManyBidiRequest) returns (stream InsertManyBidiResponse);
+```
+
+Use for continuous data loading where the client produces documents faster than a single request can hold, and wants per-batch confirmation.
+
+### Configuration
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--stream-batch-size` | 1000 | Documents per frame |
+| `--stream-idle-timeout-secs` | 60 | Server closes idle streams after this duration |
+
+### Notes
+
+- These are proto-level RPCs — client library wrappers are planned for a future release
+- Streams respect the configured compression (`--grpc-compression`) for each frame
+- The server will close a stream after `--stream-idle-timeout-secs` of inactivity
+- Unlike change streams, these are finite — they complete when all results are sent

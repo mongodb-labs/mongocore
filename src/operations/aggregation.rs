@@ -13,6 +13,27 @@ fn requires_local_read_concern(pipeline: &[Document]) -> bool {
 }
 
 impl Operations {
+    /// Execute an aggregation pipeline and return the raw cursor for streaming.
+    pub async fn aggregate_cursor(
+        &self,
+        db: &str,
+        collection: &str,
+        pipeline: Vec<Document>,
+    ) -> Result<mongodb::Cursor<Document>> {
+        let coll = if requires_local_read_concern(&pipeline) {
+            self.pool.database(db).collection_with_options::<Document>(
+                collection,
+                CollectionOptions::builder()
+                    .read_concern(ReadConcern::local())
+                    .build(),
+            )
+        } else {
+            self.pool.collection(db, collection)
+        };
+        let cursor = coll.aggregate(pipeline).await?;
+        Ok(cursor)
+    }
+
     /// Execute an aggregation pipeline and return results.
     pub async fn aggregate(
         &self,

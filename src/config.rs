@@ -3,8 +3,11 @@ use serde::Deserialize;
 use std::path::PathBuf;
 
 use crate::defaults::{
-    DEFAULT_COMPILED_CACHE_SYNC, DEFAULT_CONNECTION_URI, DEFAULT_GRPC_PORT, DEFAULT_LOG_LEVEL,
-    DEFAULT_MCP_PORT, DEFAULT_OTEL_ENDPOINT, DEFAULT_OTEL_SERVICE_NAME,
+    DEFAULT_COMPILED_CACHE_SYNC, DEFAULT_CONNECTION_URI, DEFAULT_GRPC_COMPRESSION,
+    DEFAULT_GRPC_MAX_MESSAGE_SIZE, DEFAULT_GRPC_PORT, DEFAULT_LOG_LEVEL, DEFAULT_MCP_PORT,
+    DEFAULT_OTEL_ENDPOINT, DEFAULT_OTEL_SERVICE_NAME, DEFAULT_SOCKET_PATH,
+    DEFAULT_SOCKET_PERMISSIONS, DEFAULT_STREAM_BATCH_SIZE, DEFAULT_STREAM_IDLE_TIMEOUT_SECS,
+    DEFAULT_TRANSPORT,
 };
 use crate::error::MongoCoreError;
 
@@ -68,6 +71,22 @@ pub struct CliArgs {
     #[arg(long, env = "MONGOCORE_LOG_LEVEL")]
     pub log_level: Option<String>,
 
+    /// Maximum gRPC message size in bytes
+    #[arg(long, env = "MONGOCORE_GRPC_MAX_MESSAGE_SIZE")]
+    pub grpc_max_message_size: Option<usize>,
+
+    /// Transport mode: both, uds, tcp (default: both)
+    #[arg(long, env = "MONGOCORE_TRANSPORT")]
+    pub transport: Option<String>,
+
+    /// Unix domain socket path (default: /tmp/mongocore.sock)
+    #[arg(long, env = "MONGOCORE_SOCKET_PATH")]
+    pub socket_path: Option<String>,
+
+    /// Unix domain socket file permissions (octal, e.g. 0600)
+    #[arg(long, env = "MONGOCORE_SOCKET_PERMISSIONS")]
+    pub socket_permissions: Option<u32>,
+
     /// Enable OpenTelemetry tracing export
     #[arg(long, env = "MONGOCORE_OTEL_ENABLED")]
     pub otel_enabled: Option<bool>,
@@ -79,6 +98,18 @@ pub struct CliArgs {
     /// OpenTelemetry service name
     #[arg(long, env = "MONGOCORE_OTEL_SERVICE_NAME")]
     pub otel_service_name: Option<String>,
+
+    /// Default streaming batch size
+    #[arg(long, env = "MONGOCORE_STREAM_BATCH_SIZE")]
+    pub stream_batch_size: Option<u32>,
+
+    /// Stream idle timeout in seconds
+    #[arg(long, env = "MONGOCORE_STREAM_IDLE_TIMEOUT_SECS")]
+    pub stream_idle_timeout_secs: Option<u64>,
+
+    /// gRPC compression algorithm (none, gzip, zstd)
+    #[arg(long, env = "MONGOCORE_GRPC_COMPRESSION")]
+    pub grpc_compression: Option<String>,
 }
 
 /// Per-tenant configuration structure.
@@ -186,9 +217,16 @@ pub struct FileConfig {
     pub analytics_buffer_size: Option<usize>,
     pub analytics_flush_interval_secs: Option<u64>,
     pub ingestion: Option<IngestionFileConfig>,
+    pub grpc_max_message_size: Option<usize>,
+    pub transport: Option<String>,
+    pub socket_path: Option<String>,
+    pub socket_permissions: Option<u32>,
     pub otel_enabled: Option<bool>,
     pub otel_endpoint: Option<String>,
     pub otel_service_name: Option<String>,
+    pub stream_batch_size: Option<u32>,
+    pub stream_idle_timeout_secs: Option<u64>,
+    pub grpc_compression: Option<String>,
 }
 
 /// Resolved configuration for MongoCore.
@@ -209,9 +247,16 @@ pub struct Config {
     pub analytics_buffer_size: usize,
     pub analytics_flush_interval_secs: u64,
     pub ingestion: ResolvedIngestionConfig,
+    pub grpc_max_message_size: usize,
+    pub transport: String,
+    pub socket_path: String,
+    pub socket_permissions: u32,
     pub otel_enabled: bool,
     pub otel_endpoint: String,
     pub otel_service_name: String,
+    pub stream_batch_size: u32,
+    pub stream_idle_timeout_secs: u64,
+    pub grpc_compression: String,
 }
 
 impl Config {
@@ -322,6 +367,39 @@ impl Config {
             watch: ingestion_file.watch,
         };
 
+        let grpc_max_message_size = cli
+            .grpc_max_message_size
+            .or(file_config.grpc_max_message_size)
+            .unwrap_or(DEFAULT_GRPC_MAX_MESSAGE_SIZE);
+
+        let transport = cli.transport.clone()
+            .or(file_config.transport)
+            .unwrap_or_else(|| DEFAULT_TRANSPORT.to_string());
+
+        let socket_path = cli.socket_path.clone()
+            .or(file_config.socket_path)
+            .unwrap_or_else(|| DEFAULT_SOCKET_PATH.to_string());
+
+        let socket_permissions = cli
+            .socket_permissions
+            .or(file_config.socket_permissions)
+            .unwrap_or(DEFAULT_SOCKET_PERMISSIONS);
+
+        let stream_batch_size = cli
+            .stream_batch_size
+            .or(file_config.stream_batch_size)
+            .unwrap_or(DEFAULT_STREAM_BATCH_SIZE);
+        let stream_idle_timeout_secs = cli
+            .stream_idle_timeout_secs
+            .or(file_config.stream_idle_timeout_secs)
+            .unwrap_or(DEFAULT_STREAM_IDLE_TIMEOUT_SECS);
+
+        let grpc_compression = cli
+            .grpc_compression
+            .clone()
+            .or(file_config.grpc_compression)
+            .unwrap_or_else(|| DEFAULT_GRPC_COMPRESSION.to_string());
+
         let otel_enabled = cli
             .otel_enabled
             .or(file_config.otel_enabled)
@@ -353,9 +431,16 @@ impl Config {
             analytics_buffer_size,
             analytics_flush_interval_secs,
             ingestion,
+            grpc_max_message_size,
+            transport,
+            socket_path,
+            socket_permissions,
             otel_enabled,
             otel_endpoint,
             otel_service_name,
+            stream_batch_size,
+            stream_idle_timeout_secs,
+            grpc_compression,
         })
     }
 }
@@ -383,9 +468,16 @@ mod tests {
             llm_provider_type: None,
             compiled_cache_sync: None,
             log_level: None,
+            grpc_max_message_size: None,
+            socket_path: None,
+            transport: None,
+            socket_permissions: None,
             otel_enabled: None,
             otel_endpoint: None,
             otel_service_name: None,
+            stream_batch_size: None,
+            stream_idle_timeout_secs: None,
+            grpc_compression: None,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -429,9 +521,16 @@ log_level = "debug"
             llm_provider_type: None,
             compiled_cache_sync: None,
             log_level: None,
+            grpc_max_message_size: None,
+            socket_path: None,
+            transport: None,
+            socket_permissions: None,
             otel_enabled: None,
             otel_endpoint: None,
             otel_service_name: None,
+            stream_batch_size: None,
+            stream_idle_timeout_secs: None,
+            grpc_compression: None,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -471,9 +570,16 @@ log_level = "debug"
             llm_provider_type: None,
             compiled_cache_sync: None,
             log_level: Some("warn".to_string()),
+            grpc_max_message_size: None,
+            socket_path: None,
+            transport: None,
+            socket_permissions: None,
             otel_enabled: None,
             otel_endpoint: None,
             otel_service_name: None,
+            stream_batch_size: None,
+            stream_idle_timeout_secs: None,
+            grpc_compression: None,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -503,9 +609,16 @@ log_level = "debug"
             llm_provider_type: None,
             compiled_cache_sync: None,
             log_level: None,
+            grpc_max_message_size: None,
+            socket_path: None,
+            transport: None,
+            socket_permissions: None,
             otel_enabled: None,
             otel_endpoint: None,
             otel_service_name: None,
+            stream_batch_size: None,
+            stream_idle_timeout_secs: None,
+            grpc_compression: None,
         };
 
         let result = Config::load(&cli);
@@ -547,9 +660,16 @@ connection_uri = "mongodb://other:27017"
             llm_provider_type: None,
             compiled_cache_sync: None,
             log_level: None,
+            grpc_max_message_size: None,
+            socket_path: None,
+            transport: None,
+            socket_permissions: None,
             otel_enabled: None,
             otel_endpoint: None,
             otel_service_name: None,
+            stream_batch_size: None,
+            stream_idle_timeout_secs: None,
+            grpc_compression: None,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -590,9 +710,16 @@ connection_uri = "mongodb://other:27017"
             llm_provider_type: None,
             compiled_cache_sync: None,
             log_level: None,
+            grpc_max_message_size: None,
+            socket_path: None,
+            transport: None,
+            socket_permissions: None,
             otel_enabled: None,
             otel_endpoint: None,
             otel_service_name: None,
+            stream_batch_size: None,
+            stream_idle_timeout_secs: None,
+            grpc_compression: None,
         }
     }
 
@@ -647,9 +774,16 @@ conflict_strategy = "merge"
             llm_provider_type: None,
             compiled_cache_sync: None,
             log_level: None,
+            grpc_max_message_size: None,
+            socket_path: None,
+            transport: None,
+            socket_permissions: None,
             otel_enabled: None,
             otel_endpoint: None,
             otel_service_name: None,
+            stream_batch_size: None,
+            stream_idle_timeout_secs: None,
+            grpc_compression: None,
         };
         let config = Config::load(&cli).unwrap();
         assert_eq!(config.ingestion.sample_size, 2000);

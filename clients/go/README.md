@@ -22,7 +22,7 @@ import (
 )
 
 func main() {
-    client := mongocore.NewClient("localhost:50051")
+    client := mongocore.MongoClient()
     if err := client.Connect(context.Background()); err != nil {
         panic(err)
     }

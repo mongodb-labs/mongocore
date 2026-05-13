@@ -67,15 +67,52 @@ export interface WatchResult {
   status: string;
 }
 
+const DEFAULT_SOCKET_PATH = '/tmp/mongocore.sock';
+const DEFAULT_ADDRESS = 'localhost:50051';
+const MAX_MESSAGE_SIZE = 64 * 1024 * 1024;
+
 export class MongoClient {
-  private address: string;
+  private address: string | undefined;
+  private socketPath: string | undefined;
   private autoSpawn: boolean;
   private client: any = null;
   private sidecar: SidecarManager | null = null;
+  public transport: string | null = null;
 
-  constructor(address: string = 'localhost:50051', options?: { autoSpawn?: boolean }) {
+  constructor(address?: string, options?: { socketPath?: string; autoSpawn?: boolean }) {
     this.address = address;
+    this.socketPath = options?.socketPath;
     this.autoSpawn = options?.autoSpawn ?? false;
+  }
+
+  private resolveTarget(): string {
+    const fs = require('fs');
+
+    if (this.socketPath) {
+      this.transport = 'uds';
+      return `unix://${this.socketPath}`;
+    }
+    if (this.address) {
+      this.transport = 'tcp';
+      return this.address;
+    }
+    const envSocket = process.env.MONGOCORE_SOCKET_PATH;
+    if (envSocket) {
+      this.transport = 'uds';
+      return `unix://${envSocket}`;
+    }
+    try {
+      fs.accessSync(DEFAULT_SOCKET_PATH);
+      this.transport = 'uds';
+      return `unix://${DEFAULT_SOCKET_PATH}`;
+    } catch {}
+    const envAddr = process.env.MONGOCORE_ADDRESS;
+    if (envAddr) {
+      this.transport = 'tcp';
+      return envAddr;
+    }
+    this.transport = 'tcp';
+    return DEFAULT_ADDRESS;
   }
 
   async connect(): Promise<this> {
@@ -84,9 +121,13 @@ export class MongoClient {
       await this.sidecar.ensureRunning();
     }
 
+    const target = this.resolveTarget();
     const proto: any = loadProto();
     const MongoCore = proto.mongocore.v1.MongoCore;
-    this.client = new MongoCore(this.address, grpc.credentials.createInsecure());
+    this.client = new MongoCore(target, grpc.credentials.createInsecure(), {
+      'grpc.max_send_message_length': MAX_MESSAGE_SIZE,
+      'grpc.max_receive_message_length': MAX_MESSAGE_SIZE,
+    });
     return this;
   }
 
@@ -111,7 +152,7 @@ export class MongoClient {
   }
 
   getAddress(): string {
-    return this.address;
+    return this.address ?? DEFAULT_ADDRESS;
   }
 
   async listDatabases(): Promise<string[]> {

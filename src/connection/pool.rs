@@ -239,9 +239,16 @@ mod tests {
             analytics_buffer_size: 10000,
             analytics_flush_interval_secs: 300,
             ingestion: crate::config::ResolvedIngestionConfig::default(),
+            grpc_max_message_size: 64 * 1024 * 1024,
+            transport: "both".to_string(),
+            socket_path: "/tmp/mongocore.sock".to_string(),
+            socket_permissions: 0o600,
             otel_enabled: false,
             otel_endpoint: "http://localhost:4317".to_string(),
             otel_service_name: "mongocore".to_string(),
+            stream_batch_size: 1000,
+            stream_idle_timeout_secs: 60,
+            grpc_compression: "none".to_string(),
         };
 
         let options = ConnectionPool::build_client_options(&config).await.unwrap();
@@ -291,9 +298,16 @@ mod tests {
             analytics_buffer_size: 10000,
             analytics_flush_interval_secs: 300,
             ingestion: crate::config::ResolvedIngestionConfig::default(),
+            grpc_max_message_size: 64 * 1024 * 1024,
+            transport: "both".to_string(),
+            socket_path: "/tmp/mongocore.sock".to_string(),
+            socket_permissions: 0o600,
             otel_enabled: false,
             otel_endpoint: "http://localhost:4317".to_string(),
             otel_service_name: "mongocore".to_string(),
+            stream_batch_size: 1000,
+            stream_idle_timeout_secs: 60,
+            grpc_compression: "none".to_string(),
         };
 
         let options = ConnectionPool::build_client_options(&config).await.unwrap();
@@ -322,9 +336,16 @@ mod tests {
             analytics_buffer_size: 10000,
             analytics_flush_interval_secs: 300,
             ingestion: crate::config::ResolvedIngestionConfig::default(),
+            grpc_max_message_size: 64 * 1024 * 1024,
+            transport: "both".to_string(),
+            socket_path: "/tmp/mongocore.sock".to_string(),
+            socket_permissions: 0o600,
             otel_enabled: false,
             otel_endpoint: "http://localhost:4317".to_string(),
             otel_service_name: "mongocore".to_string(),
+            stream_batch_size: 1000,
+            stream_idle_timeout_secs: 60,
+            grpc_compression: "none".to_string(),
         };
 
         let options = ConnectionPool::build_client_options(&config).await.unwrap();
@@ -351,9 +372,16 @@ mod tests {
             analytics_buffer_size: 10000,
             analytics_flush_interval_secs: 300,
             ingestion: crate::config::ResolvedIngestionConfig::default(),
+            grpc_max_message_size: 64 * 1024 * 1024,
+            transport: "both".to_string(),
+            socket_path: "/tmp/mongocore.sock".to_string(),
+            socket_permissions: 0o600,
             otel_enabled: false,
             otel_endpoint: "http://localhost:4317".to_string(),
             otel_service_name: "mongocore".to_string(),
+            stream_batch_size: 1000,
+            stream_idle_timeout_secs: 60,
+            grpc_compression: "none".to_string(),
         };
 
         let options = ConnectionPool::build_client_options(&config).await.unwrap();

@@ -28,7 +28,7 @@ func uniqueCollection() string {
 func setupClient(t *testing.T) (*mongocore.Client, context.Context) {
 	t.Helper()
 	ctx := context.Background()
-	client := mongocore.NewClient(getAddress())
+	client := mongocore.MongoClientTCP(getAddress())
 	if err := client.Connect(ctx); err != nil {
 		t.Fatalf("Failed to connect: %v", err)
 	}

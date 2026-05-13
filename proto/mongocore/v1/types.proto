@@ -42,3 +42,36 @@ message FindAndModifyOptions {
 message ResponseMetadata {
   string search_method = 1;  // "vector", "fulltext", "compiled_query", ""
 }
+
+// Streaming batch of documents (used by FindStream, AggregateStream)
+message DocumentBatch {
+  repeated Document documents = 1;
+  uint32 batch_index = 2;
+  bool has_more = 3;
+}
+
+// Streaming insert batch (client-to-server)
+message InsertBatch {
+  string database = 1;
+  string collection = 2;
+  repeated Document documents = 3;
+}
+
+// Per-batch acknowledgment for bidirectional insert
+message InsertBatchAck {
+  uint32 batch_index = 1;
+  uint32 inserted_count = 2;
+  repeated InsertError errors = 3;
+}
+
+message InsertError {
+  uint32 index = 1;
+  string message = 2;
+  int32 code = 3;
+}
+
+// Response for unidirectional streaming insert
+message InsertManyStreamResponse {
+  uint64 total_inserted = 1;
+  repeated InsertError errors = 2;
+}

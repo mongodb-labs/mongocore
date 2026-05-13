@@ -6,7 +6,7 @@ use tracing_subscriber::EnvFilter;
 use mongocore::analytics::AnalyticsCollector;
 use mongocore::config::{CliArgs, Config};
 use mongocore::connection::ConnectionPool;
-use mongocore::grpc::start_grpc_server;
+use mongocore::grpc::{start_grpc_server, GrpcServerConfig};
 use mongocore::ingestion::{DirectoryWatcher, IngestionEngine};
 use mongocore::mcp::start_mcp_server;
 
@@ -129,7 +129,15 @@ async fn main() {
     // Start gRPC server
     let grpc_handle = start_grpc_server(
         pool.clone(),
-        config.grpc_port,
+        GrpcServerConfig {
+            port: config.grpc_port,
+            transport: config.transport.clone(),
+            socket_path: config.socket_path.clone(),
+            socket_permissions: config.socket_permissions,
+            max_message_size: config.grpc_max_message_size,
+            compression: config.grpc_compression.clone(),
+            stream_idle_timeout_secs: config.stream_idle_timeout_secs,
+        },
         voyage_api_key.as_deref(),
         analytics.clone(),
         ingestion_engine.clone(),
@@ -155,6 +163,14 @@ async fn main() {
                 Ok(()) => info!("MCP server shut down"),
                 Err(e) => error!("MCP server task panicked: {e}"),
             }
+        }
+    }
+
+    // Clean up UDS socket file on shutdown
+    if config.transport != "tcp" {
+        if std::path::Path::new(&config.socket_path).exists() {
+            info!("Removing socket file: {}", config.socket_path);
+            let _ = std::fs::remove_file(&config.socket_path);
         }
     }
 
@@ -188,6 +204,10 @@ fn print_banner(config: &Config) {
     println!("  MongoCore v{}", env!("CARGO_PKG_VERSION"));
     println!("  gRPC port: {}", config.grpc_port);
     println!("  MCP port:  {}", config.mcp_port);
+    println!("  Transport: {}", config.transport);
+    if config.transport != "tcp" {
+        println!("  UDS path:  {}", config.socket_path);
+    }
     println!("  Log level: {}", config.log_level);
     println!();
 }

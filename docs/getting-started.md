@@ -5,9 +5,9 @@ MongoCore is an AI-native MongoDB driver implemented as a Rust sidecar process. 
 ## Architecture
 
 ```
-┌──────────────────┐       gRPC        ┌───────────────┐       Wire Protocol       ┌───────────┐
-│  Your App        │ ───────────────── │   MongoCore   │ ────────────────────────── │  MongoDB  │
-│  (any language)  │   localhost:50051  │   (sidecar)   │                            │  Server   │
+┌──────────────────┐   gRPC (TCP/UDS)  ┌───────────────┐       Wire Protocol       ┌───────────┐
+│  Your App        │ ─────────────────── │   MongoCore   │ ────────────────────────── │  MongoDB  │
+│  (any language)  │                    │   (sidecar)   │                            │  Server   │
 └──────────────────┘                   └───────────────┘                            └───────────┘
                                               │
                                               │  HTTP/JSON-RPC
@@ -18,7 +18,7 @@ MongoCore is an AI-native MongoDB driver implemented as a Rust sidecar process. 
                                        └───────────────┘
 ```
 
-- **gRPC interface** (port 50051) — High-performance binary protocol for application code
+- **gRPC interface** — TCP on port 50051 + UDS at `/tmp/mongocore.sock` (configurable)
 - **MCP interface** (port 3000) — JSON-RPC for AI agents (Claude, GPT, etc.)
 
 ## Installation
@@ -44,8 +44,17 @@ docker run -p 50051:50051 -p 3000:3000 mongocore \
 ## Running MongoCore
 
 ```bash
-# Defaults: connects to localhost:27017, gRPC on 50051, MCP on 3000
+# Defaults: TCP + UDS, connects to localhost:27017
 mongocore
+
+# TCP only (no UDS socket)
+mongocore --transport tcp
+
+# UDS only (no TCP listener)
+mongocore --transport uds
+
+# Custom socket path
+mongocore --socket-path /var/run/mongocore.sock
 
 # Custom connection
 mongocore --connection-uri "mongodb+srv://user:pass@cluster.mongodb.net"
@@ -67,6 +76,8 @@ Create a `mongocore.toml`:
 connection_uri = "mongodb+srv://user:pass@cluster.mongodb.net"
 grpc_port = 50051
 mcp_port = 3000
+transport = "both"
+socket_path = "/tmp/mongocore.sock"
 ANTHROPIC_API_KEY = "your-api-key-here"
 VOYAGE_API_KEY = "your-api-key-here"
 compiled_cache_sync = true
@@ -91,6 +102,12 @@ All config options can be set via environment variables:
 | `VOYAGE_API_KEY` | Voyage AI API key for embeddings | — |
 | `MONGOCORE_COMPILED_CACHE_SYNC` | Sync compiled queries to Atlas | `true` |
 | `MONGOCORE_LOG_LEVEL` | Log level (trace/debug/info/warn/error) | `info` |
+| `MONGOCORE_TRANSPORT` | Transport mode (both/uds/tcp) | `both` |
+| `MONGOCORE_SOCKET_PATH` | UDS socket file path | `/tmp/mongocore.sock` |
+| `MONGOCORE_GRPC_MAX_MESSAGE_SIZE` | Max gRPC message size (bytes) | `67108864` (64MB) |
+| `MONGOCORE_GRPC_COMPRESSION` | Compression algorithm | `none` |
+| `MONGOCORE_STREAM_BATCH_SIZE` | Streaming batch size | `1000` |
+| `MONGOCORE_STREAM_IDLE_TIMEOUT_SECS` | Stream idle timeout | `60` |
 
 ### Configuration Priority
 

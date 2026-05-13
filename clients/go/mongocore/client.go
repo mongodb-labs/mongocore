@@ -3,12 +3,18 @@ package mongocore
 import (
 	"context"
 	"fmt"
+	"os"
 
 	pb "github.com/rozza/mongocore/clients/go/proto"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/metadata"
+)
+
+const (
+	DefaultSocketPath = "/tmp/mongocore.sock"
+	DefaultAddress    = "localhost:50051"
 )
 
 // clientContext adds the x-client-language metadata to the context.
@@ -76,19 +82,65 @@ type WatchDirectoryOptions struct {
 
 // Client connects to a MongoCore sidecar.
 type Client struct {
-	address string
-	conn    *grpc.ClientConn
-	stub    pb.MongoCoreClient
+	address    string
+	socketPath string
+	conn       *grpc.ClientConn
+	stub       pb.MongoCoreClient
+	Transport  string // "uds" or "tcp" after Connect()
 }
 
-// NewClient creates a new MongoCore client.
-func NewClient(address string) *Client {
+// MongoClient creates a client that auto-discovers the transport (zero-config).
+// Priority: MONGOCORE_SOCKET_PATH env → /tmp/mongocore.sock → MONGOCORE_ADDRESS env → localhost:50051
+func MongoClient() *Client {
+	return &Client{}
+}
+
+// MongoClientTCP creates a client with an explicit TCP address.
+func MongoClientTCP(address string) *Client {
 	return &Client{address: address}
+}
+
+// MongoClientWithSocket creates a client with an explicit UDS path.
+func MongoClientWithSocket(socketPath string) *Client {
+	return &Client{socketPath: socketPath}
+}
+
+
+func (c *Client) resolveTarget() string {
+	if c.socketPath != "" {
+		c.Transport = "uds"
+		return "unix://" + c.socketPath
+	}
+	if c.address != "" {
+		c.Transport = "tcp"
+		return c.address
+	}
+	if envSocket := os.Getenv("MONGOCORE_SOCKET_PATH"); envSocket != "" {
+		c.Transport = "uds"
+		return "unix://" + envSocket
+	}
+	if _, err := os.Stat(DefaultSocketPath); err == nil {
+		c.Transport = "uds"
+		return "unix://" + DefaultSocketPath
+	}
+	if envAddr := os.Getenv("MONGOCORE_ADDRESS"); envAddr != "" {
+		c.Transport = "tcp"
+		return envAddr
+	}
+	c.Transport = "tcp"
+	return DefaultAddress
 }
 
 // Connect establishes the gRPC connection.
 func (c *Client) Connect(ctx context.Context) error {
-	conn, err := grpc.NewClient(c.address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	target := c.resolveTarget()
+	conn, err := grpc.NewClient(target,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(64*1024*1024),
+			grpc.MaxCallSendMsgSize(64*1024*1024),
+		),
+	)
 	if err != nil {
 		return fmt.Errorf("mongocore: failed to connect: %w", err)
 	}

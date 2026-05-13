@@ -11,6 +11,7 @@
 | **v0.5** | Custom LLM gateway, simplified config, validator hardening, LLM integration tests | **Complete** |
 | **v0.6** | Intelligent NL→MQL routing, LLM-provided templates, template registry | **Complete** |
 | **v0.7** | Cross-language performance benchmarking suite | **Complete** |
+| **v0.8** | Performance Tier 1 (transport, streaming, compression) | **Complete** |
 
 ## v0.1 — Core
 
@@ -94,6 +95,16 @@
 - **Timestamped results** — Each run stored in `results/<timestamp>/` with `latest` symlink, history committed to git
 - **Honest caveats** — Documented limitations (uncontrolled environment, no tuning, localhost, gRPC limits, single client)
 
+## v0.8 — Performance Tier 1
+
+- **Unix Domain Socket transport** — `--transport` flag (both/uds/tcp), default both. Automatic socket at `/tmp/mongocore.sock`
+- **64MB message limit** — Raised from 4MB default, configurable via `--grpc-max-message-size`
+- **Streaming bulk RPCs** — `FindStream`, `AggregateStream`, `InsertManyStream`, `InsertManyBidi` for unlimited result sizes
+- **gRPC compression** — Optional gzip/zstd compression via `--grpc-compression`
+- **Stream idle timeout** — Configurable server-side timeout for streaming cursors (default 60s)
+- **Client auto-discovery** — Python and Go clients automatically find UDS socket, fall back to TCP
+- **Socket lifecycle** — Automatic cleanup on shutdown, stale file removal on startup, graceful fallback on bind failure
+
 ## Future Roadmap
 
 | Area | Description |
@@ -107,10 +118,11 @@
 | Demo | Stdio MCP transport for Claude Code integration, curated restaurant dataset, scripted demo flow |
 | MCP + Claude Integration | Auto-detect API key from Claude's environment when launched as MCP server |
 | Packaging & Deployment | Pre-built binaries (GitHub Releases, Homebrew), Docker images (GHCR), Helm chart |
-| gRPC Message Limits | Increase max message size and/or implement streaming for large docs and result sets |
+| Performance Tier 1 | gRPC over Unix Domain Sockets + streaming bulk responses + raised message limits | **Complete (v0.8)** |
+| Performance Tier 2 | Request pipelining — batch N independent operations in a single round-trip |
+| Performance Tier 3 | Native embedding via FFI (PyO3, Neon, cgo) for zero-IPC overhead |
 | BulkWrite Operations | Collection-level and client-level bulkWrite with mixed insert/update/delete |
 | Database/Collection Management | Drop database, drop collection, rename collection, list indexes, compact |
-| Performance Tuning | Connection pooling, gRPC streaming, batch optimizations to reduce sidecar overhead |
 | Visualizations | Configurable web UI for analytics, query flow, and ingestion progress |
 | Migration & Ecosystem | Framework adapters (Mongoose, Spring Data, etc.), migration paths |
 | Self-Contained AI | Local NL→MQL model, no external LLM dependency required |

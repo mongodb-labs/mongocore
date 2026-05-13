@@ -30,23 +30,50 @@ public class MongoClient implements AutoCloseable {
         }
     };
 
+    private static final String DEFAULT_SOCKET_PATH = "/tmp/mongocore.sock";
+    private static final String DEFAULT_ADDRESS = "localhost:50051";
+    private static final int MAX_MESSAGE_SIZE = 64 * 1024 * 1024;
+
     private final ManagedChannel channel;
     private final String address;
+    private final String transport;
 
-    private MongoClient(String address) {
-        this.address = address;
-        this.channel = ManagedChannelBuilder.forTarget(address)
+    private MongoClient(String target, String transport) {
+        this.address = target;
+        this.transport = transport;
+        this.channel = ManagedChannelBuilder.forTarget(target)
                 .usePlaintext()
+                .maxInboundMessageSize(MAX_MESSAGE_SIZE)
                 .intercept(langInterceptor)
                 .build();
     }
 
     public static MongoClient create(String address) {
-        return new MongoClient(address);
+        return new MongoClient(address, "tcp");
+    }
+
+    public static MongoClient createWithSocket(String socketPath) {
+        return new MongoClient("unix://" + socketPath, "uds");
     }
 
     public static MongoClient create() {
-        return create("localhost:50051");
+        String envSocket = System.getenv("MONGOCORE_SOCKET_PATH");
+        if (envSocket != null && !envSocket.isEmpty()) {
+            return new MongoClient("unix://" + envSocket, "uds");
+        }
+        java.io.File socketFile = new java.io.File(DEFAULT_SOCKET_PATH);
+        if (socketFile.exists()) {
+            return new MongoClient("unix://" + DEFAULT_SOCKET_PATH, "uds");
+        }
+        String envAddr = System.getenv("MONGOCORE_ADDRESS");
+        if (envAddr != null && !envAddr.isEmpty()) {
+            return new MongoClient(envAddr, "tcp");
+        }
+        return new MongoClient(DEFAULT_ADDRESS, "tcp");
+    }
+
+    public String getTransport() {
+        return transport;
     }
 
     public MongoDatabase getDatabase(String name) {

@@ -1,6 +1,7 @@
 {
   "mongodb_uri": "mongodb://localhost:27017",
   "mongocore_address": "localhost:50051",
+  "mongocore_socket_path": "/tmp/mongocore.sock",
   "database": "mongocore_bench",
   "min_time_secs": 60,
   "max_iterations": 100,

@@ -39,6 +39,12 @@ service MongoCore {
   // Streaming
   rpc Watch(WatchRequest) returns (stream WatchEvent);
 
+  // Streaming bulk operations
+  rpc FindStream(FindStreamRequest) returns (stream DocumentBatch);
+  rpc AggregateStream(AggregateStreamRequest) returns (stream DocumentBatch);
+  rpc InsertManyStream(stream InsertBatch) returns (InsertManyStreamResponse);
+  rpc InsertManyBidi(stream InsertBatch) returns (stream InsertBatchAck);
+
   // Raw Passthrough
   rpc RunCommand(RunCommandRequest) returns (RunCommandResponse);
 
@@ -279,6 +285,25 @@ message WatchEvent {
   optional Document document = 4;       // Full document (for insert/update/replace)
   optional Document update_description = 5; // For update events: {updatedFields, removedFields}
   optional Document document_key = 6;   // The _id of the affected document
+}
+
+// ==================== Streaming Bulk ====================
+
+message FindStreamRequest {
+  string database = 1;
+  string collection = 2;
+  Filter filter = 3;
+  FindOptions options = 4;
+  optional string transaction_id = 5;
+  uint32 batch_size = 6;
+}
+
+message AggregateStreamRequest {
+  string database = 1;
+  string collection = 2;
+  Pipeline pipeline = 3;
+  optional string transaction_id = 4;
+  uint32 batch_size = 5;
 }
 
 // ==================== Raw Passthrough ====================

@@ -33,6 +33,32 @@ pub const DEFAULT_OTEL_ENDPOINT: &str = "http://localhost:4317";
 /// Default OpenTelemetry service name.
 pub const DEFAULT_OTEL_SERVICE_NAME: &str = "mongocore";
 
+/// Default max gRPC message size (64 MB).
+pub const DEFAULT_GRPC_MAX_MESSAGE_SIZE: usize = 64 * 1024 * 1024;
+
+/// Default gRPC compression algorithm.
+pub const DEFAULT_GRPC_COMPRESSION: &str = "none";
+
+/// Default transport mode.
+pub const DEFAULT_TRANSPORT: &str = "both";
+
+/// Default Unix domain socket path.
+pub const DEFAULT_SOCKET_PATH: &str = "/tmp/mongocore.sock";
+
+pub const DEFAULT_SOCKET_PERMISSIONS: u32 = 0o600;
+
+/// Default streaming batch size (documents per frame).
+pub const DEFAULT_STREAM_BATCH_SIZE: u32 = 1000;
+
+/// Default stream idle timeout in seconds.
+pub const DEFAULT_STREAM_IDLE_TIMEOUT_SECS: u64 = 60;
+
+/// Minimum allowed batch size.
+pub const MIN_STREAM_BATCH_SIZE: u32 = 1;
+
+/// Maximum allowed batch size.
+pub const MAX_STREAM_BATCH_SIZE: u32 = 10000;
+
 /// Returns the default write concern (majority).
 pub fn default_write_concern() -> mongodb::options::WriteConcern {
     mongodb::options::WriteConcern::majority()

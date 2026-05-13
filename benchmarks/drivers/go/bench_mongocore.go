@@ -92,7 +92,7 @@ func runBenchmark(
 	datasetBytes, batchSize int,
 	config Config,
 ) BenchResult {
-	client := mongocore.NewClient(config.MongoCoreAddr)
+	client := mongocore.MongoClientTCP(config.MongoCoreAddr)
 	ctx := context.Background()
 	if err := client.Connect(ctx); err != nil {
 		panic(err)
@@ -355,15 +355,13 @@ func main() {
 		smallSize*10_000, 10_000, config,
 	))
 
-	// Find Many (2K docs — limited by gRPC 4MB message size)
-	// NOTE: Native drivers do 10K but proto-encoded response exceeds 4MB at higher counts
-	// TODO: Increase gRPC max_receive_message_length or implement response streaming
+	// Find Many (10K docs — enabled with 64MB message limit)
 	results = append(results, runBenchmark(
 		"find_many", "multi_doc",
 		func(c *mongocore.Client) error {
 			c.RunCommand(ctx, config.Database, bson.D{{Key: "drop", Value: "bench_find_many_mc"}}, false)
-			docs := make([]bson.D, 2_000)
-			for i := 0; i < 2_000; i++ {
+			docs := make([]bson.D, 10_000)
+			for i := 0; i < 10_000; i++ {
 				doc := bson.D{{Key: "_id", Value: bson.NewObjectID().Hex()}}
 				for k, v := range smallDoc {
 					if k != "_id" {
@@ -382,16 +380,63 @@ func main() {
 		},
 		func(c *mongocore.Client) error { return nil },
 		func(c *mongocore.Client) error { return nil },
-		smallSize*2_000, 2_000, config,
+		smallSize*10_000, 10_000, config,
 	))
 
-	// Bulk Insert Large — SKIPPED: exceeds gRPC default 4MB message limit (10 x 2.75MB = 27.5MB)
-	// TODO: Increase gRPC max_message_size in MongoCore config to enable this benchmark
-	fmt.Println("  bulk_insert_large: SKIPPED (exceeds gRPC 4MB message limit)")
+	// Bulk Insert Large (10 x 2.75MB docs — enabled with 64MB message limit)
+	results = append(results, runBenchmark(
+		"bulk_insert_large", "multi_doc",
+		func(c *mongocore.Client) error { return nil },
+		func(c *mongocore.Client) error {
+			c.RunCommand(ctx, config.Database, bson.D{{Key: "drop", Value: "bench_bulk_large_mc"}}, false)
+			return nil
+		},
+		func(c *mongocore.Client) error {
+			docs := make([]bson.D, 10)
+			for i := 0; i < 10; i++ {
+				doc := bson.D{{Key: "_id", Value: bson.NewObjectID().Hex()}}
+				for k, v := range largeDoc {
+					if k != "_id" {
+						doc = append(doc, bson.E{Key: k, Value: v})
+					}
+				}
+				docs[i] = doc
+			}
+			_, err := c.Database(config.Database).Collection("bench_bulk_large_mc").InsertMany(ctx, docs)
+			return err
+		},
+		func(c *mongocore.Client) error { return nil },
+		func(c *mongocore.Client) error { return nil },
+		largeSize*10, 10, config,
+	))
 
-	// Find Many Large — SKIPPED: 10 x 2.75MB = 27.5MB response exceeds gRPC 4MB limit
-	// TODO: Implement streaming/pagination in MongoCore Find RPC to handle large result sets
-	fmt.Println("  find_many_large: SKIPPED (response exceeds gRPC 4MB message limit)")
+	// Find Many Large (10 x 2.75MB docs — enabled with 64MB message limit)
+	results = append(results, runBenchmark(
+		"find_many_large", "multi_doc",
+		func(c *mongocore.Client) error {
+			c.RunCommand(ctx, config.Database, bson.D{{Key: "drop", Value: "bench_find_many_large_mc"}}, false)
+			docs := make([]bson.D, 10)
+			for i := 0; i < 10; i++ {
+				doc := bson.D{{Key: "_id", Value: bson.NewObjectID().Hex()}}
+				for k, v := range largeDoc {
+					if k != "_id" {
+						doc = append(doc, bson.E{Key: k, Value: v})
+					}
+				}
+				docs[i] = doc
+			}
+			_, err := c.Database(config.Database).Collection("bench_find_many_large_mc").InsertMany(ctx, docs)
+			return err
+		},
+		func(c *mongocore.Client) error { return nil },
+		func(c *mongocore.Client) error {
+			_, err := c.Database(config.Database).Collection("bench_find_many_large_mc").Find(ctx, bson.D{}, nil)
+			return err
+		},
+		func(c *mongocore.Client) error { return nil },
+		func(c *mongocore.Client) error { return nil },
+		largeSize*10, 10, config,
+	))
 
 	// Save results
 	resultsDir := filepath.Join("..", "..", "results")

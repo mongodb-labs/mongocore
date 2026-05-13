@@ -3,7 +3,7 @@ use serde_json::json;
 
 use mongocore::grpc::proto::mongo_core_client::MongoCoreClient;
 use mongocore::grpc::proto::ListDatabasesRequest;
-use mongocore::grpc::start_grpc_server;
+use mongocore::grpc::{start_grpc_server, GrpcServerConfig};
 use mongocore::mcp::start_mcp_server;
 
 #[path = "../harness/mod.rs"]
@@ -23,7 +23,7 @@ async fn test_both_servers_start_and_respond() {
     let grpc_port = find_free_port().await;
     let mcp_port = find_free_port().await;
 
-    let grpc_handle = start_grpc_server(pool.clone(), grpc_port, None, None, None, None);
+    let grpc_handle = start_grpc_server(pool.clone(), GrpcServerConfig { port: grpc_port, transport: "tcp".to_string(), socket_path: "/tmp/mongocore.sock".to_string(), socket_permissions: 0o600, max_message_size: 64 * 1024 * 1024, compression: "none".to_string(), stream_idle_timeout_secs: 60 }, None, None, None, None);
     let mcp_handle = start_mcp_server(pool.clone(), mcp_port, None, None, None);
 
     tokio::time::sleep(std::time::Duration::from_millis(150)).await;
@@ -74,7 +74,7 @@ async fn test_grpc_server_serves_on_configured_port() {
     let pool = harness::get_test_pool().await;
     let port = find_free_port().await;
 
-    let _handle = start_grpc_server(pool, port, None, None, None, None);
+    let _handle = start_grpc_server(pool, GrpcServerConfig { port, transport: "tcp".to_string(), socket_path: "/tmp/mongocore.sock".to_string(), socket_permissions: 0o600, max_message_size: 64 * 1024 * 1024, compression: "none".to_string(), stream_idle_timeout_secs: 60 }, None, None, None, None);
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
     let mut client = MongoCoreClient::connect(format!("http://127.0.0.1:{}", port))
@@ -130,7 +130,7 @@ async fn test_shared_pool_across_servers() {
     let grpc_port = find_free_port().await;
     let mcp_port = find_free_port().await;
 
-    let _grpc_handle = start_grpc_server(pool.clone(), grpc_port, None, None, None, None);
+    let _grpc_handle = start_grpc_server(pool.clone(), GrpcServerConfig { port: grpc_port, transport: "tcp".to_string(), socket_path: "/tmp/mongocore.sock".to_string(), socket_permissions: 0o600, max_message_size: 64 * 1024 * 1024, compression: "none".to_string(), stream_idle_timeout_secs: 60 }, None, None, None, None);
     let _mcp_handle = start_mcp_server(pool.clone(), mcp_port, None, None, None);
     tokio::time::sleep(std::time::Duration::from_millis(150)).await;
 

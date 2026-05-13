@@ -2109,6 +2109,7 @@ dependencies = [
  "glob",
  "http",
  "http-body-util",
+ "hyper-util",
  "mongodb",
  "notify",
  "opentelemetry",
@@ -4455,6 +4456,7 @@ dependencies = [
  "axum 0.7.9",
  "base64",
  "bytes",
+ "flate2",
  "h2",
  "http",
  "http-body",
@@ -4472,6 +4474,7 @@ dependencies = [
  "tower-layer",
  "tower-service",
  "tracing",
+ "zstd",
 ]
 
 [[package]]

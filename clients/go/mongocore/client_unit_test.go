@@ -7,21 +7,21 @@ import (
 )
 
 func TestUnitClientCreation(t *testing.T) {
-	client := mongocore.NewClient("custom:9999")
+	client := mongocore.MongoClientTCP("custom:9999")
 	if client == nil {
 		t.Fatal("Expected non-nil client")
 	}
 }
 
 func TestUnitClientDefaultAddress(t *testing.T) {
-	client := mongocore.NewClient("localhost:50051")
+	client := mongocore.MongoClientTCP("localhost:50051")
 	if client == nil {
 		t.Fatal("Expected non-nil client")
 	}
 }
 
 func TestUnitDatabaseAccess(t *testing.T) {
-	client := mongocore.NewClient("localhost:50051")
+	client := mongocore.MongoClientTCP("localhost:50051")
 	db := client.Database("testdb")
 	if db == nil {
 		t.Fatal("Expected non-nil database")
@@ -32,7 +32,7 @@ func TestUnitDatabaseAccess(t *testing.T) {
 }
 
 func TestUnitCollectionAccess(t *testing.T) {
-	client := mongocore.NewClient("localhost:50051")
+	client := mongocore.MongoClientTCP("localhost:50051")
 	coll := client.Database("testdb").Collection("users")
 	if coll == nil {
 		t.Fatal("Expected non-nil collection")
@@ -41,7 +41,7 @@ func TestUnitCollectionAccess(t *testing.T) {
 
 func TestUnitClientMetadata(t *testing.T) {
 	// Verify client construction works (metadata is internal)
-	client := mongocore.NewClient("localhost:50051")
+	client := mongocore.MongoClientTCP("localhost:50051")
 	if client == nil {
 		t.Fatal("Expected non-nil client")
 	}

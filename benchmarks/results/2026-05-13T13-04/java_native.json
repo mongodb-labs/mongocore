@@ -1,0 +1,176 @@
+[
+  {
+    "benchmark": "run_command",
+    "category": "single_doc",
+    "driver": "mongodb-java-sync",
+    "dataset_size_bytes": 1000000,
+    "batch_size": 10000,
+    "iterations": 37,
+    "total_time_secs": 61.341,
+    "ops_per_sec": 6001.7,
+    "mb_per_sec": 0.6,
+    "percentiles": {
+      "p10": 1.569967,
+      "p25": 1.60907,
+      "p50": 1.666181,
+      "p75": 1.695704,
+      "p90": 1.737554,
+      "p95": 1.74937,
+      "p99": 1.801322
+    },
+    "timestamp": "2026-05-13T12:53:05.121417Z",
+    "system": {
+      "os": "mac os x",
+      "arch": "aarch64",
+      "cpus": 12,
+      "ram_gb": 32.0,
+      "mongocore_version": "native",
+      "driver": "mongodb-java-sync"
+    }
+  },
+  {
+    "benchmark": "find_one_by_id",
+    "category": "single_doc",
+    "driver": "mongodb-java-sync",
+    "dataset_size_bytes": 12470000,
+    "batch_size": 10000,
+    "iterations": 34,
+    "total_time_secs": 61.181,
+    "ops_per_sec": 5557.7,
+    "mb_per_sec": 6.93,
+    "percentiles": {
+      "p10": 1.72313,
+      "p25": 1.771242,
+      "p50": 1.799297,
+      "p75": 1.844298,
+      "p90": 1.867046,
+      "p95": 1.870683,
+      "p99": 1.901521
+    },
+    "timestamp": "2026-05-13T12:54:24.703130Z",
+    "system": {
+      "os": "mac os x",
+      "arch": "aarch64",
+      "cpus": 12,
+      "ram_gb": 32.0,
+      "mongocore_version": "native",
+      "driver": "mongodb-java-sync"
+    }
+  },
+  {
+    "benchmark": "insert_one_small",
+    "category": "single_doc",
+    "driver": "mongodb-java-sync",
+    "dataset_size_bytes": 1760000,
+    "batch_size": 10000,
+    "iterations": 13,
+    "total_time_secs": 61.969,
+    "ops_per_sec": 2124.6,
+    "mb_per_sec": 0.374,
+    "percentiles": {
+      "p10": 4.640982,
+      "p25": 4.689194,
+      "p50": 4.706691,
+      "p75": 4.785516,
+      "p90": 5.033737,
+      "p95": 5.078073,
+      "p99": 5.078073
+    },
+    "timestamp": "2026-05-13T12:56:13.419338Z",
+    "system": {
+      "os": "mac os x",
+      "arch": "aarch64",
+      "cpus": 12,
+      "ram_gb": 32.0,
+      "mongocore_version": "native",
+      "driver": "mongodb-java-sync"
+    }
+  },
+  {
+    "benchmark": "insert_one_large",
+    "category": "single_doc",
+    "driver": "mongodb-java-sync",
+    "dataset_size_bytes": 27500380,
+    "batch_size": 10,
+    "iterations": 100,
+    "total_time_secs": 32.59,
+    "ops_per_sec": 30.9,
+    "mb_per_sec": 85.005,
+    "percentiles": {
+      "p10": 0.312687,
+      "p25": 0.317008,
+      "p50": 0.323514,
+      "p75": 0.330098,
+      "p90": 0.335578,
+      "p95": 0.34182,
+      "p99": 0.400778
+    },
+    "timestamp": "2026-05-13T12:56:49.468438Z",
+    "system": {
+      "os": "mac os x",
+      "arch": "aarch64",
+      "cpus": 12,
+      "ram_gb": 32.0,
+      "mongocore_version": "native",
+      "driver": "mongodb-java-sync"
+    }
+  },
+  {
+    "benchmark": "bulk_insert_small",
+    "category": "multi_doc",
+    "driver": "mongodb-java-sync",
+    "dataset_size_bytes": 1760000,
+    "batch_size": 10000,
+    "iterations": 100,
+    "total_time_secs": 5.415,
+    "ops_per_sec": 187097.3,
+    "mb_per_sec": 32.929,
+    "percentiles": {
+      "p10": 0.050916,
+      "p25": 0.051594,
+      "p50": 0.053448,
+      "p75": 0.055291,
+      "p90": 0.058323,
+      "p95": 0.060442,
+      "p99": 0.0653
+    },
+    "timestamp": "2026-05-13T12:56:55.655421Z",
+    "system": {
+      "os": "mac os x",
+      "arch": "aarch64",
+      "cpus": 12,
+      "ram_gb": 32.0,
+      "mongocore_version": "native",
+      "driver": "mongodb-java-sync"
+    }
+  },
+  {
+    "benchmark": "find_many",
+    "category": "multi_doc",
+    "driver": "mongodb-java-sync",
+    "dataset_size_bytes": 1760000,
+    "batch_size": 10000,
+    "iterations": 100,
+    "total_time_secs": 1.88,
+    "ops_per_sec": 522413.7,
+    "mb_per_sec": 91.945,
+    "percentiles": {
+      "p10": 0.017048,
+      "p25": 0.017497,
+      "p50": 0.019142,
+      "p75": 0.019952,
+      "p90": 0.02034,
+      "p95": 0.020762,
+      "p99": 0.02089
+    },
+    "timestamp": "2026-05-13T12:56:57.807322Z",
+    "system": {
+      "os": "mac os x",
+      "arch": "aarch64",
+      "cpus": 12,
+      "ram_gb": 32.0,
+      "mongocore_version": "native",
+      "driver": "mongodb-java-sync"
+    }
+  }
+]

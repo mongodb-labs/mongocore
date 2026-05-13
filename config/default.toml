@@ -25,3 +25,21 @@ compiled_cache_sync = true
 
 # Log level: trace, debug, info, warn, error
 log_level = "info"
+
+# Transport mode: "both" (default), "tcp", "uds"
+transport = "both"
+
+# Unix domain socket path (used when transport includes UDS)
+socket_path = "/tmp/mongocore.sock"
+
+# Maximum gRPC message size in bytes (default: 64MB)
+# grpc_max_message_size = 67108864
+
+# gRPC compression: "none" (default), "gzip", "zstd"
+# grpc_compression = "none"
+
+# Streaming batch size (documents per frame, default: 1000)
+# stream_batch_size = 1000
+
+# Stream idle timeout in seconds (default: 60)
+# stream_idle_timeout_secs = 60

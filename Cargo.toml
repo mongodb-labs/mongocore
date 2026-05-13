@@ -8,7 +8,7 @@ license = "Apache-2.0"
 [dependencies]
 mongodb = { version = "3", features = ["tracing-unstable"] }
 tokio = { version = "1", features = ["full"] }
-tonic = "0.12"
+tonic = { version = "0.12", features = ["gzip", "zstd"] }
 serde = { version = "1", features = ["derive"] }
 toml = "0.8"
 bson = { version = "2", features = ["serde_with"] }
@@ -21,7 +21,7 @@ regex = "1"
 sha2 = "0.10"
 dashmap = "6"
 uuid = { version = "1", features = ["v4"] }
-tokio-stream = "0.1"
+tokio-stream = { version = "0.1", features = ["net"] }
 axum = "0.8"
 serde_json = "1"
 tower = "0.5"
@@ -36,6 +36,7 @@ polars = { version = "0.46", features = ["lazy", "csv", "json", "parquet", "dtyp
 notify = { version = "7", features = ["macos_fsevent"] }
 glob = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
+hyper-util = { version = "0.1", features = ["tokio"] }
 opentelemetry = { version = "0.28", optional = true }
 opentelemetry_sdk = { version = "0.28", features = ["rt-tokio"], optional = true }
 opentelemetry-otlp = { version = "0.28", features = ["grpc-tonic"], optional = true }
@@ -53,3 +54,4 @@ tempfile = "3"
 uuid = { version = "1", features = ["v4"] }
 async-trait = "0.1"
 bson = { version = "2", features = ["serde_with"] }
+hyper-util = { version = "0.1", features = ["tokio"] }

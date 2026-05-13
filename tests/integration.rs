@@ -36,3 +36,9 @@ mod ingestion_test;
 
 #[path = "integration/compiled_llm_test.rs"]
 mod compiled_llm_test;
+
+#[path = "integration/uds_test.rs"]
+mod uds_test;
+
+#[path = "integration/streaming_test.rs"]
+mod streaming_test;
