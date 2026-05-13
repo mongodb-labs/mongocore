@@ -116,10 +116,11 @@
 - **MCP pipeline tool** — All-or-nothing safety validation (rejects entire pipeline if any op violates read-only mode)
 - **Typed client builders** — `ops` modules in Python, TypeScript, Go, Java with typed result accessors
 
-## Future Roadmap
+## Backlog
 
 | Area | Description |
 |------|-------------|
+| Client UDS Support | Add Unix Domain Socket auto-discovery to Java and TypeScript clients (Python and Go already supported) |
 | Search RPC Integration | Wire compiled query translator into search handler as intelligent router |
 | Query Explanation | Show generated MQL, confidence scores, and alternative interpretations to users |
 | Hybrid Search (RRF) | Vector + fulltext with reciprocal rank fusion scoring — industry standard for RAG |
