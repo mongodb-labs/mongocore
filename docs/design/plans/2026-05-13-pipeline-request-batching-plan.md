@@ -261,6 +261,23 @@ Update the constructor (`new()` or wherever MongoCoreService is built) to accept
     pipeline_semaphore: Arc::new(tokio::sync::Semaphore::new(config.pipeline_max_concurrency)),
 ```
 
+- [ ] **Step 2b: Verify `futures` crate is a dependency**
+
+The pipeline handler uses `futures::future::join_all`. Check if it's already in Cargo.toml:
+
+Run: `grep "futures" Cargo.toml`
+
+If not present, add it:
+```toml
+futures = "0.3"
+```
+
+Also verify `tokio` has the `sync` feature (needed for `Semaphore`):
+
+Run: `grep -A5 'tokio' Cargo.toml | head -10`
+
+If `sync` isn't in the features list, add it.
+
 - [ ] **Step 3: Implement the pipeline handler**
 
 In `src/grpc/service.rs`, add the `pipeline` method to the `MongoCore` tonic trait implementation:
@@ -436,6 +453,45 @@ Each follows the same structure:
 2. Dispatch to the existing operation on `self.operations` or `self.transactions`
 3. Wrap the success response in the appropriate `pipeline_result::Result` variant
 4. Wrap errors in `PipelineError`
+
+- [ ] **Step 5b: Add OTel child spans per operation (when otel feature enabled)**
+
+Each per-operation dispatch helper should create a child span for observability. Wrap the operation body in a span:
+
+```rust
+    async fn execute_pipeline_find(&self, index: u32, req: proto::FindRequest) -> proto::pipeline_result::Result {
+        let span = tracing::info_span!(
+            "pipeline.op",
+            pipeline.op.index = index,
+            pipeline.op.type = "find",
+            db.name = %req.database,
+            db.collection = %req.collection,
+        );
+        let _enter = span.enter();
+
+        // ... existing dispatch logic ...
+    }
+```
+
+Update `execute_pipeline_op` to pass `index` to each helper:
+```rust
+    Some(Operation::Find(req)) => self.execute_pipeline_find(index, req).await,
+    Some(Operation::FindOne(req)) => self.execute_pipeline_find_one(index, req).await,
+    // ... etc
+```
+
+Also update the parent handler's span attributes:
+```rust
+    #[tracing::instrument(skip(self, request), fields(pipeline.size = tracing::field::Empty, pipeline.succeeded = tracing::field::Empty, pipeline.failed = tracing::field::Empty))]
+    async fn pipeline(...) {
+        // After computing results:
+        tracing::Span::current().record("pipeline.size", req_len);
+        tracing::Span::current().record("pipeline.succeeded", succeeded);
+        tracing::Span::current().record("pipeline.failed", failed);
+    }
+```
+
+This produces the span structure from the spec: parent `pipeline` with children `pipeline.op[N].{type}`.
 
 - [ ] **Step 6: Add is_error helper as a free function**
 
@@ -1073,6 +1129,46 @@ async fn test_pipeline_concurrent_execution() {
         }
     }
 }
+
+#[tokio::test]
+async fn test_pipeline_timeout() {
+    // This test verifies that the pipeline-level timeout works.
+    // We use a RunCommand with a sleep to simulate a slow operation.
+    // Note: Requires the sidecar to be configured with a short pipeline timeout for testing,
+    // OR we use the gRPC deadline (which is respected by tonic).
+    let mut client = harness::grpc_client().await;
+    let coll = unique_collection();
+
+    use mongocore::proto::pipeline_operation::Operation;
+
+    // Use a $where with sleep to create a slow query (MongoDB must have scripting enabled)
+    // Alternative: set a very short gRPC deadline on the request
+    let mut request = tonic::Request::new(mongocore::proto::PipelineRequest {
+        operations: vec![
+            mongocore::proto::PipelineOperation {
+                operation: Some(Operation::RunCommand(mongocore::proto::RunCommandRequest {
+                    database: harness::TEST_DB.to_string(),
+                    command: Some(mongocore::proto::Document {
+                        data: bson::to_vec(&bson::doc! {
+                            "find": coll.clone(),
+                            "filter": { "$where": "sleep(5000) || true" }
+                        }).unwrap(),
+                    }),
+                })),
+            },
+        ],
+    });
+
+    // Set a 1-second gRPC deadline — shorter than the 5s sleep
+    request.set_timeout(std::time::Duration::from_secs(1));
+
+    let err = client.pipeline(request).await.unwrap_err();
+    // Should get DEADLINE_EXCEEDED from either gRPC deadline or pipeline timeout
+    assert!(
+        err.code() == tonic::Code::DeadlineExceeded || err.code() == tonic::Code::Cancelled,
+        "Expected deadline exceeded, got: {:?}", err.code()
+    );
+}
 ```
 
 - [ ] **Step 2: Verify integration tests compile**
@@ -1083,7 +1179,7 @@ Expected: Compiles successfully
 - [ ] **Step 3: Run integration tests (requires Docker MongoDB)**
 
 Run: `cargo test --test integration pipeline -- --nocapture`
-Expected: All 5 tests pass
+Expected: All 6 tests pass
 
 - [ ] **Step 4: Commit**
 
