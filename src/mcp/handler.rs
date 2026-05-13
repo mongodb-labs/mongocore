@@ -130,7 +130,7 @@ impl McpHandler {
             .unwrap_or(json!({}));
 
         let result =
-            tools::execute_tool(&self.operations, &self.pool, self.analytics.as_ref(), self.ingestion.as_ref(), self.watcher.as_ref(), &tool_name, &arguments).await;
+            tools::execute_tool(&self.operations, &self.pool, self.analytics.as_ref(), self.ingestion.as_ref(), self.watcher.as_ref(), &self.safety, &tool_name, &arguments).await;
 
         JsonRpcResponse::success(id, serde_json::to_value(&result).unwrap_or(json!(null)))
     }
@@ -239,6 +239,6 @@ mod tests {
     fn test_tools_list_returns_definitions() {
         let definitions = tools::tool_definitions();
         assert!(!definitions.is_empty());
-        assert_eq!(definitions.len(), 21);
+        assert_eq!(definitions.len(), 22);
     }
 }

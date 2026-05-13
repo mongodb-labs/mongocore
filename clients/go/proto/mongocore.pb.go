@@ -2212,6 +2212,166 @@ func (x *WatchEvent) GetDocumentKey() *Document {
 	return nil
 }
 
+type FindStreamRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Database      string                 `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
+	Collection    string                 `protobuf:"bytes,2,opt,name=collection,proto3" json:"collection,omitempty"`
+	Filter        *Filter                `protobuf:"bytes,3,opt,name=filter,proto3" json:"filter,omitempty"`
+	Options       *FindOptions           `protobuf:"bytes,4,opt,name=options,proto3" json:"options,omitempty"`
+	TransactionId *string                `protobuf:"bytes,5,opt,name=transaction_id,json=transactionId,proto3,oneof" json:"transaction_id,omitempty"`
+	BatchSize     uint32                 `protobuf:"varint,6,opt,name=batch_size,json=batchSize,proto3" json:"batch_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *FindStreamRequest) Reset() {
+	*x = FindStreamRequest{}
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[38]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *FindStreamRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*FindStreamRequest) ProtoMessage() {}
+
+func (x *FindStreamRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[38]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use FindStreamRequest.ProtoReflect.Descriptor instead.
+func (*FindStreamRequest) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{38}
+}
+
+func (x *FindStreamRequest) GetDatabase() string {
+	if x != nil {
+		return x.Database
+	}
+	return ""
+}
+
+func (x *FindStreamRequest) GetCollection() string {
+	if x != nil {
+		return x.Collection
+	}
+	return ""
+}
+
+func (x *FindStreamRequest) GetFilter() *Filter {
+	if x != nil {
+		return x.Filter
+	}
+	return nil
+}
+
+func (x *FindStreamRequest) GetOptions() *FindOptions {
+	if x != nil {
+		return x.Options
+	}
+	return nil
+}
+
+func (x *FindStreamRequest) GetTransactionId() string {
+	if x != nil && x.TransactionId != nil {
+		return *x.TransactionId
+	}
+	return ""
+}
+
+func (x *FindStreamRequest) GetBatchSize() uint32 {
+	if x != nil {
+		return x.BatchSize
+	}
+	return 0
+}
+
+type AggregateStreamRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Database      string                 `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
+	Collection    string                 `protobuf:"bytes,2,opt,name=collection,proto3" json:"collection,omitempty"`
+	Pipeline      *Pipeline              `protobuf:"bytes,3,opt,name=pipeline,proto3" json:"pipeline,omitempty"`
+	TransactionId *string                `protobuf:"bytes,4,opt,name=transaction_id,json=transactionId,proto3,oneof" json:"transaction_id,omitempty"`
+	BatchSize     uint32                 `protobuf:"varint,5,opt,name=batch_size,json=batchSize,proto3" json:"batch_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AggregateStreamRequest) Reset() {
+	*x = AggregateStreamRequest{}
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[39]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AggregateStreamRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AggregateStreamRequest) ProtoMessage() {}
+
+func (x *AggregateStreamRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[39]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AggregateStreamRequest.ProtoReflect.Descriptor instead.
+func (*AggregateStreamRequest) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{39}
+}
+
+func (x *AggregateStreamRequest) GetDatabase() string {
+	if x != nil {
+		return x.Database
+	}
+	return ""
+}
+
+func (x *AggregateStreamRequest) GetCollection() string {
+	if x != nil {
+		return x.Collection
+	}
+	return ""
+}
+
+func (x *AggregateStreamRequest) GetPipeline() *Pipeline {
+	if x != nil {
+		return x.Pipeline
+	}
+	return nil
+}
+
+func (x *AggregateStreamRequest) GetTransactionId() string {
+	if x != nil && x.TransactionId != nil {
+		return *x.TransactionId
+	}
+	return ""
+}
+
+func (x *AggregateStreamRequest) GetBatchSize() uint32 {
+	if x != nil {
+		return x.BatchSize
+	}
+	return 0
+}
+
 type RunCommandRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Database      string                 `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
@@ -2223,7 +2383,7 @@ type RunCommandRequest struct {
 
 func (x *RunCommandRequest) Reset() {
 	*x = RunCommandRequest{}
-	mi := &file_mongocore_v1_mongocore_proto_msgTypes[38]
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[40]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2235,7 +2395,7 @@ func (x *RunCommandRequest) String() string {
 func (*RunCommandRequest) ProtoMessage() {}
 
 func (x *RunCommandRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_mongocore_v1_mongocore_proto_msgTypes[38]
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[40]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2248,7 +2408,7 @@ func (x *RunCommandRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunCommandRequest.ProtoReflect.Descriptor instead.
 func (*RunCommandRequest) Descriptor() ([]byte, []int) {
-	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{38}
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{40}
 }
 
 func (x *RunCommandRequest) GetDatabase() string {
@@ -2281,7 +2441,7 @@ type RunCommandResponse struct {
 
 func (x *RunCommandResponse) Reset() {
 	*x = RunCommandResponse{}
-	mi := &file_mongocore_v1_mongocore_proto_msgTypes[39]
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[41]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2293,7 +2453,7 @@ func (x *RunCommandResponse) String() string {
 func (*RunCommandResponse) ProtoMessage() {}
 
 func (x *RunCommandResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_mongocore_v1_mongocore_proto_msgTypes[39]
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[41]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2306,7 +2466,7 @@ func (x *RunCommandResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RunCommandResponse.ProtoReflect.Descriptor instead.
 func (*RunCommandResponse) Descriptor() ([]byte, []int) {
-	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{39}
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{41}
 }
 
 func (x *RunCommandResponse) GetResult() *Document {
@@ -2325,7 +2485,7 @@ type GetAnalyticsRequest struct {
 
 func (x *GetAnalyticsRequest) Reset() {
 	*x = GetAnalyticsRequest{}
-	mi := &file_mongocore_v1_mongocore_proto_msgTypes[40]
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[42]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2337,7 +2497,7 @@ func (x *GetAnalyticsRequest) String() string {
 func (*GetAnalyticsRequest) ProtoMessage() {}
 
 func (x *GetAnalyticsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_mongocore_v1_mongocore_proto_msgTypes[40]
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[42]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2350,7 +2510,7 @@ func (x *GetAnalyticsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAnalyticsRequest.ProtoReflect.Descriptor instead.
 func (*GetAnalyticsRequest) Descriptor() ([]byte, []int) {
-	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{40}
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{42}
 }
 
 func (x *GetAnalyticsRequest) GetWindowSeconds() int64 {
@@ -2376,7 +2536,7 @@ type GetAnalyticsResponse struct {
 
 func (x *GetAnalyticsResponse) Reset() {
 	*x = GetAnalyticsResponse{}
-	mi := &file_mongocore_v1_mongocore_proto_msgTypes[41]
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[43]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2388,7 +2548,7 @@ func (x *GetAnalyticsResponse) String() string {
 func (*GetAnalyticsResponse) ProtoMessage() {}
 
 func (x *GetAnalyticsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_mongocore_v1_mongocore_proto_msgTypes[41]
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[43]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2401,7 +2561,7 @@ func (x *GetAnalyticsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAnalyticsResponse.ProtoReflect.Descriptor instead.
 func (*GetAnalyticsResponse) Descriptor() ([]byte, []int) {
-	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{41}
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{43}
 }
 
 func (x *GetAnalyticsResponse) GetTotalOperations() int64 {
@@ -2470,7 +2630,7 @@ type OperationCount struct {
 
 func (x *OperationCount) Reset() {
 	*x = OperationCount{}
-	mi := &file_mongocore_v1_mongocore_proto_msgTypes[42]
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[44]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2482,7 +2642,7 @@ func (x *OperationCount) String() string {
 func (*OperationCount) ProtoMessage() {}
 
 func (x *OperationCount) ProtoReflect() protoreflect.Message {
-	mi := &file_mongocore_v1_mongocore_proto_msgTypes[42]
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[44]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2495,7 +2655,7 @@ func (x *OperationCount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use OperationCount.ProtoReflect.Descriptor instead.
 func (*OperationCount) Descriptor() ([]byte, []int) {
-	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{42}
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{44}
 }
 
 func (x *OperationCount) GetOperation() string {
@@ -2522,7 +2682,7 @@ type CollectionCount struct {
 
 func (x *CollectionCount) Reset() {
 	*x = CollectionCount{}
-	mi := &file_mongocore_v1_mongocore_proto_msgTypes[43]
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[45]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2534,7 +2694,7 @@ func (x *CollectionCount) String() string {
 func (*CollectionCount) ProtoMessage() {}
 
 func (x *CollectionCount) ProtoReflect() protoreflect.Message {
-	mi := &file_mongocore_v1_mongocore_proto_msgTypes[43]
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[45]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -2547,7 +2707,7 @@ func (x *CollectionCount) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CollectionCount.ProtoReflect.Descriptor instead.
 func (*CollectionCount) Descriptor() ([]byte, []int) {
-	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{43}
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{45}
 }
 
 func (x *CollectionCount) GetCollection() string {
@@ -2562,6 +2722,926 @@ func (x *CollectionCount) GetCount() int64 {
 		return x.Count
 	}
 	return 0
+}
+
+type PipelineRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Operations    []*PipelineOperation   `protobuf:"bytes,1,rep,name=operations,proto3" json:"operations,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PipelineRequest) Reset() {
+	*x = PipelineRequest{}
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[46]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PipelineRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PipelineRequest) ProtoMessage() {}
+
+func (x *PipelineRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[46]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PipelineRequest.ProtoReflect.Descriptor instead.
+func (*PipelineRequest) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{46}
+}
+
+func (x *PipelineRequest) GetOperations() []*PipelineOperation {
+	if x != nil {
+		return x.Operations
+	}
+	return nil
+}
+
+type PipelineOperation struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Types that are valid to be assigned to Operation:
+	//
+	//	*PipelineOperation_Find
+	//	*PipelineOperation_FindOne
+	//	*PipelineOperation_Insert
+	//	*PipelineOperation_InsertMany
+	//	*PipelineOperation_Update
+	//	*PipelineOperation_UpdateMany
+	//	*PipelineOperation_Delete
+	//	*PipelineOperation_DeleteMany
+	//	*PipelineOperation_Aggregate
+	//	*PipelineOperation_FindAndModify
+	//	*PipelineOperation_RunCommand
+	//	*PipelineOperation_Search
+	//	*PipelineOperation_CreateCollection
+	//	*PipelineOperation_CreateIndex
+	//	*PipelineOperation_ListDatabases
+	//	*PipelineOperation_ListCollections
+	//	*PipelineOperation_BeginTransaction
+	//	*PipelineOperation_CommitTransaction
+	//	*PipelineOperation_AbortTransaction
+	//	*PipelineOperation_GetAnalytics
+	Operation     isPipelineOperation_Operation `protobuf_oneof:"operation"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PipelineOperation) Reset() {
+	*x = PipelineOperation{}
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[47]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PipelineOperation) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PipelineOperation) ProtoMessage() {}
+
+func (x *PipelineOperation) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[47]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PipelineOperation.ProtoReflect.Descriptor instead.
+func (*PipelineOperation) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{47}
+}
+
+func (x *PipelineOperation) GetOperation() isPipelineOperation_Operation {
+	if x != nil {
+		return x.Operation
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetFind() *FindRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_Find); ok {
+			return x.Find
+		}
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetFindOne() *FindOneRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_FindOne); ok {
+			return x.FindOne
+		}
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetInsert() *InsertRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_Insert); ok {
+			return x.Insert
+		}
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetInsertMany() *InsertManyRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_InsertMany); ok {
+			return x.InsertMany
+		}
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetUpdate() *UpdateRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_Update); ok {
+			return x.Update
+		}
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetUpdateMany() *UpdateManyRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_UpdateMany); ok {
+			return x.UpdateMany
+		}
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetDelete() *DeleteRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_Delete); ok {
+			return x.Delete
+		}
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetDeleteMany() *DeleteManyRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_DeleteMany); ok {
+			return x.DeleteMany
+		}
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetAggregate() *AggregateRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_Aggregate); ok {
+			return x.Aggregate
+		}
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetFindAndModify() *FindAndModifyRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_FindAndModify); ok {
+			return x.FindAndModify
+		}
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetRunCommand() *RunCommandRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_RunCommand); ok {
+			return x.RunCommand
+		}
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetSearch() *SearchRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_Search); ok {
+			return x.Search
+		}
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetCreateCollection() *CreateCollectionRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_CreateCollection); ok {
+			return x.CreateCollection
+		}
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetCreateIndex() *CreateIndexRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_CreateIndex); ok {
+			return x.CreateIndex
+		}
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetListDatabases() *ListDatabasesRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_ListDatabases); ok {
+			return x.ListDatabases
+		}
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetListCollections() *ListCollectionsRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_ListCollections); ok {
+			return x.ListCollections
+		}
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetBeginTransaction() *BeginTransactionRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_BeginTransaction); ok {
+			return x.BeginTransaction
+		}
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetCommitTransaction() *CommitTransactionRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_CommitTransaction); ok {
+			return x.CommitTransaction
+		}
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetAbortTransaction() *AbortTransactionRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_AbortTransaction); ok {
+			return x.AbortTransaction
+		}
+	}
+	return nil
+}
+
+func (x *PipelineOperation) GetGetAnalytics() *GetAnalyticsRequest {
+	if x != nil {
+		if x, ok := x.Operation.(*PipelineOperation_GetAnalytics); ok {
+			return x.GetAnalytics
+		}
+	}
+	return nil
+}
+
+type isPipelineOperation_Operation interface {
+	isPipelineOperation_Operation()
+}
+
+type PipelineOperation_Find struct {
+	Find *FindRequest `protobuf:"bytes,1,opt,name=find,proto3,oneof"`
+}
+
+type PipelineOperation_FindOne struct {
+	FindOne *FindOneRequest `protobuf:"bytes,2,opt,name=find_one,json=findOne,proto3,oneof"`
+}
+
+type PipelineOperation_Insert struct {
+	Insert *InsertRequest `protobuf:"bytes,3,opt,name=insert,proto3,oneof"`
+}
+
+type PipelineOperation_InsertMany struct {
+	InsertMany *InsertManyRequest `protobuf:"bytes,4,opt,name=insert_many,json=insertMany,proto3,oneof"`
+}
+
+type PipelineOperation_Update struct {
+	Update *UpdateRequest `protobuf:"bytes,5,opt,name=update,proto3,oneof"`
+}
+
+type PipelineOperation_UpdateMany struct {
+	UpdateMany *UpdateManyRequest `protobuf:"bytes,6,opt,name=update_many,json=updateMany,proto3,oneof"`
+}
+
+type PipelineOperation_Delete struct {
+	Delete *DeleteRequest `protobuf:"bytes,7,opt,name=delete,proto3,oneof"`
+}
+
+type PipelineOperation_DeleteMany struct {
+	DeleteMany *DeleteManyRequest `protobuf:"bytes,8,opt,name=delete_many,json=deleteMany,proto3,oneof"`
+}
+
+type PipelineOperation_Aggregate struct {
+	Aggregate *AggregateRequest `protobuf:"bytes,9,opt,name=aggregate,proto3,oneof"`
+}
+
+type PipelineOperation_FindAndModify struct {
+	FindAndModify *FindAndModifyRequest `protobuf:"bytes,10,opt,name=find_and_modify,json=findAndModify,proto3,oneof"`
+}
+
+type PipelineOperation_RunCommand struct {
+	RunCommand *RunCommandRequest `protobuf:"bytes,11,opt,name=run_command,json=runCommand,proto3,oneof"`
+}
+
+type PipelineOperation_Search struct {
+	Search *SearchRequest `protobuf:"bytes,12,opt,name=search,proto3,oneof"`
+}
+
+type PipelineOperation_CreateCollection struct {
+	CreateCollection *CreateCollectionRequest `protobuf:"bytes,13,opt,name=create_collection,json=createCollection,proto3,oneof"`
+}
+
+type PipelineOperation_CreateIndex struct {
+	CreateIndex *CreateIndexRequest `protobuf:"bytes,14,opt,name=create_index,json=createIndex,proto3,oneof"`
+}
+
+type PipelineOperation_ListDatabases struct {
+	ListDatabases *ListDatabasesRequest `protobuf:"bytes,15,opt,name=list_databases,json=listDatabases,proto3,oneof"`
+}
+
+type PipelineOperation_ListCollections struct {
+	ListCollections *ListCollectionsRequest `protobuf:"bytes,16,opt,name=list_collections,json=listCollections,proto3,oneof"`
+}
+
+type PipelineOperation_BeginTransaction struct {
+	BeginTransaction *BeginTransactionRequest `protobuf:"bytes,17,opt,name=begin_transaction,json=beginTransaction,proto3,oneof"`
+}
+
+type PipelineOperation_CommitTransaction struct {
+	CommitTransaction *CommitTransactionRequest `protobuf:"bytes,18,opt,name=commit_transaction,json=commitTransaction,proto3,oneof"`
+}
+
+type PipelineOperation_AbortTransaction struct {
+	AbortTransaction *AbortTransactionRequest `protobuf:"bytes,19,opt,name=abort_transaction,json=abortTransaction,proto3,oneof"`
+}
+
+type PipelineOperation_GetAnalytics struct {
+	GetAnalytics *GetAnalyticsRequest `protobuf:"bytes,20,opt,name=get_analytics,json=getAnalytics,proto3,oneof"`
+}
+
+func (*PipelineOperation_Find) isPipelineOperation_Operation() {}
+
+func (*PipelineOperation_FindOne) isPipelineOperation_Operation() {}
+
+func (*PipelineOperation_Insert) isPipelineOperation_Operation() {}
+
+func (*PipelineOperation_InsertMany) isPipelineOperation_Operation() {}
+
+func (*PipelineOperation_Update) isPipelineOperation_Operation() {}
+
+func (*PipelineOperation_UpdateMany) isPipelineOperation_Operation() {}
+
+func (*PipelineOperation_Delete) isPipelineOperation_Operation() {}
+
+func (*PipelineOperation_DeleteMany) isPipelineOperation_Operation() {}
+
+func (*PipelineOperation_Aggregate) isPipelineOperation_Operation() {}
+
+func (*PipelineOperation_FindAndModify) isPipelineOperation_Operation() {}
+
+func (*PipelineOperation_RunCommand) isPipelineOperation_Operation() {}
+
+func (*PipelineOperation_Search) isPipelineOperation_Operation() {}
+
+func (*PipelineOperation_CreateCollection) isPipelineOperation_Operation() {}
+
+func (*PipelineOperation_CreateIndex) isPipelineOperation_Operation() {}
+
+func (*PipelineOperation_ListDatabases) isPipelineOperation_Operation() {}
+
+func (*PipelineOperation_ListCollections) isPipelineOperation_Operation() {}
+
+func (*PipelineOperation_BeginTransaction) isPipelineOperation_Operation() {}
+
+func (*PipelineOperation_CommitTransaction) isPipelineOperation_Operation() {}
+
+func (*PipelineOperation_AbortTransaction) isPipelineOperation_Operation() {}
+
+func (*PipelineOperation_GetAnalytics) isPipelineOperation_Operation() {}
+
+type PipelineResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Results       []*PipelineResult      `protobuf:"bytes,1,rep,name=results,proto3" json:"results,omitempty"`
+	Succeeded     uint32                 `protobuf:"varint,2,opt,name=succeeded,proto3" json:"succeeded,omitempty"`
+	Failed        uint32                 `protobuf:"varint,3,opt,name=failed,proto3" json:"failed,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PipelineResponse) Reset() {
+	*x = PipelineResponse{}
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[48]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PipelineResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PipelineResponse) ProtoMessage() {}
+
+func (x *PipelineResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[48]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PipelineResponse.ProtoReflect.Descriptor instead.
+func (*PipelineResponse) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{48}
+}
+
+func (x *PipelineResponse) GetResults() []*PipelineResult {
+	if x != nil {
+		return x.Results
+	}
+	return nil
+}
+
+func (x *PipelineResponse) GetSucceeded() uint32 {
+	if x != nil {
+		return x.Succeeded
+	}
+	return 0
+}
+
+func (x *PipelineResponse) GetFailed() uint32 {
+	if x != nil {
+		return x.Failed
+	}
+	return 0
+}
+
+type PipelineResult struct {
+	state protoimpl.MessageState `protogen:"open.v1"`
+	Index uint32                 `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
+	// Types that are valid to be assigned to Result:
+	//
+	//	*PipelineResult_Find
+	//	*PipelineResult_FindOne
+	//	*PipelineResult_Insert
+	//	*PipelineResult_InsertMany
+	//	*PipelineResult_Update
+	//	*PipelineResult_UpdateMany
+	//	*PipelineResult_Delete
+	//	*PipelineResult_DeleteMany
+	//	*PipelineResult_Aggregate
+	//	*PipelineResult_FindAndModify
+	//	*PipelineResult_RunCommand
+	//	*PipelineResult_Search
+	//	*PipelineResult_CreateCollection
+	//	*PipelineResult_CreateIndex
+	//	*PipelineResult_ListDatabases
+	//	*PipelineResult_ListCollections
+	//	*PipelineResult_BeginTransaction
+	//	*PipelineResult_CommitTransaction
+	//	*PipelineResult_AbortTransaction
+	//	*PipelineResult_GetAnalytics
+	//	*PipelineResult_Error
+	Result        isPipelineResult_Result `protobuf_oneof:"result"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PipelineResult) Reset() {
+	*x = PipelineResult{}
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[49]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PipelineResult) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PipelineResult) ProtoMessage() {}
+
+func (x *PipelineResult) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[49]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PipelineResult.ProtoReflect.Descriptor instead.
+func (*PipelineResult) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{49}
+}
+
+func (x *PipelineResult) GetIndex() uint32 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
+}
+
+func (x *PipelineResult) GetResult() isPipelineResult_Result {
+	if x != nil {
+		return x.Result
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetFind() *FindResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_Find); ok {
+			return x.Find
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetFindOne() *FindOneResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_FindOne); ok {
+			return x.FindOne
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetInsert() *InsertResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_Insert); ok {
+			return x.Insert
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetInsertMany() *InsertManyResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_InsertMany); ok {
+			return x.InsertMany
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetUpdate() *UpdateResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_Update); ok {
+			return x.Update
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetUpdateMany() *UpdateManyResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_UpdateMany); ok {
+			return x.UpdateMany
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetDelete() *DeleteResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_Delete); ok {
+			return x.Delete
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetDeleteMany() *DeleteManyResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_DeleteMany); ok {
+			return x.DeleteMany
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetAggregate() *AggregateResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_Aggregate); ok {
+			return x.Aggregate
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetFindAndModify() *FindAndModifyResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_FindAndModify); ok {
+			return x.FindAndModify
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetRunCommand() *RunCommandResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_RunCommand); ok {
+			return x.RunCommand
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetSearch() *SearchResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_Search); ok {
+			return x.Search
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetCreateCollection() *CreateCollectionResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_CreateCollection); ok {
+			return x.CreateCollection
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetCreateIndex() *CreateIndexResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_CreateIndex); ok {
+			return x.CreateIndex
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetListDatabases() *ListDatabasesResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_ListDatabases); ok {
+			return x.ListDatabases
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetListCollections() *ListCollectionsResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_ListCollections); ok {
+			return x.ListCollections
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetBeginTransaction() *BeginTransactionResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_BeginTransaction); ok {
+			return x.BeginTransaction
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetCommitTransaction() *CommitTransactionResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_CommitTransaction); ok {
+			return x.CommitTransaction
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetAbortTransaction() *AbortTransactionResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_AbortTransaction); ok {
+			return x.AbortTransaction
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetGetAnalytics() *GetAnalyticsResponse {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_GetAnalytics); ok {
+			return x.GetAnalytics
+		}
+	}
+	return nil
+}
+
+func (x *PipelineResult) GetError() *PipelineError {
+	if x != nil {
+		if x, ok := x.Result.(*PipelineResult_Error); ok {
+			return x.Error
+		}
+	}
+	return nil
+}
+
+type isPipelineResult_Result interface {
+	isPipelineResult_Result()
+}
+
+type PipelineResult_Find struct {
+	Find *FindResponse `protobuf:"bytes,2,opt,name=find,proto3,oneof"`
+}
+
+type PipelineResult_FindOne struct {
+	FindOne *FindOneResponse `protobuf:"bytes,3,opt,name=find_one,json=findOne,proto3,oneof"`
+}
+
+type PipelineResult_Insert struct {
+	Insert *InsertResponse `protobuf:"bytes,4,opt,name=insert,proto3,oneof"`
+}
+
+type PipelineResult_InsertMany struct {
+	InsertMany *InsertManyResponse `protobuf:"bytes,5,opt,name=insert_many,json=insertMany,proto3,oneof"`
+}
+
+type PipelineResult_Update struct {
+	Update *UpdateResponse `protobuf:"bytes,6,opt,name=update,proto3,oneof"`
+}
+
+type PipelineResult_UpdateMany struct {
+	UpdateMany *UpdateManyResponse `protobuf:"bytes,7,opt,name=update_many,json=updateMany,proto3,oneof"`
+}
+
+type PipelineResult_Delete struct {
+	Delete *DeleteResponse `protobuf:"bytes,8,opt,name=delete,proto3,oneof"`
+}
+
+type PipelineResult_DeleteMany struct {
+	DeleteMany *DeleteManyResponse `protobuf:"bytes,9,opt,name=delete_many,json=deleteMany,proto3,oneof"`
+}
+
+type PipelineResult_Aggregate struct {
+	Aggregate *AggregateResponse `protobuf:"bytes,10,opt,name=aggregate,proto3,oneof"`
+}
+
+type PipelineResult_FindAndModify struct {
+	FindAndModify *FindAndModifyResponse `protobuf:"bytes,11,opt,name=find_and_modify,json=findAndModify,proto3,oneof"`
+}
+
+type PipelineResult_RunCommand struct {
+	RunCommand *RunCommandResponse `protobuf:"bytes,12,opt,name=run_command,json=runCommand,proto3,oneof"`
+}
+
+type PipelineResult_Search struct {
+	Search *SearchResponse `protobuf:"bytes,13,opt,name=search,proto3,oneof"`
+}
+
+type PipelineResult_CreateCollection struct {
+	CreateCollection *CreateCollectionResponse `protobuf:"bytes,14,opt,name=create_collection,json=createCollection,proto3,oneof"`
+}
+
+type PipelineResult_CreateIndex struct {
+	CreateIndex *CreateIndexResponse `protobuf:"bytes,15,opt,name=create_index,json=createIndex,proto3,oneof"`
+}
+
+type PipelineResult_ListDatabases struct {
+	ListDatabases *ListDatabasesResponse `protobuf:"bytes,16,opt,name=list_databases,json=listDatabases,proto3,oneof"`
+}
+
+type PipelineResult_ListCollections struct {
+	ListCollections *ListCollectionsResponse `protobuf:"bytes,17,opt,name=list_collections,json=listCollections,proto3,oneof"`
+}
+
+type PipelineResult_BeginTransaction struct {
+	BeginTransaction *BeginTransactionResponse `protobuf:"bytes,18,opt,name=begin_transaction,json=beginTransaction,proto3,oneof"`
+}
+
+type PipelineResult_CommitTransaction struct {
+	CommitTransaction *CommitTransactionResponse `protobuf:"bytes,19,opt,name=commit_transaction,json=commitTransaction,proto3,oneof"`
+}
+
+type PipelineResult_AbortTransaction struct {
+	AbortTransaction *AbortTransactionResponse `protobuf:"bytes,20,opt,name=abort_transaction,json=abortTransaction,proto3,oneof"`
+}
+
+type PipelineResult_GetAnalytics struct {
+	GetAnalytics *GetAnalyticsResponse `protobuf:"bytes,21,opt,name=get_analytics,json=getAnalytics,proto3,oneof"`
+}
+
+type PipelineResult_Error struct {
+	Error *PipelineError `protobuf:"bytes,22,opt,name=error,proto3,oneof"`
+}
+
+func (*PipelineResult_Find) isPipelineResult_Result() {}
+
+func (*PipelineResult_FindOne) isPipelineResult_Result() {}
+
+func (*PipelineResult_Insert) isPipelineResult_Result() {}
+
+func (*PipelineResult_InsertMany) isPipelineResult_Result() {}
+
+func (*PipelineResult_Update) isPipelineResult_Result() {}
+
+func (*PipelineResult_UpdateMany) isPipelineResult_Result() {}
+
+func (*PipelineResult_Delete) isPipelineResult_Result() {}
+
+func (*PipelineResult_DeleteMany) isPipelineResult_Result() {}
+
+func (*PipelineResult_Aggregate) isPipelineResult_Result() {}
+
+func (*PipelineResult_FindAndModify) isPipelineResult_Result() {}
+
+func (*PipelineResult_RunCommand) isPipelineResult_Result() {}
+
+func (*PipelineResult_Search) isPipelineResult_Result() {}
+
+func (*PipelineResult_CreateCollection) isPipelineResult_Result() {}
+
+func (*PipelineResult_CreateIndex) isPipelineResult_Result() {}
+
+func (*PipelineResult_ListDatabases) isPipelineResult_Result() {}
+
+func (*PipelineResult_ListCollections) isPipelineResult_Result() {}
+
+func (*PipelineResult_BeginTransaction) isPipelineResult_Result() {}
+
+func (*PipelineResult_CommitTransaction) isPipelineResult_Result() {}
+
+func (*PipelineResult_AbortTransaction) isPipelineResult_Result() {}
+
+func (*PipelineResult_GetAnalytics) isPipelineResult_Result() {}
+
+func (*PipelineResult_Error) isPipelineResult_Result() {}
+
+type PipelineError struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Code          int32                  `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PipelineError) Reset() {
+	*x = PipelineError{}
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[50]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PipelineError) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PipelineError) ProtoMessage() {}
+
+func (x *PipelineError) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_mongocore_proto_msgTypes[50]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PipelineError.ProtoReflect.Descriptor instead.
+func (*PipelineError) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_mongocore_proto_rawDescGZIP(), []int{50}
+}
+
+func (x *PipelineError) GetCode() int32 {
+	if x != nil {
+		return x.Code
+	}
+	return 0
+}
+
+func (x *PipelineError) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
 }
 
 var File_mongocore_v1_mongocore_proto protoreflect.FileDescriptor
@@ -2765,7 +3845,28 @@ const file_mongocore_v1_mongocore_proto_rawDesc = "" +
 	"INVALIDATE\x10\x04B\v\n" +
 	"\t_documentB\x15\n" +
 	"\x13_update_descriptionB\x0f\n" +
-	"\r_document_key\"~\n" +
+	"\r_document_key\"\x90\x02\n" +
+	"\x11FindStreamRequest\x12\x1a\n" +
+	"\bdatabase\x18\x01 \x01(\tR\bdatabase\x12\x1e\n" +
+	"\n" +
+	"collection\x18\x02 \x01(\tR\n" +
+	"collection\x12,\n" +
+	"\x06filter\x18\x03 \x01(\v2\x14.mongocore.v1.FilterR\x06filter\x123\n" +
+	"\aoptions\x18\x04 \x01(\v2\x19.mongocore.v1.FindOptionsR\aoptions\x12*\n" +
+	"\x0etransaction_id\x18\x05 \x01(\tH\x00R\rtransactionId\x88\x01\x01\x12\x1d\n" +
+	"\n" +
+	"batch_size\x18\x06 \x01(\rR\tbatchSizeB\x11\n" +
+	"\x0f_transaction_id\"\xe6\x01\n" +
+	"\x16AggregateStreamRequest\x12\x1a\n" +
+	"\bdatabase\x18\x01 \x01(\tR\bdatabase\x12\x1e\n" +
+	"\n" +
+	"collection\x18\x02 \x01(\tR\n" +
+	"collection\x122\n" +
+	"\bpipeline\x18\x03 \x01(\v2\x16.mongocore.v1.PipelineR\bpipeline\x12*\n" +
+	"\x0etransaction_id\x18\x04 \x01(\tH\x00R\rtransactionId\x88\x01\x01\x12\x1d\n" +
+	"\n" +
+	"batch_size\x18\x05 \x01(\rR\tbatchSizeB\x11\n" +
+	"\x0f_transaction_id\"~\n" +
 	"\x11RunCommandRequest\x12\x1a\n" +
 	"\bdatabase\x18\x01 \x01(\tR\bdatabase\x120\n" +
 	"\acommand\x18\x02 \x01(\v2\x16.mongocore.v1.DocumentR\acommand\x12\x1b\n" +
@@ -2791,7 +3892,74 @@ const file_mongocore_v1_mongocore_proto_rawDesc = "" +
 	"\n" +
 	"collection\x18\x01 \x01(\tR\n" +
 	"collection\x12\x14\n" +
-	"\x05count\x18\x02 \x01(\x03R\x05count2\xcb\x11\n" +
+	"\x05count\x18\x02 \x01(\x03R\x05count\"R\n" +
+	"\x0fPipelineRequest\x12?\n" +
+	"\n" +
+	"operations\x18\x01 \x03(\v2\x1f.mongocore.v1.PipelineOperationR\n" +
+	"operations\"\x92\v\n" +
+	"\x11PipelineOperation\x12/\n" +
+	"\x04find\x18\x01 \x01(\v2\x19.mongocore.v1.FindRequestH\x00R\x04find\x129\n" +
+	"\bfind_one\x18\x02 \x01(\v2\x1c.mongocore.v1.FindOneRequestH\x00R\afindOne\x125\n" +
+	"\x06insert\x18\x03 \x01(\v2\x1b.mongocore.v1.InsertRequestH\x00R\x06insert\x12B\n" +
+	"\vinsert_many\x18\x04 \x01(\v2\x1f.mongocore.v1.InsertManyRequestH\x00R\n" +
+	"insertMany\x125\n" +
+	"\x06update\x18\x05 \x01(\v2\x1b.mongocore.v1.UpdateRequestH\x00R\x06update\x12B\n" +
+	"\vupdate_many\x18\x06 \x01(\v2\x1f.mongocore.v1.UpdateManyRequestH\x00R\n" +
+	"updateMany\x125\n" +
+	"\x06delete\x18\a \x01(\v2\x1b.mongocore.v1.DeleteRequestH\x00R\x06delete\x12B\n" +
+	"\vdelete_many\x18\b \x01(\v2\x1f.mongocore.v1.DeleteManyRequestH\x00R\n" +
+	"deleteMany\x12>\n" +
+	"\taggregate\x18\t \x01(\v2\x1e.mongocore.v1.AggregateRequestH\x00R\taggregate\x12L\n" +
+	"\x0ffind_and_modify\x18\n" +
+	" \x01(\v2\".mongocore.v1.FindAndModifyRequestH\x00R\rfindAndModify\x12B\n" +
+	"\vrun_command\x18\v \x01(\v2\x1f.mongocore.v1.RunCommandRequestH\x00R\n" +
+	"runCommand\x125\n" +
+	"\x06search\x18\f \x01(\v2\x1b.mongocore.v1.SearchRequestH\x00R\x06search\x12T\n" +
+	"\x11create_collection\x18\r \x01(\v2%.mongocore.v1.CreateCollectionRequestH\x00R\x10createCollection\x12E\n" +
+	"\fcreate_index\x18\x0e \x01(\v2 .mongocore.v1.CreateIndexRequestH\x00R\vcreateIndex\x12K\n" +
+	"\x0elist_databases\x18\x0f \x01(\v2\".mongocore.v1.ListDatabasesRequestH\x00R\rlistDatabases\x12Q\n" +
+	"\x10list_collections\x18\x10 \x01(\v2$.mongocore.v1.ListCollectionsRequestH\x00R\x0flistCollections\x12T\n" +
+	"\x11begin_transaction\x18\x11 \x01(\v2%.mongocore.v1.BeginTransactionRequestH\x00R\x10beginTransaction\x12W\n" +
+	"\x12commit_transaction\x18\x12 \x01(\v2&.mongocore.v1.CommitTransactionRequestH\x00R\x11commitTransaction\x12T\n" +
+	"\x11abort_transaction\x18\x13 \x01(\v2%.mongocore.v1.AbortTransactionRequestH\x00R\x10abortTransaction\x12H\n" +
+	"\rget_analytics\x18\x14 \x01(\v2!.mongocore.v1.GetAnalyticsRequestH\x00R\fgetAnalyticsB\v\n" +
+	"\toperation\"\x80\x01\n" +
+	"\x10PipelineResponse\x126\n" +
+	"\aresults\x18\x01 \x03(\v2\x1c.mongocore.v1.PipelineResultR\aresults\x12\x1c\n" +
+	"\tsucceeded\x18\x02 \x01(\rR\tsucceeded\x12\x16\n" +
+	"\x06failed\x18\x03 \x01(\rR\x06failed\"\xeb\v\n" +
+	"\x0ePipelineResult\x12\x14\n" +
+	"\x05index\x18\x01 \x01(\rR\x05index\x120\n" +
+	"\x04find\x18\x02 \x01(\v2\x1a.mongocore.v1.FindResponseH\x00R\x04find\x12:\n" +
+	"\bfind_one\x18\x03 \x01(\v2\x1d.mongocore.v1.FindOneResponseH\x00R\afindOne\x126\n" +
+	"\x06insert\x18\x04 \x01(\v2\x1c.mongocore.v1.InsertResponseH\x00R\x06insert\x12C\n" +
+	"\vinsert_many\x18\x05 \x01(\v2 .mongocore.v1.InsertManyResponseH\x00R\n" +
+	"insertMany\x126\n" +
+	"\x06update\x18\x06 \x01(\v2\x1c.mongocore.v1.UpdateResponseH\x00R\x06update\x12C\n" +
+	"\vupdate_many\x18\a \x01(\v2 .mongocore.v1.UpdateManyResponseH\x00R\n" +
+	"updateMany\x126\n" +
+	"\x06delete\x18\b \x01(\v2\x1c.mongocore.v1.DeleteResponseH\x00R\x06delete\x12C\n" +
+	"\vdelete_many\x18\t \x01(\v2 .mongocore.v1.DeleteManyResponseH\x00R\n" +
+	"deleteMany\x12?\n" +
+	"\taggregate\x18\n" +
+	" \x01(\v2\x1f.mongocore.v1.AggregateResponseH\x00R\taggregate\x12M\n" +
+	"\x0ffind_and_modify\x18\v \x01(\v2#.mongocore.v1.FindAndModifyResponseH\x00R\rfindAndModify\x12C\n" +
+	"\vrun_command\x18\f \x01(\v2 .mongocore.v1.RunCommandResponseH\x00R\n" +
+	"runCommand\x126\n" +
+	"\x06search\x18\r \x01(\v2\x1c.mongocore.v1.SearchResponseH\x00R\x06search\x12U\n" +
+	"\x11create_collection\x18\x0e \x01(\v2&.mongocore.v1.CreateCollectionResponseH\x00R\x10createCollection\x12F\n" +
+	"\fcreate_index\x18\x0f \x01(\v2!.mongocore.v1.CreateIndexResponseH\x00R\vcreateIndex\x12L\n" +
+	"\x0elist_databases\x18\x10 \x01(\v2#.mongocore.v1.ListDatabasesResponseH\x00R\rlistDatabases\x12R\n" +
+	"\x10list_collections\x18\x11 \x01(\v2%.mongocore.v1.ListCollectionsResponseH\x00R\x0flistCollections\x12U\n" +
+	"\x11begin_transaction\x18\x12 \x01(\v2&.mongocore.v1.BeginTransactionResponseH\x00R\x10beginTransaction\x12X\n" +
+	"\x12commit_transaction\x18\x13 \x01(\v2'.mongocore.v1.CommitTransactionResponseH\x00R\x11commitTransaction\x12U\n" +
+	"\x11abort_transaction\x18\x14 \x01(\v2&.mongocore.v1.AbortTransactionResponseH\x00R\x10abortTransaction\x12I\n" +
+	"\rget_analytics\x18\x15 \x01(\v2\".mongocore.v1.GetAnalyticsResponseH\x00R\fgetAnalytics\x123\n" +
+	"\x05error\x18\x16 \x01(\v2\x1b.mongocore.v1.PipelineErrorH\x00R\x05errorB\b\n" +
+	"\x06result\"=\n" +
+	"\rPipelineError\x12\x12\n" +
+	"\x04code\x18\x01 \x01(\x05R\x04code\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage2\xe4\x14\n" +
 	"\tMongoCore\x12=\n" +
 	"\x04Find\x12\x19.mongocore.v1.FindRequest\x1a\x1a.mongocore.v1.FindResponse\x12F\n" +
 	"\aFindOne\x12\x1c.mongocore.v1.FindOneRequest\x1a\x1d.mongocore.v1.FindOneResponse\x12C\n" +
@@ -2814,7 +3982,12 @@ const file_mongocore_v1_mongocore_proto_rawDesc = "" +
 	"\rListDatabases\x12\".mongocore.v1.ListDatabasesRequest\x1a#.mongocore.v1.ListDatabasesResponse\x12^\n" +
 	"\x0fListCollections\x12$.mongocore.v1.ListCollectionsRequest\x1a%.mongocore.v1.ListCollectionsResponse\x12C\n" +
 	"\x06Search\x12\x1b.mongocore.v1.SearchRequest\x1a\x1c.mongocore.v1.SearchResponse\x12?\n" +
-	"\x05Watch\x12\x1a.mongocore.v1.WatchRequest\x1a\x18.mongocore.v1.WatchEvent0\x01\x12O\n" +
+	"\x05Watch\x12\x1a.mongocore.v1.WatchRequest\x1a\x18.mongocore.v1.WatchEvent0\x01\x12L\n" +
+	"\n" +
+	"FindStream\x12\x1f.mongocore.v1.FindStreamRequest\x1a\x1b.mongocore.v1.DocumentBatch0\x01\x12V\n" +
+	"\x0fAggregateStream\x12$.mongocore.v1.AggregateStreamRequest\x1a\x1b.mongocore.v1.DocumentBatch0\x01\x12W\n" +
+	"\x10InsertManyStream\x12\x19.mongocore.v1.InsertBatch\x1a&.mongocore.v1.InsertManyStreamResponse(\x01\x12M\n" +
+	"\x0eInsertManyBidi\x12\x19.mongocore.v1.InsertBatch\x1a\x1c.mongocore.v1.InsertBatchAck(\x010\x01\x12O\n" +
 	"\n" +
 	"RunCommand\x12\x1f.mongocore.v1.RunCommandRequest\x1a .mongocore.v1.RunCommandResponse\x12U\n" +
 	"\fGetAnalytics\x12!.mongocore.v1.GetAnalyticsRequest\x1a\".mongocore.v1.GetAnalyticsResponse\x12C\n" +
@@ -2823,7 +3996,8 @@ const file_mongocore_v1_mongocore_proto_rawDesc = "" +
 	"\x0eListIngestJobs\x12#.mongocore.v1.ListIngestJobsRequest\x1a$.mongocore.v1.ListIngestJobsResponse\x12U\n" +
 	"\fCancelIngest\x12!.mongocore.v1.CancelIngestRequest\x1a\".mongocore.v1.CancelIngestResponse\x12[\n" +
 	"\x0eWatchDirectory\x12#.mongocore.v1.WatchDirectoryRequest\x1a$.mongocore.v1.WatchDirectoryResponse\x12L\n" +
-	"\tStopWatch\x12\x1e.mongocore.v1.StopWatchRequest\x1a\x1f.mongocore.v1.StopWatchResponseB-Z+github.com/rozza/mongocore/clients/go/protob\x06proto3"
+	"\tStopWatch\x12\x1e.mongocore.v1.StopWatchRequest\x1a\x1f.mongocore.v1.StopWatchResponse\x12I\n" +
+	"\bPipeline\x12\x1d.mongocore.v1.PipelineRequest\x1a\x1e.mongocore.v1.PipelineResponseB-Z+github.com/rozza/mongocore/clients/go/protob\x06proto3"
 
 var (
 	file_mongocore_v1_mongocore_proto_rawDescOnce sync.Once
@@ -2838,7 +4012,7 @@ func file_mongocore_v1_mongocore_proto_rawDescGZIP() []byte {
 }
 
 var file_mongocore_v1_mongocore_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_mongocore_v1_mongocore_proto_msgTypes = make([]protoimpl.MessageInfo, 44)
+var file_mongocore_v1_mongocore_proto_msgTypes = make([]protoimpl.MessageInfo, 51)
 var file_mongocore_v1_mongocore_proto_goTypes = []any{
 	(WatchEvent_OperationType)(0),     // 0: mongocore.v1.WatchEvent.OperationType
 	(*FindRequest)(nil),               // 1: mongocore.v1.FindRequest
@@ -2879,127 +4053,194 @@ var file_mongocore_v1_mongocore_proto_goTypes = []any{
 	(*SearchResponse)(nil),            // 36: mongocore.v1.SearchResponse
 	(*WatchRequest)(nil),              // 37: mongocore.v1.WatchRequest
 	(*WatchEvent)(nil),                // 38: mongocore.v1.WatchEvent
-	(*RunCommandRequest)(nil),         // 39: mongocore.v1.RunCommandRequest
-	(*RunCommandResponse)(nil),        // 40: mongocore.v1.RunCommandResponse
-	(*GetAnalyticsRequest)(nil),       // 41: mongocore.v1.GetAnalyticsRequest
-	(*GetAnalyticsResponse)(nil),      // 42: mongocore.v1.GetAnalyticsResponse
-	(*OperationCount)(nil),            // 43: mongocore.v1.OperationCount
-	(*CollectionCount)(nil),           // 44: mongocore.v1.CollectionCount
-	(*Filter)(nil),                    // 45: mongocore.v1.Filter
-	(*FindOptions)(nil),               // 46: mongocore.v1.FindOptions
-	(*Document)(nil),                  // 47: mongocore.v1.Document
-	(*ResponseMetadata)(nil),          // 48: mongocore.v1.ResponseMetadata
-	(*FindAndModifyOptions)(nil),      // 49: mongocore.v1.FindAndModifyOptions
-	(*Pipeline)(nil),                  // 50: mongocore.v1.Pipeline
-	(*IndexOptions)(nil),              // 51: mongocore.v1.IndexOptions
-	(*IngestRequest)(nil),             // 52: mongocore.v1.IngestRequest
-	(*GetIngestStatusRequest)(nil),    // 53: mongocore.v1.GetIngestStatusRequest
-	(*ListIngestJobsRequest)(nil),     // 54: mongocore.v1.ListIngestJobsRequest
-	(*CancelIngestRequest)(nil),       // 55: mongocore.v1.CancelIngestRequest
-	(*WatchDirectoryRequest)(nil),     // 56: mongocore.v1.WatchDirectoryRequest
-	(*StopWatchRequest)(nil),          // 57: mongocore.v1.StopWatchRequest
-	(*IngestResponse)(nil),            // 58: mongocore.v1.IngestResponse
-	(*GetIngestStatusResponse)(nil),   // 59: mongocore.v1.GetIngestStatusResponse
-	(*ListIngestJobsResponse)(nil),    // 60: mongocore.v1.ListIngestJobsResponse
-	(*CancelIngestResponse)(nil),      // 61: mongocore.v1.CancelIngestResponse
-	(*WatchDirectoryResponse)(nil),    // 62: mongocore.v1.WatchDirectoryResponse
-	(*StopWatchResponse)(nil),         // 63: mongocore.v1.StopWatchResponse
+	(*FindStreamRequest)(nil),         // 39: mongocore.v1.FindStreamRequest
+	(*AggregateStreamRequest)(nil),    // 40: mongocore.v1.AggregateStreamRequest
+	(*RunCommandRequest)(nil),         // 41: mongocore.v1.RunCommandRequest
+	(*RunCommandResponse)(nil),        // 42: mongocore.v1.RunCommandResponse
+	(*GetAnalyticsRequest)(nil),       // 43: mongocore.v1.GetAnalyticsRequest
+	(*GetAnalyticsResponse)(nil),      // 44: mongocore.v1.GetAnalyticsResponse
+	(*OperationCount)(nil),            // 45: mongocore.v1.OperationCount
+	(*CollectionCount)(nil),           // 46: mongocore.v1.CollectionCount
+	(*PipelineRequest)(nil),           // 47: mongocore.v1.PipelineRequest
+	(*PipelineOperation)(nil),         // 48: mongocore.v1.PipelineOperation
+	(*PipelineResponse)(nil),          // 49: mongocore.v1.PipelineResponse
+	(*PipelineResult)(nil),            // 50: mongocore.v1.PipelineResult
+	(*PipelineError)(nil),             // 51: mongocore.v1.PipelineError
+	(*Filter)(nil),                    // 52: mongocore.v1.Filter
+	(*FindOptions)(nil),               // 53: mongocore.v1.FindOptions
+	(*Document)(nil),                  // 54: mongocore.v1.Document
+	(*ResponseMetadata)(nil),          // 55: mongocore.v1.ResponseMetadata
+	(*FindAndModifyOptions)(nil),      // 56: mongocore.v1.FindAndModifyOptions
+	(*Pipeline)(nil),                  // 57: mongocore.v1.Pipeline
+	(*IndexOptions)(nil),              // 58: mongocore.v1.IndexOptions
+	(*InsertBatch)(nil),               // 59: mongocore.v1.InsertBatch
+	(*IngestRequest)(nil),             // 60: mongocore.v1.IngestRequest
+	(*GetIngestStatusRequest)(nil),    // 61: mongocore.v1.GetIngestStatusRequest
+	(*ListIngestJobsRequest)(nil),     // 62: mongocore.v1.ListIngestJobsRequest
+	(*CancelIngestRequest)(nil),       // 63: mongocore.v1.CancelIngestRequest
+	(*WatchDirectoryRequest)(nil),     // 64: mongocore.v1.WatchDirectoryRequest
+	(*StopWatchRequest)(nil),          // 65: mongocore.v1.StopWatchRequest
+	(*DocumentBatch)(nil),             // 66: mongocore.v1.DocumentBatch
+	(*InsertManyStreamResponse)(nil),  // 67: mongocore.v1.InsertManyStreamResponse
+	(*InsertBatchAck)(nil),            // 68: mongocore.v1.InsertBatchAck
+	(*IngestResponse)(nil),            // 69: mongocore.v1.IngestResponse
+	(*GetIngestStatusResponse)(nil),   // 70: mongocore.v1.GetIngestStatusResponse
+	(*ListIngestJobsResponse)(nil),    // 71: mongocore.v1.ListIngestJobsResponse
+	(*CancelIngestResponse)(nil),      // 72: mongocore.v1.CancelIngestResponse
+	(*WatchDirectoryResponse)(nil),    // 73: mongocore.v1.WatchDirectoryResponse
+	(*StopWatchResponse)(nil),         // 74: mongocore.v1.StopWatchResponse
 }
 var file_mongocore_v1_mongocore_proto_depIdxs = []int32{
-	45, // 0: mongocore.v1.FindRequest.filter:type_name -> mongocore.v1.Filter
-	46, // 1: mongocore.v1.FindRequest.options:type_name -> mongocore.v1.FindOptions
-	47, // 2: mongocore.v1.FindResponse.documents:type_name -> mongocore.v1.Document
-	48, // 3: mongocore.v1.FindResponse.metadata:type_name -> mongocore.v1.ResponseMetadata
-	45, // 4: mongocore.v1.FindOneRequest.filter:type_name -> mongocore.v1.Filter
-	46, // 5: mongocore.v1.FindOneRequest.options:type_name -> mongocore.v1.FindOptions
-	47, // 6: mongocore.v1.FindOneResponse.document:type_name -> mongocore.v1.Document
-	48, // 7: mongocore.v1.FindOneResponse.metadata:type_name -> mongocore.v1.ResponseMetadata
-	47, // 8: mongocore.v1.InsertRequest.document:type_name -> mongocore.v1.Document
-	47, // 9: mongocore.v1.InsertManyRequest.documents:type_name -> mongocore.v1.Document
-	45, // 10: mongocore.v1.UpdateRequest.filter:type_name -> mongocore.v1.Filter
-	47, // 11: mongocore.v1.UpdateRequest.update:type_name -> mongocore.v1.Document
-	45, // 12: mongocore.v1.UpdateManyRequest.filter:type_name -> mongocore.v1.Filter
-	47, // 13: mongocore.v1.UpdateManyRequest.update:type_name -> mongocore.v1.Document
-	45, // 14: mongocore.v1.DeleteRequest.filter:type_name -> mongocore.v1.Filter
-	45, // 15: mongocore.v1.DeleteManyRequest.filter:type_name -> mongocore.v1.Filter
-	45, // 16: mongocore.v1.FindAndModifyRequest.filter:type_name -> mongocore.v1.Filter
-	47, // 17: mongocore.v1.FindAndModifyRequest.update:type_name -> mongocore.v1.Document
-	49, // 18: mongocore.v1.FindAndModifyRequest.options:type_name -> mongocore.v1.FindAndModifyOptions
-	47, // 19: mongocore.v1.FindAndModifyResponse.document:type_name -> mongocore.v1.Document
-	50, // 20: mongocore.v1.AggregateRequest.pipeline:type_name -> mongocore.v1.Pipeline
-	47, // 21: mongocore.v1.AggregateResponse.documents:type_name -> mongocore.v1.Document
-	48, // 22: mongocore.v1.AggregateResponse.metadata:type_name -> mongocore.v1.ResponseMetadata
-	47, // 23: mongocore.v1.CreateIndexRequest.keys:type_name -> mongocore.v1.Document
-	51, // 24: mongocore.v1.CreateIndexRequest.options:type_name -> mongocore.v1.IndexOptions
-	47, // 25: mongocore.v1.SearchResponse.documents:type_name -> mongocore.v1.Document
-	50, // 26: mongocore.v1.WatchRequest.pipeline:type_name -> mongocore.v1.Pipeline
-	0,  // 27: mongocore.v1.WatchEvent.operation_type:type_name -> mongocore.v1.WatchEvent.OperationType
-	47, // 28: mongocore.v1.WatchEvent.document:type_name -> mongocore.v1.Document
-	47, // 29: mongocore.v1.WatchEvent.update_description:type_name -> mongocore.v1.Document
-	47, // 30: mongocore.v1.WatchEvent.document_key:type_name -> mongocore.v1.Document
-	47, // 31: mongocore.v1.RunCommandRequest.command:type_name -> mongocore.v1.Document
-	47, // 32: mongocore.v1.RunCommandResponse.result:type_name -> mongocore.v1.Document
-	43, // 33: mongocore.v1.GetAnalyticsResponse.top_operations:type_name -> mongocore.v1.OperationCount
-	44, // 34: mongocore.v1.GetAnalyticsResponse.top_collections:type_name -> mongocore.v1.CollectionCount
-	1,  // 35: mongocore.v1.MongoCore.Find:input_type -> mongocore.v1.FindRequest
-	3,  // 36: mongocore.v1.MongoCore.FindOne:input_type -> mongocore.v1.FindOneRequest
-	5,  // 37: mongocore.v1.MongoCore.Insert:input_type -> mongocore.v1.InsertRequest
-	7,  // 38: mongocore.v1.MongoCore.InsertMany:input_type -> mongocore.v1.InsertManyRequest
-	9,  // 39: mongocore.v1.MongoCore.Update:input_type -> mongocore.v1.UpdateRequest
-	11, // 40: mongocore.v1.MongoCore.UpdateMany:input_type -> mongocore.v1.UpdateManyRequest
-	13, // 41: mongocore.v1.MongoCore.Delete:input_type -> mongocore.v1.DeleteRequest
-	15, // 42: mongocore.v1.MongoCore.DeleteMany:input_type -> mongocore.v1.DeleteManyRequest
-	17, // 43: mongocore.v1.MongoCore.FindAndModify:input_type -> mongocore.v1.FindAndModifyRequest
-	19, // 44: mongocore.v1.MongoCore.Aggregate:input_type -> mongocore.v1.AggregateRequest
-	21, // 45: mongocore.v1.MongoCore.BeginTransaction:input_type -> mongocore.v1.BeginTransactionRequest
-	23, // 46: mongocore.v1.MongoCore.CommitTransaction:input_type -> mongocore.v1.CommitTransactionRequest
-	25, // 47: mongocore.v1.MongoCore.AbortTransaction:input_type -> mongocore.v1.AbortTransactionRequest
-	27, // 48: mongocore.v1.MongoCore.CreateCollection:input_type -> mongocore.v1.CreateCollectionRequest
-	29, // 49: mongocore.v1.MongoCore.CreateIndex:input_type -> mongocore.v1.CreateIndexRequest
-	31, // 50: mongocore.v1.MongoCore.ListDatabases:input_type -> mongocore.v1.ListDatabasesRequest
-	33, // 51: mongocore.v1.MongoCore.ListCollections:input_type -> mongocore.v1.ListCollectionsRequest
-	35, // 52: mongocore.v1.MongoCore.Search:input_type -> mongocore.v1.SearchRequest
-	37, // 53: mongocore.v1.MongoCore.Watch:input_type -> mongocore.v1.WatchRequest
-	39, // 54: mongocore.v1.MongoCore.RunCommand:input_type -> mongocore.v1.RunCommandRequest
-	41, // 55: mongocore.v1.MongoCore.GetAnalytics:input_type -> mongocore.v1.GetAnalyticsRequest
-	52, // 56: mongocore.v1.MongoCore.Ingest:input_type -> mongocore.v1.IngestRequest
-	53, // 57: mongocore.v1.MongoCore.GetIngestStatus:input_type -> mongocore.v1.GetIngestStatusRequest
-	54, // 58: mongocore.v1.MongoCore.ListIngestJobs:input_type -> mongocore.v1.ListIngestJobsRequest
-	55, // 59: mongocore.v1.MongoCore.CancelIngest:input_type -> mongocore.v1.CancelIngestRequest
-	56, // 60: mongocore.v1.MongoCore.WatchDirectory:input_type -> mongocore.v1.WatchDirectoryRequest
-	57, // 61: mongocore.v1.MongoCore.StopWatch:input_type -> mongocore.v1.StopWatchRequest
-	2,  // 62: mongocore.v1.MongoCore.Find:output_type -> mongocore.v1.FindResponse
-	4,  // 63: mongocore.v1.MongoCore.FindOne:output_type -> mongocore.v1.FindOneResponse
-	6,  // 64: mongocore.v1.MongoCore.Insert:output_type -> mongocore.v1.InsertResponse
-	8,  // 65: mongocore.v1.MongoCore.InsertMany:output_type -> mongocore.v1.InsertManyResponse
-	10, // 66: mongocore.v1.MongoCore.Update:output_type -> mongocore.v1.UpdateResponse
-	12, // 67: mongocore.v1.MongoCore.UpdateMany:output_type -> mongocore.v1.UpdateManyResponse
-	14, // 68: mongocore.v1.MongoCore.Delete:output_type -> mongocore.v1.DeleteResponse
-	16, // 69: mongocore.v1.MongoCore.DeleteMany:output_type -> mongocore.v1.DeleteManyResponse
-	18, // 70: mongocore.v1.MongoCore.FindAndModify:output_type -> mongocore.v1.FindAndModifyResponse
-	20, // 71: mongocore.v1.MongoCore.Aggregate:output_type -> mongocore.v1.AggregateResponse
-	22, // 72: mongocore.v1.MongoCore.BeginTransaction:output_type -> mongocore.v1.BeginTransactionResponse
-	24, // 73: mongocore.v1.MongoCore.CommitTransaction:output_type -> mongocore.v1.CommitTransactionResponse
-	26, // 74: mongocore.v1.MongoCore.AbortTransaction:output_type -> mongocore.v1.AbortTransactionResponse
-	28, // 75: mongocore.v1.MongoCore.CreateCollection:output_type -> mongocore.v1.CreateCollectionResponse
-	30, // 76: mongocore.v1.MongoCore.CreateIndex:output_type -> mongocore.v1.CreateIndexResponse
-	32, // 77: mongocore.v1.MongoCore.ListDatabases:output_type -> mongocore.v1.ListDatabasesResponse
-	34, // 78: mongocore.v1.MongoCore.ListCollections:output_type -> mongocore.v1.ListCollectionsResponse
-	36, // 79: mongocore.v1.MongoCore.Search:output_type -> mongocore.v1.SearchResponse
-	38, // 80: mongocore.v1.MongoCore.Watch:output_type -> mongocore.v1.WatchEvent
-	40, // 81: mongocore.v1.MongoCore.RunCommand:output_type -> mongocore.v1.RunCommandResponse
-	42, // 82: mongocore.v1.MongoCore.GetAnalytics:output_type -> mongocore.v1.GetAnalyticsResponse
-	58, // 83: mongocore.v1.MongoCore.Ingest:output_type -> mongocore.v1.IngestResponse
-	59, // 84: mongocore.v1.MongoCore.GetIngestStatus:output_type -> mongocore.v1.GetIngestStatusResponse
-	60, // 85: mongocore.v1.MongoCore.ListIngestJobs:output_type -> mongocore.v1.ListIngestJobsResponse
-	61, // 86: mongocore.v1.MongoCore.CancelIngest:output_type -> mongocore.v1.CancelIngestResponse
-	62, // 87: mongocore.v1.MongoCore.WatchDirectory:output_type -> mongocore.v1.WatchDirectoryResponse
-	63, // 88: mongocore.v1.MongoCore.StopWatch:output_type -> mongocore.v1.StopWatchResponse
-	62, // [62:89] is the sub-list for method output_type
-	35, // [35:62] is the sub-list for method input_type
-	35, // [35:35] is the sub-list for extension type_name
-	35, // [35:35] is the sub-list for extension extendee
-	0,  // [0:35] is the sub-list for field type_name
+	52,  // 0: mongocore.v1.FindRequest.filter:type_name -> mongocore.v1.Filter
+	53,  // 1: mongocore.v1.FindRequest.options:type_name -> mongocore.v1.FindOptions
+	54,  // 2: mongocore.v1.FindResponse.documents:type_name -> mongocore.v1.Document
+	55,  // 3: mongocore.v1.FindResponse.metadata:type_name -> mongocore.v1.ResponseMetadata
+	52,  // 4: mongocore.v1.FindOneRequest.filter:type_name -> mongocore.v1.Filter
+	53,  // 5: mongocore.v1.FindOneRequest.options:type_name -> mongocore.v1.FindOptions
+	54,  // 6: mongocore.v1.FindOneResponse.document:type_name -> mongocore.v1.Document
+	55,  // 7: mongocore.v1.FindOneResponse.metadata:type_name -> mongocore.v1.ResponseMetadata
+	54,  // 8: mongocore.v1.InsertRequest.document:type_name -> mongocore.v1.Document
+	54,  // 9: mongocore.v1.InsertManyRequest.documents:type_name -> mongocore.v1.Document
+	52,  // 10: mongocore.v1.UpdateRequest.filter:type_name -> mongocore.v1.Filter
+	54,  // 11: mongocore.v1.UpdateRequest.update:type_name -> mongocore.v1.Document
+	52,  // 12: mongocore.v1.UpdateManyRequest.filter:type_name -> mongocore.v1.Filter
+	54,  // 13: mongocore.v1.UpdateManyRequest.update:type_name -> mongocore.v1.Document
+	52,  // 14: mongocore.v1.DeleteRequest.filter:type_name -> mongocore.v1.Filter
+	52,  // 15: mongocore.v1.DeleteManyRequest.filter:type_name -> mongocore.v1.Filter
+	52,  // 16: mongocore.v1.FindAndModifyRequest.filter:type_name -> mongocore.v1.Filter
+	54,  // 17: mongocore.v1.FindAndModifyRequest.update:type_name -> mongocore.v1.Document
+	56,  // 18: mongocore.v1.FindAndModifyRequest.options:type_name -> mongocore.v1.FindAndModifyOptions
+	54,  // 19: mongocore.v1.FindAndModifyResponse.document:type_name -> mongocore.v1.Document
+	57,  // 20: mongocore.v1.AggregateRequest.pipeline:type_name -> mongocore.v1.Pipeline
+	54,  // 21: mongocore.v1.AggregateResponse.documents:type_name -> mongocore.v1.Document
+	55,  // 22: mongocore.v1.AggregateResponse.metadata:type_name -> mongocore.v1.ResponseMetadata
+	54,  // 23: mongocore.v1.CreateIndexRequest.keys:type_name -> mongocore.v1.Document
+	58,  // 24: mongocore.v1.CreateIndexRequest.options:type_name -> mongocore.v1.IndexOptions
+	54,  // 25: mongocore.v1.SearchResponse.documents:type_name -> mongocore.v1.Document
+	57,  // 26: mongocore.v1.WatchRequest.pipeline:type_name -> mongocore.v1.Pipeline
+	0,   // 27: mongocore.v1.WatchEvent.operation_type:type_name -> mongocore.v1.WatchEvent.OperationType
+	54,  // 28: mongocore.v1.WatchEvent.document:type_name -> mongocore.v1.Document
+	54,  // 29: mongocore.v1.WatchEvent.update_description:type_name -> mongocore.v1.Document
+	54,  // 30: mongocore.v1.WatchEvent.document_key:type_name -> mongocore.v1.Document
+	52,  // 31: mongocore.v1.FindStreamRequest.filter:type_name -> mongocore.v1.Filter
+	53,  // 32: mongocore.v1.FindStreamRequest.options:type_name -> mongocore.v1.FindOptions
+	57,  // 33: mongocore.v1.AggregateStreamRequest.pipeline:type_name -> mongocore.v1.Pipeline
+	54,  // 34: mongocore.v1.RunCommandRequest.command:type_name -> mongocore.v1.Document
+	54,  // 35: mongocore.v1.RunCommandResponse.result:type_name -> mongocore.v1.Document
+	45,  // 36: mongocore.v1.GetAnalyticsResponse.top_operations:type_name -> mongocore.v1.OperationCount
+	46,  // 37: mongocore.v1.GetAnalyticsResponse.top_collections:type_name -> mongocore.v1.CollectionCount
+	48,  // 38: mongocore.v1.PipelineRequest.operations:type_name -> mongocore.v1.PipelineOperation
+	1,   // 39: mongocore.v1.PipelineOperation.find:type_name -> mongocore.v1.FindRequest
+	3,   // 40: mongocore.v1.PipelineOperation.find_one:type_name -> mongocore.v1.FindOneRequest
+	5,   // 41: mongocore.v1.PipelineOperation.insert:type_name -> mongocore.v1.InsertRequest
+	7,   // 42: mongocore.v1.PipelineOperation.insert_many:type_name -> mongocore.v1.InsertManyRequest
+	9,   // 43: mongocore.v1.PipelineOperation.update:type_name -> mongocore.v1.UpdateRequest
+	11,  // 44: mongocore.v1.PipelineOperation.update_many:type_name -> mongocore.v1.UpdateManyRequest
+	13,  // 45: mongocore.v1.PipelineOperation.delete:type_name -> mongocore.v1.DeleteRequest
+	15,  // 46: mongocore.v1.PipelineOperation.delete_many:type_name -> mongocore.v1.DeleteManyRequest
+	19,  // 47: mongocore.v1.PipelineOperation.aggregate:type_name -> mongocore.v1.AggregateRequest
+	17,  // 48: mongocore.v1.PipelineOperation.find_and_modify:type_name -> mongocore.v1.FindAndModifyRequest
+	41,  // 49: mongocore.v1.PipelineOperation.run_command:type_name -> mongocore.v1.RunCommandRequest
+	35,  // 50: mongocore.v1.PipelineOperation.search:type_name -> mongocore.v1.SearchRequest
+	27,  // 51: mongocore.v1.PipelineOperation.create_collection:type_name -> mongocore.v1.CreateCollectionRequest
+	29,  // 52: mongocore.v1.PipelineOperation.create_index:type_name -> mongocore.v1.CreateIndexRequest
+	31,  // 53: mongocore.v1.PipelineOperation.list_databases:type_name -> mongocore.v1.ListDatabasesRequest
+	33,  // 54: mongocore.v1.PipelineOperation.list_collections:type_name -> mongocore.v1.ListCollectionsRequest
+	21,  // 55: mongocore.v1.PipelineOperation.begin_transaction:type_name -> mongocore.v1.BeginTransactionRequest
+	23,  // 56: mongocore.v1.PipelineOperation.commit_transaction:type_name -> mongocore.v1.CommitTransactionRequest
+	25,  // 57: mongocore.v1.PipelineOperation.abort_transaction:type_name -> mongocore.v1.AbortTransactionRequest
+	43,  // 58: mongocore.v1.PipelineOperation.get_analytics:type_name -> mongocore.v1.GetAnalyticsRequest
+	50,  // 59: mongocore.v1.PipelineResponse.results:type_name -> mongocore.v1.PipelineResult
+	2,   // 60: mongocore.v1.PipelineResult.find:type_name -> mongocore.v1.FindResponse
+	4,   // 61: mongocore.v1.PipelineResult.find_one:type_name -> mongocore.v1.FindOneResponse
+	6,   // 62: mongocore.v1.PipelineResult.insert:type_name -> mongocore.v1.InsertResponse
+	8,   // 63: mongocore.v1.PipelineResult.insert_many:type_name -> mongocore.v1.InsertManyResponse
+	10,  // 64: mongocore.v1.PipelineResult.update:type_name -> mongocore.v1.UpdateResponse
+	12,  // 65: mongocore.v1.PipelineResult.update_many:type_name -> mongocore.v1.UpdateManyResponse
+	14,  // 66: mongocore.v1.PipelineResult.delete:type_name -> mongocore.v1.DeleteResponse
+	16,  // 67: mongocore.v1.PipelineResult.delete_many:type_name -> mongocore.v1.DeleteManyResponse
+	20,  // 68: mongocore.v1.PipelineResult.aggregate:type_name -> mongocore.v1.AggregateResponse
+	18,  // 69: mongocore.v1.PipelineResult.find_and_modify:type_name -> mongocore.v1.FindAndModifyResponse
+	42,  // 70: mongocore.v1.PipelineResult.run_command:type_name -> mongocore.v1.RunCommandResponse
+	36,  // 71: mongocore.v1.PipelineResult.search:type_name -> mongocore.v1.SearchResponse
+	28,  // 72: mongocore.v1.PipelineResult.create_collection:type_name -> mongocore.v1.CreateCollectionResponse
+	30,  // 73: mongocore.v1.PipelineResult.create_index:type_name -> mongocore.v1.CreateIndexResponse
+	32,  // 74: mongocore.v1.PipelineResult.list_databases:type_name -> mongocore.v1.ListDatabasesResponse
+	34,  // 75: mongocore.v1.PipelineResult.list_collections:type_name -> mongocore.v1.ListCollectionsResponse
+	22,  // 76: mongocore.v1.PipelineResult.begin_transaction:type_name -> mongocore.v1.BeginTransactionResponse
+	24,  // 77: mongocore.v1.PipelineResult.commit_transaction:type_name -> mongocore.v1.CommitTransactionResponse
+	26,  // 78: mongocore.v1.PipelineResult.abort_transaction:type_name -> mongocore.v1.AbortTransactionResponse
+	44,  // 79: mongocore.v1.PipelineResult.get_analytics:type_name -> mongocore.v1.GetAnalyticsResponse
+	51,  // 80: mongocore.v1.PipelineResult.error:type_name -> mongocore.v1.PipelineError
+	1,   // 81: mongocore.v1.MongoCore.Find:input_type -> mongocore.v1.FindRequest
+	3,   // 82: mongocore.v1.MongoCore.FindOne:input_type -> mongocore.v1.FindOneRequest
+	5,   // 83: mongocore.v1.MongoCore.Insert:input_type -> mongocore.v1.InsertRequest
+	7,   // 84: mongocore.v1.MongoCore.InsertMany:input_type -> mongocore.v1.InsertManyRequest
+	9,   // 85: mongocore.v1.MongoCore.Update:input_type -> mongocore.v1.UpdateRequest
+	11,  // 86: mongocore.v1.MongoCore.UpdateMany:input_type -> mongocore.v1.UpdateManyRequest
+	13,  // 87: mongocore.v1.MongoCore.Delete:input_type -> mongocore.v1.DeleteRequest
+	15,  // 88: mongocore.v1.MongoCore.DeleteMany:input_type -> mongocore.v1.DeleteManyRequest
+	17,  // 89: mongocore.v1.MongoCore.FindAndModify:input_type -> mongocore.v1.FindAndModifyRequest
+	19,  // 90: mongocore.v1.MongoCore.Aggregate:input_type -> mongocore.v1.AggregateRequest
+	21,  // 91: mongocore.v1.MongoCore.BeginTransaction:input_type -> mongocore.v1.BeginTransactionRequest
+	23,  // 92: mongocore.v1.MongoCore.CommitTransaction:input_type -> mongocore.v1.CommitTransactionRequest
+	25,  // 93: mongocore.v1.MongoCore.AbortTransaction:input_type -> mongocore.v1.AbortTransactionRequest
+	27,  // 94: mongocore.v1.MongoCore.CreateCollection:input_type -> mongocore.v1.CreateCollectionRequest
+	29,  // 95: mongocore.v1.MongoCore.CreateIndex:input_type -> mongocore.v1.CreateIndexRequest
+	31,  // 96: mongocore.v1.MongoCore.ListDatabases:input_type -> mongocore.v1.ListDatabasesRequest
+	33,  // 97: mongocore.v1.MongoCore.ListCollections:input_type -> mongocore.v1.ListCollectionsRequest
+	35,  // 98: mongocore.v1.MongoCore.Search:input_type -> mongocore.v1.SearchRequest
+	37,  // 99: mongocore.v1.MongoCore.Watch:input_type -> mongocore.v1.WatchRequest
+	39,  // 100: mongocore.v1.MongoCore.FindStream:input_type -> mongocore.v1.FindStreamRequest
+	40,  // 101: mongocore.v1.MongoCore.AggregateStream:input_type -> mongocore.v1.AggregateStreamRequest
+	59,  // 102: mongocore.v1.MongoCore.InsertManyStream:input_type -> mongocore.v1.InsertBatch
+	59,  // 103: mongocore.v1.MongoCore.InsertManyBidi:input_type -> mongocore.v1.InsertBatch
+	41,  // 104: mongocore.v1.MongoCore.RunCommand:input_type -> mongocore.v1.RunCommandRequest
+	43,  // 105: mongocore.v1.MongoCore.GetAnalytics:input_type -> mongocore.v1.GetAnalyticsRequest
+	60,  // 106: mongocore.v1.MongoCore.Ingest:input_type -> mongocore.v1.IngestRequest
+	61,  // 107: mongocore.v1.MongoCore.GetIngestStatus:input_type -> mongocore.v1.GetIngestStatusRequest
+	62,  // 108: mongocore.v1.MongoCore.ListIngestJobs:input_type -> mongocore.v1.ListIngestJobsRequest
+	63,  // 109: mongocore.v1.MongoCore.CancelIngest:input_type -> mongocore.v1.CancelIngestRequest
+	64,  // 110: mongocore.v1.MongoCore.WatchDirectory:input_type -> mongocore.v1.WatchDirectoryRequest
+	65,  // 111: mongocore.v1.MongoCore.StopWatch:input_type -> mongocore.v1.StopWatchRequest
+	47,  // 112: mongocore.v1.MongoCore.Pipeline:input_type -> mongocore.v1.PipelineRequest
+	2,   // 113: mongocore.v1.MongoCore.Find:output_type -> mongocore.v1.FindResponse
+	4,   // 114: mongocore.v1.MongoCore.FindOne:output_type -> mongocore.v1.FindOneResponse
+	6,   // 115: mongocore.v1.MongoCore.Insert:output_type -> mongocore.v1.InsertResponse
+	8,   // 116: mongocore.v1.MongoCore.InsertMany:output_type -> mongocore.v1.InsertManyResponse
+	10,  // 117: mongocore.v1.MongoCore.Update:output_type -> mongocore.v1.UpdateResponse
+	12,  // 118: mongocore.v1.MongoCore.UpdateMany:output_type -> mongocore.v1.UpdateManyResponse
+	14,  // 119: mongocore.v1.MongoCore.Delete:output_type -> mongocore.v1.DeleteResponse
+	16,  // 120: mongocore.v1.MongoCore.DeleteMany:output_type -> mongocore.v1.DeleteManyResponse
+	18,  // 121: mongocore.v1.MongoCore.FindAndModify:output_type -> mongocore.v1.FindAndModifyResponse
+	20,  // 122: mongocore.v1.MongoCore.Aggregate:output_type -> mongocore.v1.AggregateResponse
+	22,  // 123: mongocore.v1.MongoCore.BeginTransaction:output_type -> mongocore.v1.BeginTransactionResponse
+	24,  // 124: mongocore.v1.MongoCore.CommitTransaction:output_type -> mongocore.v1.CommitTransactionResponse
+	26,  // 125: mongocore.v1.MongoCore.AbortTransaction:output_type -> mongocore.v1.AbortTransactionResponse
+	28,  // 126: mongocore.v1.MongoCore.CreateCollection:output_type -> mongocore.v1.CreateCollectionResponse
+	30,  // 127: mongocore.v1.MongoCore.CreateIndex:output_type -> mongocore.v1.CreateIndexResponse
+	32,  // 128: mongocore.v1.MongoCore.ListDatabases:output_type -> mongocore.v1.ListDatabasesResponse
+	34,  // 129: mongocore.v1.MongoCore.ListCollections:output_type -> mongocore.v1.ListCollectionsResponse
+	36,  // 130: mongocore.v1.MongoCore.Search:output_type -> mongocore.v1.SearchResponse
+	38,  // 131: mongocore.v1.MongoCore.Watch:output_type -> mongocore.v1.WatchEvent
+	66,  // 132: mongocore.v1.MongoCore.FindStream:output_type -> mongocore.v1.DocumentBatch
+	66,  // 133: mongocore.v1.MongoCore.AggregateStream:output_type -> mongocore.v1.DocumentBatch
+	67,  // 134: mongocore.v1.MongoCore.InsertManyStream:output_type -> mongocore.v1.InsertManyStreamResponse
+	68,  // 135: mongocore.v1.MongoCore.InsertManyBidi:output_type -> mongocore.v1.InsertBatchAck
+	42,  // 136: mongocore.v1.MongoCore.RunCommand:output_type -> mongocore.v1.RunCommandResponse
+	44,  // 137: mongocore.v1.MongoCore.GetAnalytics:output_type -> mongocore.v1.GetAnalyticsResponse
+	69,  // 138: mongocore.v1.MongoCore.Ingest:output_type -> mongocore.v1.IngestResponse
+	70,  // 139: mongocore.v1.MongoCore.GetIngestStatus:output_type -> mongocore.v1.GetIngestStatusResponse
+	71,  // 140: mongocore.v1.MongoCore.ListIngestJobs:output_type -> mongocore.v1.ListIngestJobsResponse
+	72,  // 141: mongocore.v1.MongoCore.CancelIngest:output_type -> mongocore.v1.CancelIngestResponse
+	73,  // 142: mongocore.v1.MongoCore.WatchDirectory:output_type -> mongocore.v1.WatchDirectoryResponse
+	74,  // 143: mongocore.v1.MongoCore.StopWatch:output_type -> mongocore.v1.StopWatchResponse
+	49,  // 144: mongocore.v1.MongoCore.Pipeline:output_type -> mongocore.v1.PipelineResponse
+	113, // [113:145] is the sub-list for method output_type
+	81,  // [81:113] is the sub-list for method input_type
+	81,  // [81:81] is the sub-list for extension type_name
+	81,  // [81:81] is the sub-list for extension extendee
+	0,   // [0:81] is the sub-list for field type_name
 }
 
 func init() { file_mongocore_v1_mongocore_proto_init() }
@@ -3025,13 +4266,60 @@ func file_mongocore_v1_mongocore_proto_init() {
 	file_mongocore_v1_mongocore_proto_msgTypes[18].OneofWrappers = []any{}
 	file_mongocore_v1_mongocore_proto_msgTypes[36].OneofWrappers = []any{}
 	file_mongocore_v1_mongocore_proto_msgTypes[37].OneofWrappers = []any{}
+	file_mongocore_v1_mongocore_proto_msgTypes[38].OneofWrappers = []any{}
+	file_mongocore_v1_mongocore_proto_msgTypes[39].OneofWrappers = []any{}
+	file_mongocore_v1_mongocore_proto_msgTypes[47].OneofWrappers = []any{
+		(*PipelineOperation_Find)(nil),
+		(*PipelineOperation_FindOne)(nil),
+		(*PipelineOperation_Insert)(nil),
+		(*PipelineOperation_InsertMany)(nil),
+		(*PipelineOperation_Update)(nil),
+		(*PipelineOperation_UpdateMany)(nil),
+		(*PipelineOperation_Delete)(nil),
+		(*PipelineOperation_DeleteMany)(nil),
+		(*PipelineOperation_Aggregate)(nil),
+		(*PipelineOperation_FindAndModify)(nil),
+		(*PipelineOperation_RunCommand)(nil),
+		(*PipelineOperation_Search)(nil),
+		(*PipelineOperation_CreateCollection)(nil),
+		(*PipelineOperation_CreateIndex)(nil),
+		(*PipelineOperation_ListDatabases)(nil),
+		(*PipelineOperation_ListCollections)(nil),
+		(*PipelineOperation_BeginTransaction)(nil),
+		(*PipelineOperation_CommitTransaction)(nil),
+		(*PipelineOperation_AbortTransaction)(nil),
+		(*PipelineOperation_GetAnalytics)(nil),
+	}
+	file_mongocore_v1_mongocore_proto_msgTypes[49].OneofWrappers = []any{
+		(*PipelineResult_Find)(nil),
+		(*PipelineResult_FindOne)(nil),
+		(*PipelineResult_Insert)(nil),
+		(*PipelineResult_InsertMany)(nil),
+		(*PipelineResult_Update)(nil),
+		(*PipelineResult_UpdateMany)(nil),
+		(*PipelineResult_Delete)(nil),
+		(*PipelineResult_DeleteMany)(nil),
+		(*PipelineResult_Aggregate)(nil),
+		(*PipelineResult_FindAndModify)(nil),
+		(*PipelineResult_RunCommand)(nil),
+		(*PipelineResult_Search)(nil),
+		(*PipelineResult_CreateCollection)(nil),
+		(*PipelineResult_CreateIndex)(nil),
+		(*PipelineResult_ListDatabases)(nil),
+		(*PipelineResult_ListCollections)(nil),
+		(*PipelineResult_BeginTransaction)(nil),
+		(*PipelineResult_CommitTransaction)(nil),
+		(*PipelineResult_AbortTransaction)(nil),
+		(*PipelineResult_GetAnalytics)(nil),
+		(*PipelineResult_Error)(nil),
+	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_mongocore_v1_mongocore_proto_rawDesc), len(file_mongocore_v1_mongocore_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   44,
+			NumMessages:   51,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

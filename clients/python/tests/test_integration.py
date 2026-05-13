@@ -406,3 +406,41 @@ async def test_stop_watch():
 
             result = await client.stop_watch(watch_id)
             assert result is True
+
+
+@pytest.mark.asyncio
+async def test_pipeline():
+    from mongocore import ops
+
+    async with MongoClient("localhost:50051") as client:
+        coll_name = unique_collection()
+
+        # Seed a document
+        coll = client[TEST_DB][coll_name]
+        await coll.insert_one({"name": "seed", "value": 100})
+
+        # Run a pipeline with find + insert + list_databases
+        results = await client.pipeline(
+            ops.find(TEST_DB, coll_name, {"name": "seed"}),
+            ops.insert(TEST_DB, coll_name, {"name": "pipeline_inserted", "value": 200}),
+            ops.list_databases(),
+        )
+
+        assert len(results) == 3
+
+        # First result: find
+        assert results[0].success
+        assert results[0].documents is not None
+        assert len(results[0].documents) == 1
+        assert results[0].documents[0]["name"] == "seed"
+        assert results[0].documents[0]["value"] == 100
+
+        # Second result: insert
+        assert results[1].success
+        assert results[1].inserted_id is not None
+
+        # Third result: list_databases
+        assert results[2].success
+        assert results[2].databases is not None
+        assert isinstance(results[2].databases, list)
+        assert len(results[2].databases) > 0

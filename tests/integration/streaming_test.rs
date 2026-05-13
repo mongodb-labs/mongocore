@@ -53,6 +53,8 @@ async fn start_test_server() -> MongoCoreClient<tonic::transport::Channel> {
             max_message_size: 64 * 1024 * 1024,
             compression: "none".to_string(),
             stream_idle_timeout_secs: 60,
+            pipeline_timeout_secs: 30,
+            pipeline_max_concurrency: 20,
         },
         None,
         None,

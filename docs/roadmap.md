@@ -12,6 +12,7 @@
 | **v0.6** | Intelligent NL→MQL routing, LLM-provided templates, template registry | **Complete** |
 | **v0.7** | Cross-language performance benchmarking suite | **Complete** |
 | **v0.8** | Performance Tier 1 (transport, streaming, compression) | **Complete** |
+| **v0.9** | Request pipelining (Performance Tier 2) | **Complete** |
 
 ## v0.1 — Core
 
@@ -105,10 +106,22 @@
 - **Client auto-discovery** — Python and Go clients automatically find UDS socket, fall back to TCP
 - **Socket lifecycle** — Automatic cleanup on shutdown, stale file removal on startup, graceful fallback on bind failure
 
-## Future Roadmap
+## v0.9 — Request Pipelining
+
+- **Pipeline RPC** — Batch N independent operations in a single gRPC round-trip with concurrent execution
+- **All non-streaming operations** — Find, FindOne, Insert, InsertMany, Update, UpdateMany, Delete, DeleteMany, Aggregate, FindAndModify, RunCommand, Search, CreateCollection, CreateIndex, ListDatabases, ListCollections, transactions, GetAnalytics
+- **Concurrent execution** — Operations fan out via tokio with semaphore-based concurrency limit (default 20)
+- **Per-operation errors** — Individual failures don't abort the pipeline; results indexed by position
+- **Pipeline timeout** — Configurable deadline (default 30s) with cancellation of incomplete ops
+- **MCP pipeline tool** — All-or-nothing safety validation (rejects entire pipeline if any op violates read-only mode)
+- **Typed client builders** — `ops` modules in Python, TypeScript, Go, Java with typed result accessors
+
+## Backlog
 
 | Area | Description |
 |------|-------------|
+| Client UDS Support | Add Unix Domain Socket auto-discovery to Java and TypeScript clients (Python and Go already supported) |
+| Pipeline Benchmarks | Add pipeline equivalents to the cross-language benchmark suite (Python, TypeScript, Go, Java) — compare N individual driver calls vs single pipeline RPC at various batch sizes |
 | Search RPC Integration | Wire compiled query translator into search handler as intelligent router |
 | Query Explanation | Show generated MQL, confidence scores, and alternative interpretations to users |
 | Hybrid Search (RRF) | Vector + fulltext with reciprocal rank fusion scoring — industry standard for RAG |
@@ -119,7 +132,8 @@
 | MCP + Claude Integration | Auto-detect API key from Claude's environment when launched as MCP server |
 | Packaging & Deployment | Pre-built binaries (GitHub Releases, Homebrew), Docker images (GHCR), Helm chart |
 | Performance Tier 1 | gRPC over Unix Domain Sockets + streaming bulk responses + raised message limits | **Complete (v0.8)** |
-| Performance Tier 2 | Request pipelining — batch N independent operations in a single round-trip |
+| Performance Tier 2 | Request pipelining — batch N independent operations in a single round-trip | **Complete (v0.9)** |
+| Performance Tier 2b | Transactional pipeline — sequential ops with result forwarding between steps (dependent operations) |
 | Performance Tier 3 | Native embedding via FFI (PyO3, Neon, cgo) for zero-IPC overhead |
 | BulkWrite Operations | Collection-level and client-level bulkWrite with mixed insert/update/delete |
 | Database/Collection Management | Drop database, drop collection, rename collection, list indexes, compact |

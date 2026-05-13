@@ -4,6 +4,8 @@ use std::sync::Mutex;
 use std::time::Duration;
 use std::collections::HashSet;
 
+use tokio::sync::Semaphore;
+
 use bson::Document;
 use dashmap::DashMap;
 use futures::StreamExt;
@@ -11,7 +13,7 @@ use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
 use crate::analytics::{AnalyticsCollector, AnalyticsEvent, OperationKind};
-use crate::defaults::{MAX_STREAM_BATCH_SIZE, MIN_STREAM_BATCH_SIZE};
+use crate::defaults::{DEFAULT_PIPELINE_MAX_OPS, MAX_STREAM_BATCH_SIZE, MIN_STREAM_BATCH_SIZE};
 use crate::connection::pool::ConnectionPool;
 use crate::error::MongoCoreError;
 use crate::operations::{
@@ -40,6 +42,8 @@ pub struct MongoCoreService {
     directory_watcher: Option<Arc<crate::ingestion::DirectoryWatcher>>,
     client: Option<mongodb::Client>,
     stream_idle_timeout: Duration,
+    pipeline_timeout: Duration,
+    pipeline_semaphore: Arc<Semaphore>,
     appended_languages: Mutex<HashSet<String>>,
 }
 
@@ -66,6 +70,8 @@ impl MongoCoreService {
             directory_watcher: None,
             client: None,
             stream_idle_timeout,
+            pipeline_timeout: Duration::from_secs(crate::defaults::DEFAULT_PIPELINE_TIMEOUT_SECS),
+            pipeline_semaphore: Arc::new(Semaphore::new(crate::defaults::DEFAULT_PIPELINE_MAX_CONCURRENCY)),
             appended_languages: Mutex::new(HashSet::new()),
         }
     }
@@ -94,8 +100,17 @@ impl MongoCoreService {
             directory_watcher: None,
             client: None,
             stream_idle_timeout,
+            pipeline_timeout: Duration::from_secs(crate::defaults::DEFAULT_PIPELINE_TIMEOUT_SECS),
+            pipeline_semaphore: Arc::new(Semaphore::new(crate::defaults::DEFAULT_PIPELINE_MAX_CONCURRENCY)),
             appended_languages: Mutex::new(HashSet::new()),
         }
+    }
+
+    /// Configure pipeline timeout and concurrency.
+    pub fn with_pipeline_config(mut self, timeout: Duration, max_concurrency: usize) -> Self {
+        self.pipeline_timeout = timeout;
+        self.pipeline_semaphore = Arc::new(Semaphore::new(max_concurrency));
+        self
     }
 
     /// Configure ingestion support on this service.
@@ -1404,6 +1419,592 @@ impl MongoCore for MongoCoreService {
             Err(e) => Err(Status::internal(e.to_string())),
         }
     }
+
+    // === Pipeline ===
+
+    #[tracing::instrument(skip(self, request), fields(pipeline.size = tracing::field::Empty, pipeline.succeeded = tracing::field::Empty, pipeline.failed = tracing::field::Empty))]
+    async fn pipeline(
+        &self,
+        request: Request<proto::PipelineRequest>,
+    ) -> Result<Response<proto::PipelineResponse>, Status> {
+        self.append_client_language(request.metadata());
+        self.check_tenant_quota(request.metadata())?;
+        let start = std::time::Instant::now();
+        let req = request.into_inner();
+
+        if req.operations.is_empty() {
+            return Err(Status::invalid_argument("Pipeline must contain at least one operation"));
+        }
+        if req.operations.len() > DEFAULT_PIPELINE_MAX_OPS {
+            return Err(Status::invalid_argument(format!(
+                "Pipeline exceeds maximum of {} operations",
+                DEFAULT_PIPELINE_MAX_OPS
+            )));
+        }
+
+        let semaphore = self.pipeline_semaphore.clone();
+        let futures_vec: Vec<_> = req.operations.into_iter().enumerate().map(|(i, op)| {
+            let sem = semaphore.clone();
+            let svc = self;
+            async move {
+                let _permit = sem.acquire().await.unwrap();
+                let result = svc.execute_pipeline_op(i as u32, op).await;
+                proto::PipelineResult {
+                    index: i as u32,
+                    result: Some(result),
+                }
+            }
+        }).collect();
+
+        let results = match tokio::time::timeout(
+            self.pipeline_timeout,
+            futures::future::join_all(futures_vec),
+        ).await {
+            Ok(results) => results,
+            Err(_) => return Err(Status::deadline_exceeded("Pipeline timeout exceeded")),
+        };
+
+        let succeeded = results.iter().filter(|r| !pipeline_result_is_error(r)).count() as u32;
+        let failed = results.iter().filter(|r| pipeline_result_is_error(r)).count() as u32;
+
+        let span = tracing::Span::current();
+        span.record("pipeline.size", results.len() as u32);
+        span.record("pipeline.succeeded", succeeded);
+        span.record("pipeline.failed", failed);
+
+        self.record_analytics(OperationKind::Pipeline, "", "", start.elapsed(), failed == 0);
+
+        Ok(Response::new(proto::PipelineResponse {
+            results,
+            succeeded,
+            failed,
+        }))
+    }
+}
+
+// === Pipeline helpers ===
+
+/// Check if a pipeline result is an error.
+fn pipeline_result_is_error(result: &proto::PipelineResult) -> bool {
+    matches!(result.result, Some(proto::pipeline_result::Result::Error(_)))
+}
+
+impl MongoCoreService {
+    /// Dispatch a single pipeline operation.
+    async fn execute_pipeline_op(&self, index: u32, op: proto::PipelineOperation) -> proto::pipeline_result::Result {
+        use tracing::Instrument;
+
+        let op_type = match &op.operation {
+            Some(proto::pipeline_operation::Operation::Find(_)) => "find",
+            Some(proto::pipeline_operation::Operation::FindOne(_)) => "find_one",
+            Some(proto::pipeline_operation::Operation::Insert(_)) => "insert",
+            Some(proto::pipeline_operation::Operation::InsertMany(_)) => "insert_many",
+            Some(proto::pipeline_operation::Operation::Update(_)) => "update",
+            Some(proto::pipeline_operation::Operation::UpdateMany(_)) => "update_many",
+            Some(proto::pipeline_operation::Operation::Delete(_)) => "delete",
+            Some(proto::pipeline_operation::Operation::DeleteMany(_)) => "delete_many",
+            Some(proto::pipeline_operation::Operation::Aggregate(_)) => "aggregate",
+            Some(proto::pipeline_operation::Operation::FindAndModify(_)) => "find_and_modify",
+            Some(proto::pipeline_operation::Operation::RunCommand(_)) => "run_command",
+            Some(proto::pipeline_operation::Operation::Search(_)) => "search",
+            Some(proto::pipeline_operation::Operation::CreateCollection(_)) => "create_collection",
+            Some(proto::pipeline_operation::Operation::CreateIndex(_)) => "create_index",
+            Some(proto::pipeline_operation::Operation::ListDatabases(_)) => "list_databases",
+            Some(proto::pipeline_operation::Operation::ListCollections(_)) => "list_collections",
+            Some(proto::pipeline_operation::Operation::BeginTransaction(_)) => "begin_transaction",
+            Some(proto::pipeline_operation::Operation::CommitTransaction(_)) => "commit_transaction",
+            Some(proto::pipeline_operation::Operation::AbortTransaction(_)) => "abort_transaction",
+            Some(proto::pipeline_operation::Operation::GetAnalytics(_)) => "get_analytics",
+            None => "empty",
+        };
+
+        let span = tracing::info_span!("pipeline.op", pipeline.op.index = index, pipeline.op.type_ = op_type);
+
+        async {
+            match op.operation {
+                None => proto::pipeline_result::Result::Error(proto::PipelineError {
+                    code: 3,
+                    message: "Operation not specified".to_string(),
+                }),
+                Some(operation) => match operation {
+                    proto::pipeline_operation::Operation::Find(req) => self.pipeline_find(req).await,
+                    proto::pipeline_operation::Operation::FindOne(req) => self.pipeline_find_one(req).await,
+                    proto::pipeline_operation::Operation::Insert(req) => self.pipeline_insert(req).await,
+                    proto::pipeline_operation::Operation::InsertMany(req) => self.pipeline_insert_many(req).await,
+                    proto::pipeline_operation::Operation::Update(req) => self.pipeline_update(req).await,
+                    proto::pipeline_operation::Operation::UpdateMany(req) => self.pipeline_update_many(req).await,
+                    proto::pipeline_operation::Operation::Delete(req) => self.pipeline_delete(req).await,
+                    proto::pipeline_operation::Operation::DeleteMany(req) => self.pipeline_delete_many(req).await,
+                    proto::pipeline_operation::Operation::Aggregate(req) => self.pipeline_aggregate(req).await,
+                    proto::pipeline_operation::Operation::FindAndModify(req) => self.pipeline_find_and_modify(req).await,
+                    proto::pipeline_operation::Operation::RunCommand(req) => self.pipeline_run_command(req).await,
+                    proto::pipeline_operation::Operation::Search(req) => self.pipeline_search(req).await,
+                    proto::pipeline_operation::Operation::CreateCollection(req) => self.pipeline_create_collection(req).await,
+                    proto::pipeline_operation::Operation::CreateIndex(req) => self.pipeline_create_index(req).await,
+                    proto::pipeline_operation::Operation::ListDatabases(req) => self.pipeline_list_databases(req).await,
+                    proto::pipeline_operation::Operation::ListCollections(req) => self.pipeline_list_collections(req).await,
+                    proto::pipeline_operation::Operation::BeginTransaction(req) => self.pipeline_begin_transaction(req).await,
+                    proto::pipeline_operation::Operation::CommitTransaction(req) => self.pipeline_commit_transaction(req).await,
+                    proto::pipeline_operation::Operation::AbortTransaction(req) => self.pipeline_abort_transaction(req).await,
+                    proto::pipeline_operation::Operation::GetAnalytics(req) => self.pipeline_get_analytics(req).await,
+                },
+            }
+        }.instrument(span).await
+    }
+
+    async fn pipeline_find(&self, req: proto::FindRequest) -> proto::pipeline_result::Result {
+        let filter = match proto_filter_to_bson(&req.filter) {
+            Ok(f) => f,
+            Err(e) => return pipeline_err(e),
+        };
+        let options = match convert_find_options(&req.options) {
+            Ok(o) => o,
+            Err(e) => return pipeline_err(e),
+        };
+
+        let result = if let Some(ref txn_id) = req.transaction_id {
+            match self.transactions.get_mut(txn_id) {
+                Some(mut txn) => txn.find(&req.database, &req.collection, filter).await,
+                None => return pipeline_err(Status::not_found(format!("Transaction not found: {}", txn_id))),
+            }
+        } else {
+            self.operations.find(&req.database, &req.collection, filter, options).await
+        };
+
+        match result {
+            Ok(docs) => {
+                let documents: Result<Vec<proto::Document>, Status> = docs.iter().map(bson_to_proto_doc).collect();
+                match documents {
+                    Ok(documents) => proto::pipeline_result::Result::Find(proto::FindResponse {
+                        documents,
+                        metadata: Some(proto::ResponseMetadata { search_method: String::new() }),
+                    }),
+                    Err(e) => pipeline_err(e),
+                }
+            }
+            Err(e) => pipeline_err(to_status(e)),
+        }
+    }
+
+    async fn pipeline_find_one(&self, req: proto::FindOneRequest) -> proto::pipeline_result::Result {
+        let filter = match proto_filter_to_bson(&req.filter) {
+            Ok(f) => f,
+            Err(e) => return pipeline_err(e),
+        };
+
+        let result = self.operations.find_one(&req.database, &req.collection, filter).await;
+
+        match result {
+            Ok(doc) => {
+                let document = match doc {
+                    Some(ref d) => match bson_to_proto_doc(d) {
+                        Ok(pd) => Some(pd),
+                        Err(e) => return pipeline_err(e),
+                    },
+                    None => None,
+                };
+                proto::pipeline_result::Result::FindOne(proto::FindOneResponse {
+                    document,
+                    metadata: Some(proto::ResponseMetadata { search_method: String::new() }),
+                })
+            }
+            Err(e) => pipeline_err(to_status(e)),
+        }
+    }
+
+    async fn pipeline_insert(&self, req: proto::InsertRequest) -> proto::pipeline_result::Result {
+        let doc = match req.document.as_ref() {
+            Some(d) => match proto_doc_to_bson(d) {
+                Ok(d) => d,
+                Err(e) => return pipeline_err(e),
+            },
+            None => return pipeline_err(Status::invalid_argument("Missing document")),
+        };
+
+        let result = if let Some(ref txn_id) = req.transaction_id {
+            match self.transactions.get_mut(txn_id) {
+                Some(mut txn) => txn.insert(&req.database, &req.collection, doc).await,
+                None => return pipeline_err(Status::not_found(format!("Transaction not found: {}", txn_id))),
+            }
+        } else {
+            self.operations.insert(&req.database, &req.collection, doc).await
+        };
+
+        match result {
+            Ok(r) => proto::pipeline_result::Result::Insert(proto::InsertResponse {
+                inserted_id: r.inserted_id.to_string(),
+            }),
+            Err(e) => pipeline_err(to_status(e)),
+        }
+    }
+
+    async fn pipeline_insert_many(&self, req: proto::InsertManyRequest) -> proto::pipeline_result::Result {
+        let docs: Result<Vec<bson::Document>, Status> = req.documents.iter().map(proto_doc_to_bson).collect();
+        let docs = match docs {
+            Ok(d) => d,
+            Err(e) => return pipeline_err(e),
+        };
+
+        let result = self.operations.insert_many(&req.database, &req.collection, docs).await;
+
+        match result {
+            Ok(r) => {
+                let inserted_ids: Vec<String> = r.inserted_ids.values().map(|id| id.to_string()).collect();
+                let inserted_count = inserted_ids.len() as i64;
+                proto::pipeline_result::Result::InsertMany(proto::InsertManyResponse {
+                    inserted_ids,
+                    inserted_count,
+                })
+            }
+            Err(e) => pipeline_err(to_status(e)),
+        }
+    }
+
+    async fn pipeline_update(&self, req: proto::UpdateRequest) -> proto::pipeline_result::Result {
+        let filter = match proto_filter_to_bson(&req.filter) {
+            Ok(f) => f,
+            Err(e) => return pipeline_err(e),
+        };
+        let update = match req.update.as_ref() {
+            Some(d) => match proto_doc_to_bson(d) {
+                Ok(d) => d,
+                Err(e) => return pipeline_err(e),
+            },
+            None => return pipeline_err(Status::invalid_argument("Missing update document")),
+        };
+
+        let result = if let Some(ref txn_id) = req.transaction_id {
+            match self.transactions.get_mut(txn_id) {
+                Some(mut txn) => txn.update(&req.database, &req.collection, filter, update).await,
+                None => return pipeline_err(Status::not_found(format!("Transaction not found: {}", txn_id))),
+            }
+        } else {
+            self.operations.update(&req.database, &req.collection, filter, update).await
+        };
+
+        match result {
+            Ok(r) => proto::pipeline_result::Result::Update(proto::UpdateResponse {
+                matched_count: r.matched_count as i64,
+                modified_count: r.modified_count as i64,
+                upserted_id: r.upserted_id.map(|id| id.to_string()),
+            }),
+            Err(e) => pipeline_err(to_status(e)),
+        }
+    }
+
+    async fn pipeline_update_many(&self, req: proto::UpdateManyRequest) -> proto::pipeline_result::Result {
+        let filter = match proto_filter_to_bson(&req.filter) {
+            Ok(f) => f,
+            Err(e) => return pipeline_err(e),
+        };
+        let update = match req.update.as_ref() {
+            Some(d) => match proto_doc_to_bson(d) {
+                Ok(d) => d,
+                Err(e) => return pipeline_err(e),
+            },
+            None => return pipeline_err(Status::invalid_argument("Missing update document")),
+        };
+
+        let result = self.operations.update_many(&req.database, &req.collection, filter, update).await;
+
+        match result {
+            Ok(r) => proto::pipeline_result::Result::UpdateMany(proto::UpdateManyResponse {
+                matched_count: r.matched_count as i64,
+                modified_count: r.modified_count as i64,
+                upserted_id: r.upserted_id.map(|id| id.to_string()),
+            }),
+            Err(e) => pipeline_err(to_status(e)),
+        }
+    }
+
+    async fn pipeline_delete(&self, req: proto::DeleteRequest) -> proto::pipeline_result::Result {
+        let filter = match proto_filter_to_bson(&req.filter) {
+            Ok(f) => f,
+            Err(e) => return pipeline_err(e),
+        };
+
+        let result = if let Some(ref txn_id) = req.transaction_id {
+            match self.transactions.get_mut(txn_id) {
+                Some(mut txn) => txn.delete(&req.database, &req.collection, filter).await,
+                None => return pipeline_err(Status::not_found(format!("Transaction not found: {}", txn_id))),
+            }
+        } else {
+            self.operations.delete(&req.database, &req.collection, filter).await
+        };
+
+        match result {
+            Ok(r) => proto::pipeline_result::Result::Delete(proto::DeleteResponse {
+                deleted_count: r.deleted_count as i64,
+            }),
+            Err(e) => pipeline_err(to_status(e)),
+        }
+    }
+
+    async fn pipeline_delete_many(&self, req: proto::DeleteManyRequest) -> proto::pipeline_result::Result {
+        let filter = match proto_filter_to_bson(&req.filter) {
+            Ok(f) => f,
+            Err(e) => return pipeline_err(e),
+        };
+
+        let result = self.operations.delete_many(&req.database, &req.collection, filter).await;
+
+        match result {
+            Ok(r) => proto::pipeline_result::Result::DeleteMany(proto::DeleteManyResponse {
+                deleted_count: r.deleted_count as i64,
+            }),
+            Err(e) => pipeline_err(to_status(e)),
+        }
+    }
+
+    async fn pipeline_aggregate(&self, req: proto::AggregateRequest) -> proto::pipeline_result::Result {
+        let pipeline: Vec<bson::Document> = match req.pipeline {
+            Some(p) => match p.stages.iter().map(|stage| decode_bson(stage)).collect::<Result<Vec<_>, _>>() {
+                Ok(stages) => stages,
+                Err(e) => return pipeline_err(e),
+            },
+            None => Vec::new(),
+        };
+
+        let result = self.operations.aggregate(&req.database, &req.collection, pipeline).await;
+
+        match result {
+            Ok(docs) => {
+                let documents: Result<Vec<proto::Document>, Status> = docs.iter().map(bson_to_proto_doc).collect();
+                match documents {
+                    Ok(documents) => proto::pipeline_result::Result::Aggregate(proto::AggregateResponse {
+                        documents,
+                        metadata: Some(proto::ResponseMetadata { search_method: String::new() }),
+                    }),
+                    Err(e) => pipeline_err(e),
+                }
+            }
+            Err(e) => pipeline_err(to_status(e)),
+        }
+    }
+
+    async fn pipeline_find_and_modify(&self, req: proto::FindAndModifyRequest) -> proto::pipeline_result::Result {
+        let filter = match proto_filter_to_bson(&req.filter) {
+            Ok(f) => f,
+            Err(e) => return pipeline_err(e),
+        };
+        let update = match req.update.as_ref() {
+            Some(d) => match proto_doc_to_bson(d) {
+                Ok(d) => d,
+                Err(e) => return pipeline_err(e),
+            },
+            None => return pipeline_err(Status::invalid_argument("Missing update document")),
+        };
+
+        let options = req.options.map(|opts| {
+            let return_document =
+                if opts.return_document == proto::find_and_modify_options::ReturnDocument::Before as i32 {
+                    ReturnDocumentOption::Before
+                } else {
+                    ReturnDocumentOption::After
+                };
+            let sort = opts
+                .sort
+                .as_ref()
+                .and_then(|data| if data.is_empty() { None } else { decode_bson(data).ok() });
+            FindAndModifyOptions {
+                return_document,
+                upsert: opts.upsert,
+                sort,
+            }
+        });
+
+        let result = self.operations.find_and_modify(&req.database, &req.collection, filter, update, options).await;
+
+        match result {
+            Ok(doc) => {
+                let document = match doc {
+                    Some(ref d) => match bson_to_proto_doc(d) {
+                        Ok(pd) => Some(pd),
+                        Err(e) => return pipeline_err(e),
+                    },
+                    None => None,
+                };
+                proto::pipeline_result::Result::FindAndModify(proto::FindAndModifyResponse { document })
+            }
+            Err(e) => pipeline_err(to_status(e)),
+        }
+    }
+
+    async fn pipeline_run_command(&self, req: proto::RunCommandRequest) -> proto::pipeline_result::Result {
+        let command = match req.command.as_ref() {
+            Some(d) => match proto_doc_to_bson(d) {
+                Ok(d) => d,
+                Err(e) => return pipeline_err(e),
+            },
+            None => return pipeline_err(Status::invalid_argument("Missing command document")),
+        };
+
+        let validation_mode = if req.allow_all {
+            ValidationMode::AllowAll
+        } else {
+            ValidationMode::BlockDangerous
+        };
+
+        let options = RawCommandOptions { validation_mode };
+        let result = run_command(&self.pool, &req.database, command, &options).await;
+
+        match result {
+            Ok(doc) => match bson_to_proto_doc(&doc) {
+                Ok(result_doc) => proto::pipeline_result::Result::RunCommand(proto::RunCommandResponse {
+                    result: Some(result_doc),
+                }),
+                Err(e) => pipeline_err(e),
+            },
+            Err(e) => pipeline_err(to_status(e)),
+        }
+    }
+
+    async fn pipeline_search(&self, req: proto::SearchRequest) -> proto::pipeline_result::Result {
+        let limit = if req.limit > 0 { req.limit } else { 10 };
+
+        let result = self.search_engine.search(&req.database, &req.collection, &req.query, limit).await;
+
+        match result {
+            Ok(search_result) => {
+                let documents: Result<Vec<proto::Document>, Status> =
+                    search_result.documents.iter().map(bson_to_proto_doc).collect();
+                match documents {
+                    Ok(documents) => {
+                        let method = match search_result.method {
+                            crate::search::SearchMethod::Vector => "vector",
+                            crate::search::SearchMethod::Fulltext => "fulltext",
+                            crate::search::SearchMethod::Filter => "filter",
+                        };
+                        proto::pipeline_result::Result::Search(proto::SearchResponse {
+                            documents,
+                            method: method.to_string(),
+                            total: search_result.total as i64,
+                        })
+                    }
+                    Err(e) => pipeline_err(e),
+                }
+            }
+            Err(e) => pipeline_err(Status::internal(format!("Search error: {}", e))),
+        }
+    }
+
+    async fn pipeline_create_collection(&self, req: proto::CreateCollectionRequest) -> proto::pipeline_result::Result {
+        match self.operations.create_collection(&req.database, &req.collection).await {
+            Ok(()) => proto::pipeline_result::Result::CreateCollection(proto::CreateCollectionResponse {}),
+            Err(e) => pipeline_err(to_status(e)),
+        }
+    }
+
+    async fn pipeline_create_index(&self, req: proto::CreateIndexRequest) -> proto::pipeline_result::Result {
+        let keys = match req.keys.as_ref() {
+            Some(d) => match proto_doc_to_bson(d) {
+                Ok(d) => d,
+                Err(e) => return pipeline_err(e),
+            },
+            None => return pipeline_err(Status::invalid_argument("Missing keys document")),
+        };
+
+        let options = req.options.map(|opts| IndexOptions {
+            name: opts.name,
+            unique: opts.unique,
+            sparse: opts.sparse,
+        });
+
+        match self.operations.create_index(&req.database, &req.collection, keys, options).await {
+            Ok(index_name) => proto::pipeline_result::Result::CreateIndex(proto::CreateIndexResponse { index_name }),
+            Err(e) => pipeline_err(to_status(e)),
+        }
+    }
+
+    async fn pipeline_list_databases(&self, _req: proto::ListDatabasesRequest) -> proto::pipeline_result::Result {
+        match self.pool.client().list_database_names().await {
+            Ok(databases) => proto::pipeline_result::Result::ListDatabases(proto::ListDatabasesResponse { databases }),
+            Err(e) => pipeline_err(Status::internal(format!("Failed to list databases: {}", e))),
+        }
+    }
+
+    async fn pipeline_list_collections(&self, req: proto::ListCollectionsRequest) -> proto::pipeline_result::Result {
+        match self.pool.database(&req.database).list_collection_names().await {
+            Ok(collections) => proto::pipeline_result::Result::ListCollections(proto::ListCollectionsResponse { collections }),
+            Err(e) => pipeline_err(Status::internal(format!("Failed to list collections: {}", e))),
+        }
+    }
+
+    async fn pipeline_begin_transaction(&self, _req: proto::BeginTransactionRequest) -> proto::pipeline_result::Result {
+        match Transaction::begin(&self.pool).await {
+            Ok(txn) => {
+                let txn_id = Uuid::new_v4().to_string();
+                self.transactions.insert(txn_id.clone(), txn);
+                proto::pipeline_result::Result::BeginTransaction(proto::BeginTransactionResponse {
+                    transaction_id: txn_id,
+                })
+            }
+            Err(e) => pipeline_err(to_status(e)),
+        }
+    }
+
+    async fn pipeline_commit_transaction(&self, req: proto::CommitTransactionRequest) -> proto::pipeline_result::Result {
+        match self.transactions.remove(&req.transaction_id) {
+            Some((_, mut txn)) => match txn.commit().await {
+                Ok(()) => proto::pipeline_result::Result::CommitTransaction(proto::CommitTransactionResponse {}),
+                Err(e) => pipeline_err(to_status(e)),
+            },
+            None => pipeline_err(Status::not_found(format!("Transaction not found: {}", req.transaction_id))),
+        }
+    }
+
+    async fn pipeline_abort_transaction(&self, req: proto::AbortTransactionRequest) -> proto::pipeline_result::Result {
+        match self.transactions.remove(&req.transaction_id) {
+            Some((_, mut txn)) => match txn.abort().await {
+                Ok(()) => proto::pipeline_result::Result::AbortTransaction(proto::AbortTransactionResponse {}),
+                Err(e) => pipeline_err(to_status(e)),
+            },
+            None => pipeline_err(Status::not_found(format!("Transaction not found: {}", req.transaction_id))),
+        }
+    }
+
+    async fn pipeline_get_analytics(&self, _req: proto::GetAnalyticsRequest) -> proto::pipeline_result::Result {
+        let analytics = match self.analytics.as_ref() {
+            Some(a) => a,
+            None => return pipeline_err(Status::unavailable("Analytics not enabled")),
+        };
+
+        let events = analytics.snapshot();
+        let summary = crate::analytics::aggregator::aggregate(&events);
+
+        let top_operations = summary.top_operations.iter().map(|(op, count)| {
+            proto::OperationCount {
+                operation: format!("{:?}", op),
+                count: *count as i64,
+            }
+        }).collect();
+
+        let top_collections = summary.top_collections.iter().map(|(coll, count)| {
+            proto::CollectionCount {
+                collection: coll.clone(),
+                count: *count as i64,
+            }
+        }).collect();
+
+        proto::pipeline_result::Result::GetAnalytics(proto::GetAnalyticsResponse {
+            total_operations: summary.total_operations as i64,
+            total_errors: summary.total_errors as i64,
+            error_rate: summary.error_rate,
+            p50_latency_ms: summary.p50_latency_ms,
+            p95_latency_ms: summary.p95_latency_ms,
+            p99_latency_ms: summary.p99_latency_ms,
+            top_operations,
+            top_collections,
+        })
+    }
+}
+
+/// Convert a tonic Status into a PipelineError result.
+fn pipeline_err(status: Status) -> proto::pipeline_result::Result {
+    proto::pipeline_result::Result::Error(proto::PipelineError {
+        code: status.code() as i32,
+        message: status.message().to_string(),
+    })
 }
 
 // === Ingestion helper functions ===

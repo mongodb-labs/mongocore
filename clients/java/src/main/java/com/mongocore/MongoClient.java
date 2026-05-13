@@ -238,6 +238,20 @@ public class MongoClient implements AutoCloseable {
         }
     }
 
+    // --- Pipeline Methods ---
+
+    public List<PipelineResult> pipeline(Mongocore.PipelineOperation... operations) {
+        MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
+        Mongocore.PipelineResponse resp = stub.pipeline(
+                Mongocore.PipelineRequest.newBuilder()
+                        .addAllOperations(java.util.Arrays.asList(operations))
+                        .build());
+
+        return resp.getResultsList().stream()
+                .map(PipelineResult::new)
+                .collect(java.util.stream.Collectors.toList());
+    }
+
     // --- Analytics Methods ---
 
     public Map<String, Object> getAnalytics() {

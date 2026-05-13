@@ -137,6 +137,8 @@ async fn main() {
             max_message_size: config.grpc_max_message_size,
             compression: config.grpc_compression.clone(),
             stream_idle_timeout_secs: config.stream_idle_timeout_secs,
+            pipeline_timeout_secs: config.pipeline_timeout_secs,
+            pipeline_max_concurrency: config.pipeline_max_concurrency,
         },
         voyage_api_key.as_deref(),
         analytics.clone(),

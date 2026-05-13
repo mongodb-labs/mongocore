@@ -431,4 +431,42 @@ public class IntegrationTest {
             java.nio.file.Files.deleteIfExists(tempDir);
         }
     }
+
+    @Test
+    public void testPipeline() {
+        String collName = uniqueCollection();
+
+        // Seed a document
+        MongoCollection coll = client.getDatabase(TEST_DB).getCollection(collName);
+        coll.insertOne(new Document("name", "pipeline_test").append("value", 42));
+
+        // Build pipeline with: find + insert + listDatabases
+        List<PipelineResult> results = client.pipeline(
+                Ops.find(TEST_DB, collName, new Document("name", "pipeline_test")),
+                Ops.insert(TEST_DB, collName, new Document("name", "inserted_via_pipeline").append("value", 100)),
+                Ops.listDatabases()
+        );
+
+        // Assert all succeeded
+        assertEquals(3, results.size());
+        assertTrue("Find operation should succeed", results.get(0).isSuccess());
+        assertTrue("Insert operation should succeed", results.get(1).isSuccess());
+        assertTrue("ListDatabases operation should succeed", results.get(2).isSuccess());
+
+        // Check find result
+        PipelineResult.FindResult findResult = results.get(0).asFind();
+        assertNotNull(findResult);
+        assertEquals(1, findResult.getDocuments().size());
+        assertEquals("pipeline_test", findResult.getDocuments().get(0).getString("name"));
+
+        // Check insert result
+        InsertResult insertResult = results.get(1).asInsert();
+        assertNotNull(insertResult);
+        assertNotNull(insertResult.getInsertedId());
+
+        // Check listDatabases result
+        PipelineResult.ListDatabasesResult listDbResult = results.get(2).asListDatabases();
+        assertNotNull(listDbResult);
+        assertFalse(listDbResult.getDatabases().isEmpty());
+    }
 }

@@ -42,3 +42,6 @@ mod uds_test;
 
 #[path = "integration/streaming_test.rs"]
 mod streaming_test;
+
+#[path = "integration/pipeline_test.rs"]
+mod pipeline_test;

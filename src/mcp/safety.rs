@@ -1,3 +1,5 @@
+use serde_json::Value;
+
 /// Safety controls for AI agents interacting with MongoDB through MongoCore.
 #[derive(Debug, Clone)]
 pub struct SafetyConfig {
@@ -40,6 +42,49 @@ impl SafetyConfig {
             }
         }
         Ok(())
+    }
+
+    /// Check if all operations in a pipeline are allowed under current safety config.
+    /// Returns Ok(()) if all allowed, Err(reason) if any violate safety rules.
+    /// This provides all-or-nothing validation — if any operation violates rules,
+    /// the entire pipeline is rejected before execution.
+    pub fn check_pipeline_allowed(&self, operations: &[Value]) -> Result<(), String> {
+        if !self.read_only {
+            return Ok(());
+        }
+
+        let mut violations = Vec::new();
+        for (i, op) in operations.iter().enumerate() {
+            if let Some(op_type) = op.get("op").and_then(|v| v.as_str()) {
+                const WRITE_OPS: &[&str] = &[
+                    "insert",
+                    "insert_many",
+                    "update",
+                    "update_many",
+                    "delete",
+                    "delete_many",
+                    "create_collection",
+                    "create_index",
+                    "run_command",
+                    "find_and_modify",
+                ];
+                if WRITE_OPS.contains(&op_type) {
+                    violations.push(format!(
+                        "operation[{}]: '{}' is a write operation",
+                        i, op_type
+                    ));
+                }
+            }
+        }
+
+        if violations.is_empty() {
+            Ok(())
+        } else {
+            Err(format!(
+                "Pipeline rejected: server is in read-only mode. Violations:\n{}",
+                violations.join("\n")
+            ))
+        }
     }
 }
 
@@ -114,5 +159,70 @@ mod tests {
             let result = config.check_tool_allowed(tool);
             assert!(result.is_ok(), "Expected '{}' to be allowed", tool);
         }
+    }
+
+    #[test]
+    fn test_pipeline_allowed_when_not_read_only() {
+        let safety = SafetyConfig {
+            read_only: false,
+            max_documents: 100,
+        };
+        let ops = vec![
+            serde_json::json!({"op": "insert"}),
+            serde_json::json!({"op": "delete"}),
+        ];
+        assert!(safety.check_pipeline_allowed(&ops).is_ok());
+    }
+
+    #[test]
+    fn test_pipeline_blocked_when_read_only_with_writes() {
+        let safety = SafetyConfig {
+            read_only: true,
+            max_documents: 100,
+        };
+        let ops = vec![
+            serde_json::json!({"op": "find"}),
+            serde_json::json!({"op": "insert"}),
+            serde_json::json!({"op": "delete_many"}),
+        ];
+        let err = safety.check_pipeline_allowed(&ops).unwrap_err();
+        assert!(err.contains("operation[1]: 'insert'"));
+        assert!(err.contains("operation[2]: 'delete_many'"));
+        assert!(!err.contains("operation[0]"));
+    }
+
+    #[test]
+    fn test_pipeline_allowed_when_read_only_with_only_reads() {
+        let safety = SafetyConfig {
+            read_only: true,
+            max_documents: 100,
+        };
+        let ops = vec![
+            serde_json::json!({"op": "find"}),
+            serde_json::json!({"op": "find_one"}),
+            serde_json::json!({"op": "aggregate"}),
+            serde_json::json!({"op": "list_databases"}),
+        ];
+        assert!(safety.check_pipeline_allowed(&ops).is_ok());
+    }
+
+    #[test]
+    fn test_pipeline_find_and_modify_blocked_in_read_only() {
+        let safety = SafetyConfig {
+            read_only: true,
+            max_documents: 100,
+        };
+        let ops = vec![serde_json::json!({"op": "find_and_modify"})];
+        assert!(safety.check_pipeline_allowed(&ops).is_err());
+    }
+
+    #[test]
+    fn test_pipeline_empty_ops_allowed() {
+        let safety = SafetyConfig {
+            read_only: true,
+            max_documents: 100,
+        };
+        let ops: Vec<serde_json::Value> = vec![];
+        assert!(safety.check_pipeline_allowed(&ops).is_ok());
     }
 }

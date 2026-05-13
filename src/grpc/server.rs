@@ -20,6 +20,8 @@ pub struct GrpcServerConfig {
     pub max_message_size: usize,
     pub compression: String,
     pub stream_idle_timeout_secs: u64,
+    pub pipeline_timeout_secs: u64,
+    pub pipeline_max_concurrency: usize,
 }
 
 /// Start the gRPC server on TCP and optionally UDS.
@@ -32,10 +34,13 @@ pub fn start_grpc_server(
     directory_watcher: Option<Arc<DirectoryWatcher>>,
 ) -> JoinHandle<Result<(), Box<dyn std::error::Error + Send + Sync>>> {
     let stream_idle_timeout = std::time::Duration::from_secs(config.stream_idle_timeout_secs);
+    let pipeline_timeout = std::time::Duration::from_secs(config.pipeline_timeout_secs);
+    let pipeline_max_concurrency = config.pipeline_max_concurrency;
     let service = match voyage_api_key {
         Some(key) => MongoCoreService::with_voyage(pool.clone(), key, analytics, None, None, stream_idle_timeout),
         None => MongoCoreService::new(pool.clone(), analytics, None, None, stream_idle_timeout),
     };
+    let service = service.with_pipeline_config(pipeline_timeout, pipeline_max_concurrency);
 
     let service = if let (Some(engine), Some(watcher)) = (ingestion_engine, directory_watcher) {
         service.with_ingestion(engine, watcher, pool.client().clone())

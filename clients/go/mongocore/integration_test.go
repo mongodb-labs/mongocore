@@ -662,3 +662,93 @@ func TestStopWatch(t *testing.T) {
 		t.Fatal("Expected StopWatch to return true")
 	}
 }
+
+func TestPipeline(t *testing.T) {
+	client, ctx := setupClient(t)
+	collName := uniqueCollection() + "_pipeline"
+
+	// Seed a document first
+	coll := client.Database(testDB).Collection(collName)
+	seedID, err := coll.InsertOne(ctx, bson.D{{Key: "name", Value: "seed"}, {Key: "value", Value: 100}})
+	if err != nil {
+		t.Fatalf("Failed to seed document: %v", err)
+	}
+	if seedID == "" {
+		t.Fatal("Expected non-empty seed ID")
+	}
+
+	// Build operations manually (ops package is in ../ops)
+	// For the test, we'll construct them directly
+	filterBytes, _ := bson.Marshal(bson.D{{Key: "name", Value: "seed"}})
+	op1 := &pb.PipelineOperation{
+		Operation: &pb.PipelineOperation_Find{
+			Find: &pb.FindRequest{
+				Database:   testDB,
+				Collection: collName,
+				Filter:     &pb.Filter{Data: filterBytes},
+			},
+		},
+	}
+
+	insertBytes, _ := bson.Marshal(bson.D{{Key: "name", Value: "inserted_via_pipeline"}, {Key: "value", Value: 200}})
+	op2 := &pb.PipelineOperation{
+		Operation: &pb.PipelineOperation_Insert{
+			Insert: &pb.InsertRequest{
+				Database:   testDB,
+				Collection: collName,
+				Document:   &pb.Document{Data: insertBytes},
+			},
+		},
+	}
+
+	op3 := &pb.PipelineOperation{
+		Operation: &pb.PipelineOperation_ListDatabases{
+			ListDatabases: &pb.ListDatabasesRequest{},
+		},
+	}
+
+	// Execute pipeline
+	results, err := client.Pipeline(ctx, op1, op2, op3)
+	if err != nil {
+		t.Fatalf("Pipeline failed: %v", err)
+	}
+
+	// Verify we got 3 results
+	if len(results) != 3 {
+		t.Fatalf("Expected 3 results, got %d", len(results))
+	}
+
+	// Verify all succeeded
+	for i, result := range results {
+		if !result.Success {
+			t.Fatalf("Result %d failed: %s", i, result.Error)
+		}
+	}
+
+	// Verify Find result
+	if findResp, ok := results[0].AsFind(); ok {
+		if len(findResp.Documents) != 1 {
+			t.Fatalf("Expected 1 document from Find, got %d", len(findResp.Documents))
+		}
+	} else {
+		t.Fatal("Expected Find result at index 0")
+	}
+
+	// Verify Insert result
+	if insertResp, ok := results[1].AsInsert(); ok {
+		if insertResp.InsertedId == "" {
+			t.Fatal("Expected non-empty inserted ID")
+		}
+	} else {
+		t.Fatal("Expected Insert result at index 1")
+	}
+
+	// Verify ListDatabases result
+	if listResp, ok := results[2].AsListDatabases(); ok {
+		if len(listResp.Databases) == 0 {
+			t.Fatal("Expected at least one database")
+		}
+	} else {
+		t.Fatal("Expected ListDatabases result at index 2")
+	}
+}

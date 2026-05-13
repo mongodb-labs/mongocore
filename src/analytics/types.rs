@@ -24,6 +24,7 @@ pub enum OperationKind {
     CreateIndex,
     ListDatabases,
     ListCollections,
+    Pipeline,
 }
 
 /// An analytics event capturing metadata about an operation

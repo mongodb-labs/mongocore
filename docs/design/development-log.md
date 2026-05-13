@@ -311,3 +311,21 @@ Started with benchmarking data showing -40% to -76% overhead for small operation
 - Performance Tier 2: Request pipelining (batch N operations in one round-trip)
 - Investigate grpc-python UDS fix (upgrade grpcio or use pure-Python transport)
 - Performance Tier 3: Native FFI embedding (PyO3, Neon, cgo)
+
+---
+
+## 2026-05-13: Performance Tier 2 — Request Pipelining
+
+Implemented the Pipeline RPC to batch N independent operations in a single gRPC round-trip.
+
+**Problem:** Every RPC was independent — an AI agent gathering context from 5 collections needed 5 round-trips (~5ms over TCP). Applications doing mixed reads+writes paid the same per-op overhead.
+
+**Approach:** A single `Pipeline` unary RPC accepts a list of operations (oneof of all non-streaming request types), fans them out concurrently via `tokio::join_all` with a semaphore (20 concurrent ops), and returns indexed results with per-op error reporting. MCP tool uses all-or-nothing safety validation — if any op violates read-only mode, the entire pipeline is rejected before execution.
+
+**Key decisions:**
+- Always concurrent, no ordered flag (sequential + dependencies deferred to TransactionPipeline)
+- Ingestion and streaming RPCs excluded (long-running, don't benefit from batching)
+- Pipeline-level timeout (30s default) — prevents slow pipelines from holding resources
+- Typed op builders in all 4 client languages for ergonomic API
+
+**Learned:** The proto `oneof` for 20 operation types creates a large message definition but the implementation is mechanical — each per-op dispatch helper is ~20 lines following the same pattern.

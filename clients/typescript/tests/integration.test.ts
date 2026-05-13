@@ -8,6 +8,7 @@
 import { MongoClient } from '../src/client';
 import { Collection } from '../src/collection';
 import { Database } from '../src/database';
+import * as ops from '../src/ops';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
@@ -388,5 +389,103 @@ describe('Watch operations', () => {
     expect(stopResult).toBeTruthy();
 
     fs.rmSync(tempDir, { recursive: true });
+  });
+});
+
+describe('Pipeline operations', () => {
+  test('pipeline with mixed operations', async () => {
+    const collName = uniqueCollection();
+
+    const results = await client.pipeline(
+      ops.insert(TEST_DB, collName, { name: 'Alice', age: 30 }),
+      ops.insert(TEST_DB, collName, { name: 'Bob', age: 25 }),
+      ops.find(TEST_DB, collName, {}),
+      ops.updateMany(TEST_DB, collName, {}, { $inc: { age: 1 } }),
+      ops.findOne(TEST_DB, collName, { name: 'Alice' }),
+      ops.deleteMany(TEST_DB, collName, { name: 'Bob' })
+    );
+
+    expect(results).toHaveLength(6);
+
+    // Check insert results
+    expect(results[0].success).toBe(true);
+    expect(results[0].result?.insertedId).toBeTruthy();
+    expect(results[1].success).toBe(true);
+    expect(results[1].result?.insertedId).toBeTruthy();
+
+    // Check find result
+    expect(results[2].success).toBe(true);
+    expect(results[2].result?.documents).toHaveLength(2);
+
+    // Check updateMany result
+    expect(results[3].success).toBe(true);
+    expect(results[3].result?.modifiedCount).toBe(2);
+
+    // Check findOne result
+    expect(results[4].success).toBe(true);
+    expect(results[4].result?.document).toBeTruthy();
+    expect(results[4].result?.document.name).toBe('Alice');
+    expect(results[4].result?.document.age).toBe(31);
+
+    // Check deleteMany result
+    expect(results[5].success).toBe(true);
+    expect(results[5].result?.deletedCount).toBe(1);
+  });
+
+  test('pipeline with aggregate', async () => {
+    const collName = uniqueCollection();
+
+    const results = await client.pipeline(
+      ops.insertMany(TEST_DB, collName, [
+        { category: 'A', value: 10 },
+        { category: 'A', value: 20 },
+        { category: 'B', value: 30 },
+      ]),
+      ops.aggregate(TEST_DB, collName, [
+        { $group: { _id: '$category', total: { $sum: '$value' } } },
+        { $sort: { _id: 1 } },
+      ])
+    );
+
+    expect(results).toHaveLength(2);
+    expect(results[0].success).toBe(true);
+    expect(results[0].result?.insertedCount).toBe(3);
+
+    expect(results[1].success).toBe(true);
+    expect(results[1].result?.documents).toHaveLength(2);
+    expect(results[1].result?.documents[0]._id).toBe('A');
+    expect(results[1].result?.documents[0].total).toBe(30);
+  });
+
+  test('pipeline with listDatabases and listCollections', async () => {
+    const collName = uniqueCollection();
+
+    // First create a collection
+    await client.db(TEST_DB).collection(collName).insertOne({ test: 'data' });
+
+    const results = await client.pipeline(
+      ops.listDatabases(),
+      ops.listCollections(TEST_DB)
+    );
+
+    expect(results).toHaveLength(2);
+
+    expect(results[0].success).toBe(true);
+    expect(results[0].result?.databases).toBeDefined();
+    expect(Array.isArray(results[0].result?.databases)).toBe(true);
+
+    expect(results[1].success).toBe(true);
+    expect(results[1].result?.collections).toBeDefined();
+    expect(results[1].result?.collections).toContain(collName);
+  });
+
+  test('pipeline with runCommand', async () => {
+    const results = await client.pipeline(
+      ops.runCommand('admin', { ping: 1 })
+    );
+
+    expect(results).toHaveLength(1);
+    expect(results[0].success).toBe(true);
+    expect(results[0].result?.ok).toBe(1);
   });
 });

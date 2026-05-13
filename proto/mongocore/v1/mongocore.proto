@@ -58,6 +58,9 @@ service MongoCore {
   rpc CancelIngest(CancelIngestRequest) returns (CancelIngestResponse);
   rpc WatchDirectory(WatchDirectoryRequest) returns (WatchDirectoryResponse);
   rpc StopWatch(StopWatchRequest) returns (StopWatchResponse);
+
+  // Pipeline
+  rpc Pipeline(PipelineRequest) returns (PipelineResponse);
 }
 
 // ==================== CRUD Requests/Responses ====================
@@ -343,4 +346,73 @@ message OperationCount {
 message CollectionCount {
   string collection = 1;
   int64 count = 2;
+}
+
+// --- Pipeline ---
+
+message PipelineRequest {
+  repeated PipelineOperation operations = 1;
+}
+
+message PipelineOperation {
+  oneof operation {
+    FindRequest find = 1;
+    FindOneRequest find_one = 2;
+    InsertRequest insert = 3;
+    InsertManyRequest insert_many = 4;
+    UpdateRequest update = 5;
+    UpdateManyRequest update_many = 6;
+    DeleteRequest delete = 7;
+    DeleteManyRequest delete_many = 8;
+    AggregateRequest aggregate = 9;
+    FindAndModifyRequest find_and_modify = 10;
+    RunCommandRequest run_command = 11;
+    SearchRequest search = 12;
+    CreateCollectionRequest create_collection = 13;
+    CreateIndexRequest create_index = 14;
+    ListDatabasesRequest list_databases = 15;
+    ListCollectionsRequest list_collections = 16;
+    BeginTransactionRequest begin_transaction = 17;
+    CommitTransactionRequest commit_transaction = 18;
+    AbortTransactionRequest abort_transaction = 19;
+    GetAnalyticsRequest get_analytics = 20;
+  }
+}
+
+message PipelineResponse {
+  repeated PipelineResult results = 1;
+  uint32 succeeded = 2;
+  uint32 failed = 3;
+}
+
+message PipelineResult {
+  uint32 index = 1;
+  oneof result {
+    FindResponse find = 2;
+    FindOneResponse find_one = 3;
+    InsertResponse insert = 4;
+    InsertManyResponse insert_many = 5;
+    UpdateResponse update = 6;
+    UpdateManyResponse update_many = 7;
+    DeleteResponse delete = 8;
+    DeleteManyResponse delete_many = 9;
+    AggregateResponse aggregate = 10;
+    FindAndModifyResponse find_and_modify = 11;
+    RunCommandResponse run_command = 12;
+    SearchResponse search = 13;
+    CreateCollectionResponse create_collection = 14;
+    CreateIndexResponse create_index = 15;
+    ListDatabasesResponse list_databases = 16;
+    ListCollectionsResponse list_collections = 17;
+    BeginTransactionResponse begin_transaction = 18;
+    CommitTransactionResponse commit_transaction = 19;
+    AbortTransactionResponse abort_transaction = 20;
+    GetAnalyticsResponse get_analytics = 21;
+    PipelineError error = 22;
+  }
+}
+
+message PipelineError {
+  int32 code = 1;
+  string message = 2;
 }
