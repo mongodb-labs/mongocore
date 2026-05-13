@@ -68,3 +68,6 @@ Thumbs.db
 
 # Local test config (may contain API keys)
 config.test.toml
+
+# Claude Code session data
+.claude/

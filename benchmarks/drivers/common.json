@@ -1,0 +1,19 @@
+{
+  "mongodb_uri": "mongodb://localhost:27017",
+  "mongocore_address": "localhost:50051",
+  "database": "mongocore_bench",
+  "min_time_secs": 60,
+  "max_iterations": 100,
+  "max_time_secs": 300,
+  "warmup_iterations": {
+    "python": 3,
+    "typescript": 5,
+    "go": 3,
+    "java": 10
+  },
+  "datasets": {
+    "small_doc": "../data/small_doc.json",
+    "tweet": "../data/tweet.json",
+    "large_doc": "../data/large_doc.json"
+  }
+}

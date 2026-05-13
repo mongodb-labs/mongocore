@@ -32,6 +32,13 @@ test-java:
 test-clients:
     #!/usr/bin/env bash
     set -e
+    # Kill any existing sidecar on port 50051
+    EXISTING_PID=$(lsof -ti :50051 -sTCP:LISTEN 2>/dev/null || true)
+    if [ -n "$EXISTING_PID" ]; then
+        echo "Killing existing sidecar (PID $EXISTING_PID)..."
+        kill $EXISTING_PID 2>/dev/null || true
+        sleep 1
+    fi
     cargo build --release
     ./target/release/mongocore --connection-uri "mongodb://localhost:27017" &
     SIDECAR_PID=$!

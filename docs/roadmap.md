@@ -93,6 +93,9 @@
 | Demo | Stdio MCP transport for Claude Code integration, curated restaurant dataset, scripted demo flow |
 | MCP + Claude Integration | Auto-detect API key from Claude's environment when launched as MCP server |
 | Packaging & Deployment | Pre-built binaries (GitHub Releases, Homebrew), Docker images (GHCR), Helm chart |
+| gRPC Message Limits | Increase max message size and/or implement streaming for large docs and result sets |
+| BulkWrite Operations | Collection-level and client-level bulkWrite with mixed insert/update/delete |
+| Database/Collection Management | Drop database, drop collection, rename collection, list indexes, compact |
 | Performance | Benchmarking suite comparing MongoCore vs native drivers for common workloads |
 | Visualizations | Configurable web UI for analytics, query flow, and ingestion progress |
 | Migration & Ecosystem | Framework adapters (Mongoose, Spring Data, etc.), migration paths |

@@ -177,20 +177,96 @@ It's now the single most important file for anyone (human or AI) working on this
 
 ---
 
+## Session 2 (continued): Performance Benchmarking
+
+### The Honest Numbers
+
+After building all the features, the question became: "how fast is this actually?" The benchmarking suite was designed to be transparent — no cherry-picking, no hiding the overhead.
+
+**The results were sobering:**
+
+| Operation | pymongo (native) | MongoCore+Python | Overhead |
+|-----------|-----------------|------------------|----------|
+| run_command | 4,470 ops/s | 2,058 ops/s | -54% |
+| find_one | 3,891 ops/s | 2,343 ops/s | -40% |
+| insert_one_small | 3,608 ops/s | 878 ops/s | -76% |
+| insert_one_large | 42 ops/s | 37 ops/s | -10% |
+| bulk_insert (10K) | 152K ops/s | 100K ops/s | -34% |
+
+### Reflection: The Speed Tax
+
+The gRPC hop adds significant overhead for small, frequent operations. A single `find_one` that takes 0.25ms natively now takes 0.43ms through MongoCore. That's the cost of: Python → gRPC serialize → network (loopback) → Rust deserialize → MongoDB call → Rust serialize → gRPC → Python deserialize.
+
+**Where the overhead matters most:** Single-doc operations where the operation itself is fast. The gRPC round-trip (~0.15ms) dominates when the MongoDB operation is ~0.1ms.
+
+**Where it matters least:** Large documents (insert_one_large: only -10%) because the data transfer time dominates the fixed gRPC overhead. Bulk operations amortize the overhead across thousands of docs.
+
+**Where MongoCore wins:** Compiled query cache hits execute at ~45,000 ops/s — faster than any native driver can translate NL→MQL (which requires an LLM call). The value proposition isn't "faster per-op" — it's "pay once for intelligence, execute forever at native speed."
+
+**The gRPC 4MB limit:** A real limitation discovered during benchmarking. Bulk inserting 10 × 2.75MB docs or retrieving 10K docs in a single response exceeds the default gRPC message limit. This needs streaming or larger limits — added to roadmap.
+
+**Key insight:** MongoCore's value isn't raw per-operation speed. It's the intelligence layer (compiled queries, templates, routing), the polyglot story (one implementation serves 4 languages), the safety guarantees (validator, opinionated defaults), and the AI-native interface (MCP). The overhead is the tax for those capabilities. Being honest about it builds trust.
+
+### The MongoDB Spec Methodology Discovery
+
+Initially the benchmarks timed single operations per iteration. After reviewing the [MongoDB driver benchmarking spec](https://github.com/mongodb/specifications/blob/master/source/benchmarking/benchmarking.md), we learned:
+
+- **Why batch:** 10K ops per iteration amortizes timer overhead and reduces noise
+- **Why before_task:** Reset state between iterations prevents cumulative effects (growing collections make later iterations slower)
+- **Why warmup:** JIT compilers, connection pools, and OS caches need time to stabilize
+
+Fixing these made the benchmarks truly comparable to other MongoDB driver benchmarks.
+
+### The Cross-Language Consistency Problem
+
+A code review revealed the benchmarks weren't comparing apples to apples at all:
+
+- **TS/Go/Java native did 1 op per iteration** while Python native and all MongoCore variants batched 10K. This made Python appear faster (amortized overhead) and MongoCore appear relatively worse vs TS/Go/Java.
+- **No `beforeTask` hook in TS/Go/Java native** — collections grew unbounded across iterations, penalizing later inserts with more index maintenance.
+- **Cleanup inconsistency** — some used `deleteMany` (slow), others `drop` (fast). MongoCore variants dropped in `beforeTask`, native variants dropped in `teardown` only.
+- **Missing benchmarks** — TS MongoCore lacked `insert_one_large` entirely.
+
+None of this was intentional — it grew from each language benchmark being written independently without cross-checking. The fix was systematic: standardize all 8 files to the same harness shape (setup → beforeTask → task → afterTask → teardown), same batch sizes, same cleanup strategy.
+
+### Making Benchmarks Configurable with Just
+
+The solution to "I want to run just the Java native benchmarks" or "just the MongoCore variants" was a justfile with composable recipes:
+
+```
+just bench-setup          # Start Docker + sidecar (once)
+just bench-java-native    # Run just Java native
+just bench-java-mongocore # Run just Java MongoCore
+just bench-drivers-native # All 4 languages, native only
+just bench-teardown       # Clean up when done
+```
+
+The key design decisions:
+- **`bench-setup` / `bench-teardown` as explicit lifecycle** — no auto-teardown that kills Docker mid-benchmark (which caused `InterruptedAtShutdown` errors)
+- **Single marker file** (`/tmp/mongocore-bench-ready`) — idempotent checks, no duplicate starts
+- **`require-setup` gate** — friendly error message if you forget to start infrastructure
+- **Private `_bench-*` recipes** — raw benchmark commands with no infra management, composed by public recipes
+- **`bench-all`** — self-contained: setup → run everything → teardown, for CI or full runs
+
+This made iterating on individual languages fast (setup once, run many) while keeping the full suite reproducible.
+
+---
+
 ## Statistics & Final State
 
 | Metric | Count |
 |--------|-------|
-| Total commits | 99+ |
+| Total commits | 100+ |
 | Rust unit tests | 233 |
 | Rust integration tests | ~97 |
 | LLM integration tests | 23 |
 | Client tests | ~126 (26 integration + 5 unit × 4 languages) |
+| Criterion benchmarks | 11 (sidecar internals) |
+| Driver benchmarks | 8 per language (native + MongoCore) |
 | gRPC RPCs | 25 |
 | MCP tools | 21 |
 | Client libraries | 4 (Python, TypeScript, Go, Java) |
-| Design specs | 11 |
-| Implementation plans | 11 |
+| Design specs | 12 |
+| Implementation plans | 12 |
 | Versions | v0.1 → v0.6 |
 
 ---
