@@ -1404,6 +1404,16 @@ impl MongoCore for MongoCoreService {
             Err(e) => Err(Status::internal(e.to_string())),
         }
     }
+
+    // === Pipeline ===
+
+    #[tracing::instrument(skip(self, _request))]
+    async fn pipeline(
+        &self,
+        _request: Request<proto::PipelineRequest>,
+    ) -> Result<Response<proto::PipelineResponse>, Status> {
+        Err(Status::unimplemented("Pipeline RPC not yet implemented"))
+    }
 }
 
 // === Ingestion helper functions ===
