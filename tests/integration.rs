@@ -45,3 +45,6 @@ mod streaming_test;
 
 #[path = "integration/pipeline_test.rs"]
 mod pipeline_test;
+
+#[path = "integration/mcp_stdio_test.rs"]
+mod mcp_stdio_test;

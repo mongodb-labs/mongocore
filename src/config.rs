@@ -118,6 +118,10 @@ pub struct CliArgs {
     /// Pipeline maximum concurrent operations
     #[arg(long, env = "MONGOCORE_PIPELINE_MAX_CONCURRENCY")]
     pub pipeline_max_concurrency: Option<usize>,
+
+    /// Run in MCP stdio mode (stdin/stdout JSON-RPC, no gRPC server)
+    #[arg(long, env = "MONGOCORE_STDIO")]
+    pub stdio: bool,
 }
 
 /// Per-tenant configuration structure.
@@ -504,6 +508,7 @@ mod tests {
             grpc_compression: None,
             pipeline_timeout_secs: None,
             pipeline_max_concurrency: None,
+            stdio: false,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -559,6 +564,7 @@ log_level = "debug"
             grpc_compression: None,
             pipeline_timeout_secs: None,
             pipeline_max_concurrency: None,
+            stdio: false,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -610,6 +616,7 @@ log_level = "debug"
             grpc_compression: None,
             pipeline_timeout_secs: None,
             pipeline_max_concurrency: None,
+            stdio: false,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -651,6 +658,7 @@ log_level = "debug"
             grpc_compression: None,
             pipeline_timeout_secs: None,
             pipeline_max_concurrency: None,
+            stdio: false,
         };
 
         let result = Config::load(&cli);
@@ -704,6 +712,7 @@ connection_uri = "mongodb://other:27017"
             grpc_compression: None,
             pipeline_timeout_secs: None,
             pipeline_max_concurrency: None,
+            stdio: false,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -756,6 +765,7 @@ connection_uri = "mongodb://other:27017"
             grpc_compression: None,
             pipeline_timeout_secs: None,
             pipeline_max_concurrency: None,
+            stdio: false,
         }
     }
 
@@ -822,6 +832,7 @@ conflict_strategy = "merge"
             grpc_compression: None,
             pipeline_timeout_secs: None,
             pipeline_max_concurrency: None,
+            stdio: false,
         };
         let config = Config::load(&cli).unwrap();
         assert_eq!(config.ingestion.sample_size, 2000);
@@ -873,5 +884,11 @@ LLM_API_KEY = "gw-key"
         assert!(config.llm_gateway.is_some(), "Gateway should be configured");
         // Direct key is still resolved (for non-gateway uses) but gateway takes priority
         assert!(config.llm_api_key.is_some());
+    }
+
+    #[test]
+    fn test_stdio_flag_default_false() {
+        let cli = default_cli();
+        assert!(!cli.stdio);
     }
 }

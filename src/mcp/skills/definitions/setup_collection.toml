@@ -1,0 +1,42 @@
+[skill]
+name = "setup_collection"
+description = "Design and create a new collection with schema, indexes, and typed model code"
+category = "database_workflows"
+
+[[skill.arguments]]
+name = "database"
+description = "Database for the new collection"
+required = true
+
+[[skill.arguments]]
+name = "collection"
+description = "Name for the new collection"
+required = true
+
+[[skill.arguments]]
+name = "purpose"
+description = "What this collection will store (used to design schema)"
+required = true
+
+[[skill.steps]]
+description = "Design the schema based on the stated purpose and access patterns"
+analysis = true
+
+[[skill.steps]]
+description = "Create the collection"
+tool = "create_collection"
+
+[[skill.steps]]
+description = "Create indexes based on expected query patterns"
+tool = "create_index"
+dynamic = true
+
+[[skill.steps]]
+description = "Generate a typed model for the collection in the user's language"
+tool = "generate_model"
+dynamic = true
+
+[[skill.steps]]
+description = "Generate sample CRUD code showing how to use the collection"
+tool = "generate_code"
+dynamic = true

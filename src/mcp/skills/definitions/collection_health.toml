@@ -1,0 +1,36 @@
+[skill]
+name = "collection_health"
+description = "Audit a collection's health: check indexes, analyze query patterns, identify missing indexes, assess storage"
+category = "data_analysis"
+
+[[skill.arguments]]
+name = "database"
+description = "Database to audit"
+required = true
+
+[[skill.arguments]]
+name = "collection"
+description = "Collection to check"
+required = true
+
+[[skill.steps]]
+description = "Get collection statistics (document count, size, index info)"
+tool = "aggregate"
+dynamic = true
+
+[[skill.steps]]
+description = "Review current indexes"
+tool = "run_command"
+dynamic = true
+
+[[skill.steps]]
+description = "Analyze recent query patterns from analytics"
+tool = "get_analytics"
+
+[[skill.steps]]
+description = "Identify missing or unused indexes"
+tool = "suggest_indexes"
+
+[[skill.steps]]
+description = "Produce health report with recommendations"
+synthesis = true

@@ -1,0 +1,35 @@
+[skill]
+name = "explore_dataset"
+description = "Systematically explore a MongoDB database to understand its structure, relationships, and content"
+category = "data_analysis"
+
+[[skill.arguments]]
+name = "database"
+description = "Database to explore"
+required = true
+
+[[skill.arguments]]
+name = "focus"
+description = "Optional specific question to answer about the data"
+required = false
+
+[[skill.steps]]
+description = "List all collections and their document counts"
+tool = "list_collections"
+
+[[skill.steps]]
+description = "Sample schema from each collection (top 5 by size)"
+tool = "collection_schema"
+
+[[skill.steps]]
+description = "Compute key statistics (total docs, avg doc size, date ranges) using aggregation"
+tool = "aggregate"
+dynamic = true
+
+[[skill.steps]]
+description = "Identify cross-collection relationships (shared field names, ObjectId references)"
+analysis = true
+
+[[skill.steps]]
+description = "Summarize: collections, key entities, relationships, size, and notable patterns"
+synthesis = true

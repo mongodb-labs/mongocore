@@ -1,0 +1,36 @@
+[skill]
+name = "debug_slow_query"
+description = "Identify and fix slow queries: find bottlenecks, analyze explain plans, suggest indexes, verify improvement"
+category = "database_workflows"
+
+[[skill.arguments]]
+name = "database"
+description = "Database to analyze"
+required = true
+
+[[skill.arguments]]
+name = "collection"
+description = "Collection with slow queries (optional — auto-detect from analytics)"
+required = false
+
+[[skill.steps]]
+description = "Check analytics for slowest operations in this database/collection"
+tool = "slow_queries"
+
+[[skill.steps]]
+description = "Run explain on the slowest query to understand execution plan"
+tool = "explain_query"
+dynamic = true
+
+[[skill.steps]]
+description = "Analyze the explain output: full collection scan? Missing index? Inefficient pipeline?"
+analysis = true
+
+[[skill.steps]]
+description = "Suggest and generate index creation code"
+tool = "generate_index"
+dynamic = true
+
+[[skill.steps]]
+description = "Summarize findings and expected improvement"
+synthesis = true

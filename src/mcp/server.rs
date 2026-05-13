@@ -15,6 +15,7 @@ use crate::connection::pool::ConnectionPool;
 use crate::ingestion::engine::IngestionEngine;
 use crate::ingestion::watch::DirectoryWatcher;
 use crate::operations::Operations;
+use crate::voyage::client::VoyageClient;
 
 use super::handler::McpHandler;
 use super::safety::SafetyConfig;
@@ -31,13 +32,15 @@ struct AppState {
 pub fn start_mcp_server(
     pool: ConnectionPool,
     port: u16,
+    voyage_api_key: Option<&str>,
     analytics: Option<Arc<AnalyticsCollector>>,
     ingestion: Option<Arc<IngestionEngine>>,
     watcher: Option<Arc<DirectoryWatcher>>,
 ) -> JoinHandle<()> {
     let operations = Operations::new(pool.clone());
     let safety = SafetyConfig::default();
-    let handler = McpHandler::new(operations, pool, safety, analytics, ingestion, watcher);
+    let voyage = voyage_api_key.map(|key| Arc::new(VoyageClient::new(key.to_string())));
+    let handler = McpHandler::new(operations, pool, safety, analytics, ingestion, watcher, None, voyage, false);
     let state = Arc::new(AppState { handler });
 
     let app = Router::new()

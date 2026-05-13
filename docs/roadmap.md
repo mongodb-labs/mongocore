@@ -11,7 +11,8 @@
 | **v0.5** | Custom LLM gateway, simplified config, validator hardening, LLM integration tests | **Complete** |
 | **v0.6** | Intelligent NL→MQL routing, LLM-provided templates, template registry | **Complete** |
 | **v0.7** | Cross-language performance benchmarking suite | **Complete** |
-| **v0.8** | Performance Tier 1 (transport, streaming, compression) | **Complete** |
+| **v0.8** | MCP + Claude Integration: Intelligent Data Companion | **Complete** |
+| **v0.8.1** | Performance Tier 1 (transport, streaming, compression) | **Complete** |
 | **v0.9** | Request pipelining (Performance Tier 2) | **Complete** |
 
 ## v0.1 — Core
@@ -96,7 +97,23 @@
 - **Timestamped results** — Each run stored in `results/<timestamp>/` with `latest` symlink, history committed to git
 - **Honest caveats** — Documented limitations (uncontrolled environment, no tuning, localhost, gRPC limits, single client)
 
-## v0.8 — Performance Tier 1
+## v0.8 — MCP + Claude Integration
+
+- **Stdio MCP transport** — `--stdio` flag for Claude Desktop/Code integration, JSON-RPC over stdin/stdout
+- **`ask` tool** — Natural language questions → MQL → execute → return answer with generated query and confidence
+- **`explain_query` tool** — NL → MQL translation with execution plan, no execution (safe for expensive queries)
+- **`collection_schema` tool** — Sample documents and infer schema (field types, cardinality, examples)
+- **MCP sampling** — Zero-config LLM: uses Claude itself via MCP sampling protocol when no API key configured
+- **Code generation** — `generate_code`, `generate_model`, `generate_index` tools with Tera templates for Python, TypeScript, Go, Java
+- **Language/framework detection** — Auto-detect from workspace (pyproject.toml, package.json, go.mod, pom.xml/build.gradle.kts)
+- **Composable skill recommendations** — Detects framework (FastAPI, Express, Spring, etc.) and recommends combining with framework-specific skills
+- **Embedding pipeline** — `embed_and_store`, `semantic_search`, `ingest_and_embed` tools wiring Voyage AI + Polars + $vectorSearch
+- **Skills system** — 13 guided workflows (MCP Prompts protocol + `list_skills`/`get_skill` tool fallback)
+- **Insights tools** — `suggest_indexes` and `slow_queries` analyzing analytics ring buffer
+- **Schema resource** — `mongocore://schema/{database}/{collection}` MCP resource
+- **35 MCP tools total** — up from 21 in v0.7
+
+## v0.8.1 — Performance Tier 1
 
 - **Unix Domain Socket transport** — `--transport` flag (both/uds/tcp), default both. Automatic socket at `/tmp/mongocore.sock`
 - **64MB message limit** — Raised from 4MB default, configurable via `--grpc-max-message-size`
@@ -128,10 +145,10 @@
 | Window Functions | Moving averages, running totals, rankings via $setWindowFields |
 | Graph Queries | $graphLookup support with safety constraints for recursive hierarchy traversal |
 | Enterprise Compliance | Audit trail, multi-tenant auto-scoping, role-based field redaction, query governance |
-| Demo | Stdio MCP transport for Claude Code integration, curated restaurant dataset, scripted demo flow |
-| MCP + Claude Integration | Auto-detect API key from Claude's environment when launched as MCP server |
+| Demo | Curated restaurant dataset, scripted demo flow |
+| MCP Code Quality | Extract shared schema inference helpers (FieldInfo, collect_fields) into `src/mcp/schema.rs`; split `tools.rs` into submodules; add document count limit to `embed_and_store`; implement full `ingest_and_embed` pipeline |
 | Packaging & Deployment | Pre-built binaries (GitHub Releases, Homebrew), Docker images (GHCR), Helm chart |
-| Performance Tier 1 | gRPC over Unix Domain Sockets + streaming bulk responses + raised message limits | **Complete (v0.8)** |
+| Performance Tier 1 | gRPC over Unix Domain Sockets + streaming bulk responses + raised message limits | **Complete (v0.8.1)** |
 | Performance Tier 2 | Request pipelining — batch N independent operations in a single round-trip | **Complete (v0.9)** |
 | Performance Tier 2b | Transactional pipeline — sequential ops with result forwarding between steps (dependent operations) |
 | Performance Tier 3 | Native embedding via FFI (PyO3, Neon, cgo) for zero-IPC overhead |

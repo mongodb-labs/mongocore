@@ -1,0 +1,37 @@
+[skill]
+name = "bootstrap_project"
+description = "Set up MongoCore in a new project: detect language, configure connection, generate example code"
+category = "code_scaffolding"
+
+[[skill.arguments]]
+name = "workspace_root"
+description = "Path to the project root directory"
+required = true
+
+[[skill.arguments]]
+name = "database"
+description = "Database to connect to"
+required = false
+
+[[skill.steps]]
+description = "Detect project language and framework from workspace files"
+tool = "generate_code"
+dynamic = true
+
+[[skill.steps]]
+description = "Verify MongoCore connection by listing databases"
+tool = "list_databases"
+
+[[skill.steps]]
+description = "Generate a minimal working example (find + insert) in the detected language"
+tool = "generate_code"
+dynamic = true
+
+[[skill.steps]]
+description = "Generate a typed model from an existing collection (if database specified)"
+tool = "generate_model"
+dynamic = true
+
+[[skill.steps]]
+description = "Provide installation instructions and next steps"
+synthesis = true

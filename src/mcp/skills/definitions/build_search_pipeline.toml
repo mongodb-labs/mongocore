@@ -1,0 +1,46 @@
+[skill]
+name = "build_search_pipeline"
+description = "Build a search pipeline: analyze data, choose search type (vector/fulltext/hybrid), create indexes, test queries, generate code"
+category = "database_workflows"
+
+[[skill.arguments]]
+name = "database"
+description = "Database containing the collection"
+required = true
+
+[[skill.arguments]]
+name = "collection"
+description = "Collection to add search to"
+required = true
+
+[[skill.arguments]]
+name = "search_goal"
+description = "What kind of search the user wants (semantic, keyword, or both)"
+required = true
+
+[[skill.steps]]
+description = "Inspect collection schema to understand available fields"
+tool = "collection_schema"
+
+[[skill.steps]]
+description = "Recommend search approach based on data and goal (vector, fulltext, or hybrid)"
+analysis = true
+
+[[skill.steps]]
+description = "Set up the chosen search type (embed documents for vector, or configure fulltext)"
+tool = "embed_and_store"
+dynamic = true
+
+[[skill.steps]]
+description = "Test the search pipeline with sample queries"
+tool = "semantic_search"
+dynamic = true
+
+[[skill.steps]]
+description = "Generate search code in the user's language"
+tool = "generate_code"
+dynamic = true
+
+[[skill.steps]]
+description = "Document the setup: index requirements, query patterns, tuning options"
+synthesis = true

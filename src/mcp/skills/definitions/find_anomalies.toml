@@ -1,0 +1,36 @@
+[skill]
+name = "find_anomalies"
+description = "Analyze a collection for data anomalies: outliers, missing fields, type inconsistencies, unexpected values"
+category = "data_analysis"
+
+[[skill.arguments]]
+name = "database"
+description = "Database to analyze"
+required = true
+
+[[skill.arguments]]
+name = "collection"
+description = "Collection to check for anomalies"
+required = true
+
+[[skill.steps]]
+description = "Sample schema to understand expected field types and frequencies"
+tool = "collection_schema"
+
+[[skill.steps]]
+description = "Run aggregations to find null rates, type mismatches, and field frequency anomalies"
+tool = "aggregate"
+dynamic = true
+
+[[skill.steps]]
+description = "Identify statistical outliers in numeric fields"
+tool = "aggregate"
+dynamic = true
+
+[[skill.steps]]
+description = "Analyze findings and categorize anomalies by severity"
+analysis = true
+
+[[skill.steps]]
+description = "Report anomalies with examples and suggested fixes"
+synthesis = true

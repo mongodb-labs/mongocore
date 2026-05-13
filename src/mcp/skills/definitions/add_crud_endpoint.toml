@@ -1,0 +1,36 @@
+[skill]
+name = "add_crud_endpoint"
+description = "Generate a complete CRUD layer: inspect schema, generate model, create operations code, suggest tests"
+category = "code_scaffolding"
+
+[[skill.arguments]]
+name = "database"
+description = "Database name"
+required = true
+
+[[skill.arguments]]
+name = "collection"
+description = "Collection name"
+required = true
+
+[[skill.steps]]
+description = "Inspect collection schema to understand document structure"
+tool = "collection_schema"
+
+[[skill.steps]]
+description = "Generate typed data model from the schema"
+tool = "generate_model"
+
+[[skill.steps]]
+description = "Generate find/insert/update/delete operations code"
+tool = "generate_code"
+dynamic = true
+
+[[skill.steps]]
+description = "Suggest indexes for common query patterns"
+tool = "generate_index"
+dynamic = true
+
+[[skill.steps]]
+description = "Provide test scaffolding suggestions and framework-specific integration notes"
+synthesis = true

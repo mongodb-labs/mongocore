@@ -2,6 +2,7 @@ pub mod claude;
 pub mod gateway;
 pub mod openai;
 pub mod prompt;
+pub mod sampling;
 
 use async_trait::async_trait;
 

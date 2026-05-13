@@ -1,0 +1,41 @@
+[skill]
+name = "design_schema"
+description = "Design a MongoDB schema for a use case: understand access patterns, propose document structure, create with indexes"
+category = "database_workflows"
+
+[[skill.arguments]]
+name = "use_case"
+description = "Description of what the application needs to store and query"
+required = true
+
+[[skill.arguments]]
+name = "database"
+description = "Target database"
+required = true
+
+[[skill.steps]]
+description = "Analyze the use case to identify entities, relationships, and access patterns"
+analysis = true
+
+[[skill.steps]]
+description = "Propose document schema (embed vs reference, field types, naming)"
+analysis = true
+
+[[skill.steps]]
+description = "Identify query patterns and design supporting indexes"
+analysis = true
+
+[[skill.steps]]
+description = "Create the collection with designed schema"
+tool = "create_collection"
+dynamic = true
+
+[[skill.steps]]
+description = "Create recommended indexes"
+tool = "create_index"
+dynamic = true
+
+[[skill.steps]]
+description = "Generate typed model and example code"
+tool = "generate_model"
+dynamic = true

@@ -4,11 +4,14 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::analytics::AnalyticsCollector;
+use crate::compiled::translator::CompiledQueryTranslator;
 use crate::connection::pool::ConnectionPool;
 use crate::defaults::DEFAULT_PIPELINE_MAX_OPS;
 use crate::ingestion::engine::IngestionEngine;
 use crate::ingestion::types::*;
 use crate::ingestion::watch::{DirectoryWatcher, WatchConfig};
+use crate::mcp::codegen::{detect, index_gen, model_gen, query_gen, Language};
+use crate::mcp::skills::registry::SkillRegistry;
 use crate::operations::{FindOptions, IndexOptions, Operations, RawCommandOptions, ValidationMode};
 
 use super::safety::SafetyConfig;
@@ -349,6 +352,184 @@ pub fn tool_definitions() -> Vec<McpToolDefinition> {
                 "required": ["operations"]
             }),
         },
+        McpToolDefinition {
+            name: "collection_schema".to_string(),
+            description: "Sample documents from a collection and infer the schema (field names, BSON types, cardinality, example values)".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "database": { "type": "string", "description": "Database name" },
+                    "collection": { "type": "string", "description": "Collection name" },
+                    "sample_size": { "type": "integer", "description": "Number of documents to sample (default 100)", "default": 100 }
+                },
+                "required": ["database", "collection"]
+            }),
+        },
+        McpToolDefinition {
+            name: "ask".to_string(),
+            description: "Ask a natural language question about your data. Translates to MQL, executes, and returns the answer with the generated query.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "question": { "type": "string", "description": "Natural language question about your data" },
+                    "database": { "type": "string", "description": "Database to query" },
+                    "collection": { "type": "string", "description": "Collection to query (optional — auto-detect if omitted)" }
+                },
+                "required": ["question", "database"]
+            }),
+        },
+        McpToolDefinition {
+            name: "explain_query".to_string(),
+            description: "Translate a natural language question to MQL and show the execution plan without running it. Safe for expensive queries.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "question": { "type": "string", "description": "Natural language question" },
+                    "database": { "type": "string", "description": "Database name" },
+                    "collection": { "type": "string", "description": "Collection name (optional)" }
+                },
+                "required": ["question", "database"]
+            }),
+        },
+        McpToolDefinition {
+            name: "generate_code".to_string(),
+            description: "Generate ready-to-run MongoCore client code for a query. Detects your project language and framework, provides composable skill recommendations.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "database": { "type": "string", "description": "Database name" },
+                    "collection": { "type": "string", "description": "Collection name" },
+                    "operation": { "type": "string", "enum": ["find", "aggregate", "insert"], "description": "Operation type (default: find)" },
+                    "filter": { "type": "object", "description": "MQL filter for find operations" },
+                    "pipeline": { "type": "array", "description": "Aggregation pipeline stages" },
+                    "language": { "type": "string", "enum": ["python", "typescript", "go", "java"], "description": "Target language (auto-detected if omitted)" },
+                    "workspace_root": { "type": "string", "description": "Path to workspace root for language/framework detection" }
+                },
+                "required": ["database", "collection"]
+            }),
+        },
+        McpToolDefinition {
+            name: "generate_model".to_string(),
+            description: "Generate a typed data model (Pydantic, TypeScript interface, Go struct, Java record) from a collection's inferred schema.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "database": { "type": "string", "description": "Database name" },
+                    "collection": { "type": "string", "description": "Collection name" },
+                    "language": { "type": "string", "enum": ["python", "typescript", "go", "java"], "description": "Target language (auto-detected if omitted)" },
+                    "workspace_root": { "type": "string", "description": "Path to workspace root for language detection" },
+                    "sample_size": { "type": "integer", "description": "Documents to sample for schema inference (default 100)" }
+                },
+                "required": ["database", "collection"]
+            }),
+        },
+        McpToolDefinition {
+            name: "generate_index".to_string(),
+            description: "Analyze a query filter and generate index creation code with an explanation of why the index helps.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "filter": { "type": "object", "description": "MQL filter to analyze for index suggestion" },
+                    "database": { "type": "string", "description": "Database name" },
+                    "collection": { "type": "string", "description": "Collection name" },
+                    "language": { "type": "string", "enum": ["python", "typescript", "go", "java"], "description": "Target language (auto-detected if omitted)" },
+                    "workspace_root": { "type": "string", "description": "Path to workspace root for language detection" }
+                },
+                "required": ["filter", "database", "collection"]
+            }),
+        },
+        McpToolDefinition {
+            name: "embed_and_store".to_string(),
+            description: "Embed text fields in documents using Voyage AI and store them with vector embeddings in MongoDB.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "documents": { "type": "array", "items": { "type": "object" }, "description": "Array of documents to embed and store" },
+                    "database": { "type": "string", "description": "Target database" },
+                    "collection": { "type": "string", "description": "Target collection" },
+                    "embed_field": { "type": "string", "description": "Field name containing text to embed" }
+                },
+                "required": ["documents", "database", "collection", "embed_field"]
+            }),
+        },
+        McpToolDefinition {
+            name: "semantic_search".to_string(),
+            description: "Search for documents semantically similar to a query using vector embeddings. Requires a vector search index on the collection.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "query": { "type": "string", "description": "Natural language search query" },
+                    "database": { "type": "string", "description": "Database name" },
+                    "collection": { "type": "string", "description": "Collection name" },
+                    "limit": { "type": "integer", "description": "Max results (default 10)", "default": 10 },
+                    "index_name": { "type": "string", "description": "Vector search index name (default: vector_index)", "default": "vector_index" },
+                    "path": { "type": "string", "description": "Field path of the embedding (default: _embedding)", "default": "_embedding" }
+                },
+                "required": ["query", "database", "collection"]
+            }),
+        },
+        McpToolDefinition {
+            name: "ingest_and_embed".to_string(),
+            description: "Parse a file (CSV/JSON/NDJSON/Parquet), embed a specified text field using Voyage AI, and store all documents with vector embeddings. For large files, use 'ingest' followed by 'embed_and_store' instead.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "file_path": { "type": "string", "description": "Path to the file to ingest" },
+                    "database": { "type": "string", "description": "Target database" },
+                    "collection": { "type": "string", "description": "Target collection" },
+                    "embed_field": { "type": "string", "description": "Field containing text to embed" },
+                    "format": { "type": "string", "enum": ["csv", "json", "ndjson", "parquet"], "description": "File format (auto-detected from extension if omitted)" }
+                },
+                "required": ["file_path", "database", "collection", "embed_field"]
+            }),
+        },
+        McpToolDefinition {
+            name: "list_skills".to_string(),
+            description: "List available guided workflows (skills) that orchestrate multiple tools into repeatable processes.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "category": { "type": "string", "enum": ["database_workflows", "code_scaffolding", "data_analysis", "operations"], "description": "Filter by category (optional)" }
+                },
+                "required": []
+            }),
+        },
+        McpToolDefinition {
+            name: "get_skill".to_string(),
+            description: "Get the full workflow guide for a specific skill, including all steps and tool calls.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string", "description": "Skill name (e.g. explore_dataset, bootstrap_project)" }
+                },
+                "required": ["name"]
+            }),
+        },
+        McpToolDefinition {
+            name: "suggest_indexes".to_string(),
+            description: "Analyze recent query patterns from analytics and recommend missing indexes for better performance.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "database": { "type": "string", "description": "Filter by database (optional — all if omitted)" },
+                    "collection": { "type": "string", "description": "Filter by collection (optional)" }
+                },
+                "required": []
+            }),
+        },
+        McpToolDefinition {
+            name: "slow_queries".to_string(),
+            description: "Surface the slowest queries from analytics with their latency, frequency, and optimization suggestions.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "database": { "type": "string", "description": "Filter by database (optional)" },
+                    "threshold_ms": { "type": "number", "description": "Minimum latency threshold in ms (default: p95 from analytics)" },
+                    "limit": { "type": "integer", "description": "Max results (default 10)", "default": 10 }
+                },
+                "required": []
+            }),
+        },
     ]
 }
 
@@ -360,6 +541,9 @@ pub async fn execute_tool(
     ingestion: Option<&Arc<IngestionEngine>>,
     watcher: Option<&Arc<DirectoryWatcher>>,
     safety: &SafetyConfig,
+    translator: Option<&Arc<CompiledQueryTranslator>>,
+    voyage: Option<&Arc<crate::voyage::client::VoyageClient>>,
+    skills: &SkillRegistry,
     name: &str,
     arguments: &Value,
 ) -> McpToolCallResult {
@@ -386,8 +570,503 @@ pub async fn execute_tool(
         "watch_directory" => execute_watch_directory(watcher, arguments).await,
         "stop_watch" => execute_stop_watch(watcher, arguments).await,
         "pipeline" => {
-            execute_pipeline(operations, pool, analytics, ingestion, watcher, safety, arguments)
+            execute_pipeline(operations, pool, analytics, ingestion, watcher, safety, translator, voyage, skills, arguments)
                 .await
+        }
+        "collection_schema" => execute_collection_schema(operations, arguments).await,
+        "generate_code" => execute_generate_code(operations, arguments).await,
+        "generate_model" => execute_generate_model(operations, arguments).await,
+        "generate_index" => execute_generate_index(arguments).await,
+        "ask" => {
+            let question = match arguments.get("question").and_then(|v| v.as_str()) {
+                Some(q) => q,
+                None => return error_result("Missing required field: question".to_string()),
+            };
+            let database = match arguments.get("database").and_then(|v| v.as_str()) {
+                Some(d) => d,
+                None => return error_result("Missing required field: database".to_string()),
+            };
+            let collection = match arguments.get("collection").and_then(|v| v.as_str()) {
+                Some(c) => c,
+                None => return error_result("Collection is required for 'ask' (auto-detection not yet implemented)".to_string()),
+            };
+
+            let translator = match translator {
+                Some(t) => t,
+                None => return error_result("Natural language queries require an LLM provider. Configure ANTHROPIC_API_KEY or use MongoCore within Claude (MCP sampling). Use 'find' or 'aggregate' tools directly.".to_string()),
+            };
+
+            let context = crate::compiled::providers::TranslationContext::default();
+            let translate_start = std::time::Instant::now();
+
+            match translator.translate(question, database, collection, &context).await {
+                Ok(compiled) => {
+                    let translate_ms = translate_start.elapsed().as_millis();
+                    let from_cache = translate_ms < 50; // cache/template hits are near-instant; LLM calls take seconds
+
+                    // Execute the compiled query
+                    let exec_start = std::time::Instant::now();
+                    let exec_result = match &compiled.mql {
+                        crate::compiled::CompiledMql::Find { filter, .. } => {
+                            let find_opts = Some(FindOptions {
+                                limit: Some(MAX_FIND_LIMIT),
+                                skip: None,
+                                sort: None,
+                                projection: None,
+                            });
+                            operations.find(database, collection, filter.clone(), find_opts).await
+                        }
+                        crate::compiled::CompiledMql::Aggregate { pipeline } => {
+                            operations.aggregate(database, collection, pipeline.clone()).await
+                        }
+                        _ => Ok(vec![]),
+                    };
+
+                    let execution_time_ms = exec_start.elapsed().as_millis();
+                    match exec_result {
+                        Ok(docs) => {
+                            let result = json!({
+                                "documents": docs.iter().take(20).map(|d| {
+                                    serde_json::to_value(d).unwrap_or(Value::Null)
+                                }).collect::<Vec<_>>(),
+                                "count": docs.len(),
+                                "query": {
+                                    "method": compiled.mql.method(),
+                                    "intent": compiled.intent
+                                },
+                                "execution_time_ms": execution_time_ms,
+                                "from_cache": from_cache
+                            });
+                            success_result(serde_json::to_string_pretty(&result).unwrap_or_default())
+                        }
+                        Err(e) => error_result(format!("Query execution failed: {}", e)),
+                    }
+                }
+                Err(e) => error_result(format!("Translation failed: {}. Use 'find' or 'aggregate' tools directly.", e)),
+            }
+        }
+        "explain_query" => {
+            let question = match arguments.get("question").and_then(|v| v.as_str()) {
+                Some(q) => q,
+                None => return error_result("Missing required field: question".to_string()),
+            };
+            let database = match arguments.get("database").and_then(|v| v.as_str()) {
+                Some(d) => d,
+                None => return error_result("Missing required field: database".to_string()),
+            };
+            let collection = match arguments.get("collection").and_then(|v| v.as_str()) {
+                Some(c) => c,
+                None => return error_result("Collection is required for 'explain_query' (auto-detection not yet implemented)".to_string()),
+            };
+
+            let translator = match translator {
+                Some(t) => t,
+                None => return error_result("Query explanation requires an LLM provider. Configure ANTHROPIC_API_KEY or use MongoCore within Claude. Use 'find' or 'aggregate' tools directly.".to_string()),
+            };
+
+            let context = crate::compiled::providers::TranslationContext::default();
+            let translate_start = std::time::Instant::now();
+
+            match translator.translate(question, database, collection, &context).await {
+                Ok(compiled) => {
+                    let from_cache = translate_start.elapsed().as_millis() < 50;
+
+                    let mql_json = match &compiled.mql {
+                        crate::compiled::CompiledMql::Find { filter, options } => json!({
+                            "method": "find",
+                            "filter": serde_json::to_value(filter).unwrap_or(json!({})),
+                            "options": options.as_ref().map(|o| serde_json::to_value(o).unwrap_or(json!({})))
+                        }),
+                        crate::compiled::CompiledMql::Aggregate { pipeline } => json!({
+                            "method": "aggregate",
+                            "pipeline": pipeline.iter().map(|s| serde_json::to_value(s).unwrap_or(json!({}))).collect::<Vec<_>>()
+                        }),
+                        other => json!({ "method": other.method() }),
+                    };
+
+                    let result = json!({
+                        "query": mql_json,
+                        "intent": compiled.intent,
+                        "from_cache": from_cache,
+                        "note": "Query was NOT executed. Use 'ask' to execute it."
+                    });
+                    success_result(serde_json::to_string_pretty(&result).unwrap_or_default())
+                }
+                Err(e) => error_result(format!("Translation failed: {}. Use 'find' or 'aggregate' tools directly.", e)),
+            }
+        }
+        "embed_and_store" => {
+            let voyage = match voyage {
+                Some(v) => v,
+                None => return error_result("Embedding requires VOYAGE_API_KEY configuration".to_string()),
+            };
+
+            let documents = match arguments.get("documents").and_then(|v| v.as_array()) {
+                Some(docs) => docs,
+                None => return error_result("Missing required field: documents (must be an array)".to_string()),
+            };
+            let database = match arguments.get("database").and_then(|v| v.as_str()) {
+                Some(d) => d,
+                None => return error_result("Missing required field: database".to_string()),
+            };
+            let collection_name = match arguments.get("collection").and_then(|v| v.as_str()) {
+                Some(c) => c,
+                None => return error_result("Missing required field: collection".to_string()),
+            };
+            let embed_field = match arguments.get("embed_field").and_then(|v| v.as_str()) {
+                Some(f) => f,
+                None => return error_result("Missing required field: embed_field".to_string()),
+            };
+
+            // Extract text from embed_field for each document
+            let texts: Vec<String> = documents.iter()
+                .filter_map(|doc| doc.get(embed_field).and_then(|v| v.as_str()).map(|s| s.to_string()))
+                .collect();
+
+            if texts.is_empty() {
+                return error_result(format!("No documents contain text in field '{}'", embed_field));
+            }
+
+            // Batch embed via Voyage AI
+            let embeddings = match voyage.embed(texts).await {
+                Ok(result) => result.embeddings,
+                Err(e) => return error_result(format!("Embedding failed: {}", e)),
+            };
+
+            // Build documents with _embedding field appended
+            let db = pool.client().database(database);
+            let coll = db.collection::<bson::Document>(collection_name);
+            let mut bson_docs: Vec<bson::Document> = Vec::new();
+
+            for (i, doc_val) in documents.iter().enumerate() {
+                let mut bson_doc = match bson::to_document(doc_val) {
+                    Ok(d) => d,
+                    Err(e) => return error_result(format!("Invalid document at index {}: {}", i, e)),
+                };
+                if let Some(embedding) = embeddings.get(i) {
+                    let bson_vec: Vec<bson::Bson> = embedding.iter()
+                        .map(|&f| bson::Bson::Double(f))
+                        .collect();
+                    bson_doc.insert("_embedding", bson::Bson::Array(bson_vec));
+                }
+                bson_docs.push(bson_doc);
+            }
+
+            // Insert all documents
+            match coll.insert_many(bson_docs).await {
+                Ok(result) => {
+                    let dimensions = embeddings.first().map(|e| e.len()).unwrap_or(0);
+                    let resp = json!({
+                        "documents_stored": result.inserted_ids.len(),
+                        "embeddings_generated": embeddings.len(),
+                        "embedding_dimensions": dimensions,
+                        "database": database,
+                        "collection": collection_name
+                    });
+                    success_result(serde_json::to_string_pretty(&resp).unwrap_or_default())
+                }
+                Err(e) => error_result(format!("Insert failed: {}", e)),
+            }
+        }
+        "semantic_search" => {
+            let voyage = match voyage {
+                Some(v) => v,
+                None => return error_result("Semantic search requires VOYAGE_API_KEY configuration".to_string()),
+            };
+
+            let query = match arguments.get("query").and_then(|v| v.as_str()) {
+                Some(q) => q,
+                None => return error_result("Missing required field: query".to_string()),
+            };
+            let database = match arguments.get("database").and_then(|v| v.as_str()) {
+                Some(d) => d,
+                None => return error_result("Missing required field: database".to_string()),
+            };
+            let collection_name = match arguments.get("collection").and_then(|v| v.as_str()) {
+                Some(c) => c,
+                None => return error_result("Missing required field: collection".to_string()),
+            };
+            let limit = arguments.get("limit").and_then(|v| v.as_i64()).unwrap_or(10);
+            let index_name = arguments.get("index_name").and_then(|v| v.as_str()).unwrap_or("vector_index");
+            let path = arguments.get("path").and_then(|v| v.as_str()).unwrap_or("_embedding");
+
+            // Embed the query text
+            let embedding_result = match voyage.embed(vec![query.to_string()]).await {
+                Ok(r) => r,
+                Err(e) => return error_result(format!("Failed to embed query: {}", e)),
+            };
+
+            let query_vector = match embedding_result.embeddings.first() {
+                Some(v) => v.clone(),
+                None => return error_result("Embedding returned no vectors".to_string()),
+            };
+
+            // Build $vectorSearch aggregation pipeline
+            let vector_bson: Vec<bson::Bson> = query_vector.iter()
+                .map(|&f| bson::Bson::Double(f))
+                .collect();
+
+            let pipeline = vec![
+                bson::doc! {
+                    "$vectorSearch": {
+                        "index": index_name,
+                        "path": path,
+                        "queryVector": vector_bson,
+                        "numCandidates": (limit * 10) as i64,
+                        "limit": limit
+                    }
+                },
+                bson::doc! {
+                    "$addFields": {
+                        "score": { "$meta": "vectorSearchScore" }
+                    }
+                },
+            ];
+
+            let db = pool.client().database(database);
+            let coll = db.collection::<bson::Document>(collection_name);
+
+            match coll.aggregate(pipeline).await {
+                Ok(mut cursor) => {
+                    let mut results = Vec::new();
+                    while cursor.advance().await.unwrap_or(false) {
+                        if let Ok(doc) = cursor.deserialize_current() {
+                            results.push(serde_json::to_value(&doc).unwrap_or(json!(null)));
+                        }
+                    }
+                    let resp = json!({
+                        "results": results,
+                        "count": results.len(),
+                        "query": query,
+                        "database": database,
+                        "collection": collection_name
+                    });
+                    success_result(serde_json::to_string_pretty(&resp).unwrap_or_default())
+                }
+                Err(e) => error_result(format!(
+                    "Vector search failed: {}. Ensure a vector search index named '{}' exists on the collection.",
+                    e, index_name
+                )),
+            }
+        }
+        "ingest_and_embed" => {
+            match voyage {
+                Some(_) => {},
+                None => return error_result("Embedding requires VOYAGE_API_KEY configuration".to_string()),
+            };
+
+            let file_path = match arguments.get("file_path").and_then(|v| v.as_str()) {
+                Some(p) => p,
+                None => return error_result("Missing required field: file_path".to_string()),
+            };
+            let database = match arguments.get("database").and_then(|v| v.as_str()) {
+                Some(d) => d,
+                None => return error_result("Missing required field: database".to_string()),
+            };
+            let collection_name = match arguments.get("collection").and_then(|v| v.as_str()) {
+                Some(c) => c,
+                None => return error_result("Missing required field: collection".to_string()),
+            };
+            let embed_field = match arguments.get("embed_field").and_then(|v| v.as_str()) {
+                Some(f) => f,
+                None => return error_result("Missing required field: embed_field".to_string()),
+            };
+
+            let path = std::path::Path::new(file_path);
+            if !path.exists() {
+                return error_result(format!("File not found: {}", file_path));
+            }
+
+            // For this initial implementation, guide users to the two-step approach
+            let resp = json!({
+                "status": "not_yet_implemented",
+                "message": "The unified ingest+embed pipeline is planned. For now, use these steps:",
+                "workaround": [
+                    "1. Use the 'ingest' tool to load the file into a collection",
+                    format!("2. Use 'find' to read documents from '{}.{}'", database, collection_name),
+                    format!("3. Use 'embed_and_store' with the documents and embed_field='{}'", embed_field)
+                ],
+                "file_path": file_path,
+                "file_exists": true,
+                "database": database,
+                "collection": collection_name,
+                "embed_field": embed_field
+            });
+            success_result(serde_json::to_string_pretty(&resp).unwrap_or_default())
+        }
+        "list_skills" => {
+            let category_filter = arguments.get("category")
+                .and_then(|v| v.as_str())
+                .and_then(|c| match c {
+                    "database_workflows" => Some(crate::mcp::skills::SkillCategory::DatabaseWorkflows),
+                    "code_scaffolding" => Some(crate::mcp::skills::SkillCategory::CodeScaffolding),
+                    "data_analysis" => Some(crate::mcp::skills::SkillCategory::DataAnalysis),
+                    "operations" => Some(crate::mcp::skills::SkillCategory::Operations),
+                    _ => None,
+                });
+
+            let skill_list: Vec<serde_json::Value> = skills.list(category_filter)
+                .iter()
+                .map(|s| json!({
+                    "name": s.name,
+                    "description": s.description,
+                    "category": s.category.display_name(),
+                    "arguments": s.arguments.iter().map(|a| json!({
+                        "name": a.name,
+                        "required": a.required
+                    })).collect::<Vec<_>>(),
+                    "step_count": s.steps.len()
+                }))
+                .collect();
+
+            success_result(serde_json::to_string_pretty(&json!({ "skills": skill_list })).unwrap_or_default())
+        }
+
+        "get_skill" => {
+            let name = match arguments.get("name").and_then(|v| v.as_str()) {
+                Some(n) => n,
+                None => return error_result("Missing required field: name".to_string()),
+            };
+
+            match skills.get(name) {
+                Some(skill) => {
+                    let steps: Vec<serde_json::Value> = skill.steps.iter().enumerate()
+                        .map(|(i, step)| {
+                            let mut s = json!({
+                                "step": i + 1,
+                                "description": step.description
+                            });
+                            if let Some(ref tool) = step.tool {
+                                s["tool"] = json!(tool);
+                            }
+                            if step.dynamic { s["dynamic"] = json!(true); }
+                            if step.analysis { s["type"] = json!("analysis"); }
+                            if step.synthesis { s["type"] = json!("synthesis"); }
+                            s
+                        })
+                        .collect();
+
+                    let result = json!({
+                        "name": skill.name,
+                        "description": skill.description,
+                        "category": skill.category.display_name(),
+                        "arguments": skill.arguments.iter().map(|a| json!({
+                            "name": a.name,
+                            "description": a.description,
+                            "required": a.required
+                        })).collect::<Vec<serde_json::Value>>(),
+                        "steps": steps
+                    });
+                    success_result(serde_json::to_string_pretty(&result).unwrap_or_default())
+                }
+                None => error_result(format!("Skill not found: '{}'. Use list_skills to see available skills.", name)),
+            }
+        }
+        "suggest_indexes" => {
+            let analytics = match analytics {
+                Some(a) => a,
+                None => return error_result("Analytics not enabled. Enable analytics in config to use suggest_indexes.".to_string()),
+            };
+
+            let database_filter = arguments.get("database").and_then(|v| v.as_str());
+            let collection_filter = arguments.get("collection").and_then(|v| v.as_str());
+
+            let events = analytics.snapshot();
+            let summary = crate::analytics::aggregator::aggregate(&events);
+
+            // Find collections with high operation count (potential index candidates)
+            let suggestions: Vec<serde_json::Value> = summary.top_collections.iter()
+                .filter(|(name, _count)| {
+                    if let Some(db) = database_filter {
+                        if !name.starts_with(&format!("{}.", db)) { return false; }
+                    }
+                    if let Some(coll) = collection_filter {
+                        if !name.ends_with(&format!(".{}", coll)) { return false; }
+                    }
+                    true
+                })
+                .filter(|(_name, count)| *count >= 5)
+                .map(|(name, count)| {
+                    json!({
+                        "collection": name,
+                        "operation_count": count,
+                        "suggestion": format!("Collection '{}' has {} operations. Consider adding indexes on frequently filtered fields.", name, count),
+                        "recommendation": "Use 'collection_schema' to inspect fields, then 'generate_index' to create indexes for your query patterns."
+                    })
+                })
+                .collect();
+
+            if suggestions.is_empty() {
+                success_result(serde_json::to_string_pretty(&json!({
+                    "message": "No index suggestions. Either queries are well-indexed or there isn't enough analytics data yet.",
+                    "total_operations_analyzed": summary.total_operations,
+                    "tip": "Run more queries and try again, or use 'generate_index' with a specific filter to get index recommendations."
+                })).unwrap_or_default())
+            } else {
+                success_result(serde_json::to_string_pretty(&json!({
+                    "suggestions": suggestions,
+                    "total_operations_analyzed": summary.total_operations,
+                    "p95_latency_ms": summary.p95_latency_ms
+                })).unwrap_or_default())
+            }
+        }
+        "slow_queries" => {
+            let analytics = match analytics {
+                Some(a) => a,
+                None => return error_result("Analytics not enabled. Enable analytics in config to use slow_queries.".to_string()),
+            };
+
+            let database_filter = arguments.get("database").and_then(|v| v.as_str());
+            let threshold_ms = arguments.get("threshold_ms").and_then(|v| v.as_f64());
+            let limit = arguments.get("limit").and_then(|v| v.as_u64()).unwrap_or(10) as usize;
+
+            let events = analytics.snapshot();
+            let summary = crate::analytics::aggregator::aggregate(&events);
+
+            let threshold = threshold_ms.unwrap_or(summary.p95_latency_ms);
+
+            // Find slow events above threshold
+            let mut slow_events: Vec<&crate::analytics::types::AnalyticsEvent> = events.iter()
+                .filter(|e| {
+                    let latency_ms = e.latency.as_secs_f64() * 1000.0;
+                    latency_ms >= threshold
+                        && database_filter.map_or(true, |db| e.database == db)
+                })
+                .collect();
+
+            // Sort by latency descending
+            slow_events.sort_by(|a, b| b.latency.partial_cmp(&a.latency).unwrap_or(std::cmp::Ordering::Equal));
+            slow_events.truncate(limit);
+
+            let slow_queries: Vec<serde_json::Value> = slow_events.iter()
+                .map(|e| {
+                    let latency_ms = e.latency.as_secs_f64() * 1000.0;
+                    json!({
+                        "operation": format!("{:?}", e.operation),
+                        "database": e.database,
+                        "collection": e.collection,
+                        "latency_ms": latency_ms,
+                        "success": e.success,
+                        "suggestion": if latency_ms > 1000.0 {
+                            "Very slow (>1s). Check for missing indexes or full collection scans."
+                        } else if latency_ms > 100.0 {
+                            "Moderately slow. An index on filter fields would likely help."
+                        } else {
+                            "Above threshold. Monitor for regression."
+                        }
+                    })
+                })
+                .collect();
+
+            success_result(serde_json::to_string_pretty(&json!({
+                "threshold_ms": threshold,
+                "slow_queries": slow_queries,
+                "count": slow_queries.len(),
+                "p50_latency_ms": summary.p50_latency_ms,
+                "p95_latency_ms": summary.p95_latency_ms,
+                "p99_latency_ms": summary.p99_latency_ms,
+                "total_operations": summary.total_operations
+            })).unwrap_or_default())
         }
         _ => error_result(format!("Unknown tool: {}", name)),
     }
@@ -1196,6 +1875,9 @@ async fn execute_pipeline(
     ingestion: Option<&Arc<IngestionEngine>>,
     watcher: Option<&Arc<DirectoryWatcher>>,
     safety: &SafetyConfig,
+    translator: Option<&Arc<CompiledQueryTranslator>>,
+    voyage: Option<&Arc<crate::voyage::client::VoyageClient>>,
+    skills: &SkillRegistry,
     args: &Value,
 ) -> McpToolCallResult {
     let ops = match args.get("operations").and_then(|v| v.as_array()) {
@@ -1227,7 +1909,7 @@ async fn execute_pipeline(
             let op_type = op.get("op").and_then(|v| v.as_str()).unwrap_or("unknown");
             async move {
                 let result = execute_tool(
-                    operations, pool, analytics, ingestion, watcher, safety, op_type, op,
+                    operations, pool, analytics, ingestion, watcher, safety, translator, voyage, skills, op_type, op,
                 )
                 .await;
                 (op_type.to_string(), result)
@@ -1272,6 +1954,335 @@ async fn execute_pipeline(
     success_result(serde_json::to_string_pretty(&output).unwrap_or_else(|_| "{}".to_string()))
 }
 
+// --- Schema inference helpers ---
+
+use std::collections::HashSet;
+
+struct FieldInfo {
+    types: HashSet<String>,
+    count: usize,
+    example: Option<Value>,
+}
+
+impl FieldInfo {
+    fn new() -> Self {
+        Self {
+            types: HashSet::new(),
+            count: 0,
+            example: None,
+        }
+    }
+}
+
+fn collect_fields(doc: &Document, prefix: &str, fields: &mut HashMap<String, FieldInfo>) {
+    for (key, value) in doc.iter() {
+        let field_path = if prefix.is_empty() {
+            key.clone()
+        } else {
+            format!("{}.{}", prefix, key)
+        };
+
+        let info = fields.entry(field_path.clone()).or_insert_with(FieldInfo::new);
+        info.count += 1;
+        info.types.insert(bson_type_name(value));
+
+        if info.example.is_none() {
+            info.example = Some(bson_to_example_json(value));
+        }
+
+        // Recurse into nested documents
+        if let bson::Bson::Document(nested) = value {
+            collect_fields(nested, &field_path, fields);
+        }
+    }
+}
+
+fn bson_type_name(value: &bson::Bson) -> String {
+    match value {
+        bson::Bson::Double(_) => "double",
+        bson::Bson::String(_) => "string",
+        bson::Bson::Array(_) => "array",
+        bson::Bson::Document(_) => "document",
+        bson::Bson::Boolean(_) => "bool",
+        bson::Bson::Null => "null",
+        bson::Bson::RegularExpression(_) => "regex",
+        bson::Bson::JavaScriptCode(_) => "javascript",
+        bson::Bson::JavaScriptCodeWithScope(_) => "javascriptWithScope",
+        bson::Bson::Int32(_) => "int32",
+        bson::Bson::Int64(_) => "int64",
+        bson::Bson::Timestamp(_) => "timestamp",
+        bson::Bson::Binary(_) => "binData",
+        bson::Bson::ObjectId(_) => "objectId",
+        bson::Bson::DateTime(_) => "date",
+        bson::Bson::Symbol(_) => "symbol",
+        bson::Bson::Decimal128(_) => "decimal",
+        bson::Bson::Undefined => "undefined",
+        bson::Bson::MaxKey => "maxKey",
+        bson::Bson::MinKey => "minKey",
+        bson::Bson::DbPointer(_) => "dbPointer",
+    }
+    .to_string()
+}
+
+fn bson_to_example_json(value: &bson::Bson) -> Value {
+    match value {
+        bson::Bson::Double(v) => json!(v),
+        bson::Bson::String(v) => {
+            if v.len() > 50 {
+                json!(format!("{}...", &v[..50]))
+            } else {
+                json!(v)
+            }
+        }
+        bson::Bson::Array(arr) => {
+            if arr.is_empty() {
+                json!([])
+            } else {
+                json!([bson_to_example_json(&arr[0])])
+            }
+        }
+        bson::Bson::Document(_) => json!("{ ... }"),
+        bson::Bson::Boolean(v) => json!(v),
+        bson::Bson::Null => Value::Null,
+        bson::Bson::Int32(v) => json!(v),
+        bson::Bson::Int64(v) => json!(v),
+        bson::Bson::ObjectId(oid) => json!(oid.to_string()),
+        bson::Bson::DateTime(dt) => json!(dt.to_string()),
+        bson::Bson::Decimal128(d) => json!(d.to_string()),
+        _ => json!("..."),
+    }
+}
+
+async fn execute_collection_schema(operations: &Operations, args: &Value) -> McpToolCallResult {
+    let db = match get_str(args, "database") {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+    let coll = match get_str(args, "collection") {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+
+    let sample_size = args
+        .get("sample_size")
+        .and_then(|v| v.as_i64())
+        .unwrap_or(100);
+
+    // Run $sample aggregation to get random documents
+    let pipeline = vec![bson::doc! { "$sample": { "size": sample_size } }];
+
+    match operations.aggregate(db, coll, pipeline).await {
+        Ok(docs) => {
+            let mut fields: HashMap<String, FieldInfo> = HashMap::new();
+
+            for doc in &docs {
+                collect_fields(doc, "", &mut fields);
+            }
+
+            // Build the result
+            let mut fields_array: Vec<Value> = fields
+                .into_iter()
+                .map(|(name, info)| {
+                    let types: Vec<String> = info.types.into_iter().collect();
+                    json!({
+                        "name": name,
+                        "types": types,
+                        "count": info.count,
+                        "example": info.example
+                    })
+                })
+                .collect();
+
+            // Sort by field name for consistent output
+            fields_array.sort_by(|a, b| {
+                a.get("name")
+                    .and_then(|v| v.as_str())
+                    .cmp(&b.get("name").and_then(|v| v.as_str()))
+            });
+
+            let result = json!({
+                "database": db,
+                "collection": coll,
+                "documents_sampled": docs.len(),
+                "fields": fields_array
+            });
+
+            let text = serde_json::to_string_pretty(&result).unwrap_or_else(|_| "{}".to_string());
+            success_result(text)
+        }
+        Err(e) => error_result(format!("collection_schema failed: {}", e)),
+    }
+}
+
+// --- Codegen tool helpers ---
+
+fn resolve_language(args: &Value) -> Language {
+    if let Some(lang_str) = args.get("language").and_then(|v| v.as_str()) {
+        match lang_str {
+            "python" => return Language::Python,
+            "typescript" => return Language::TypeScript,
+            "go" => return Language::Go,
+            "java" => return Language::Java,
+            _ => {}
+        }
+    }
+    if let Some(root) = args.get("workspace_root").and_then(|v| v.as_str()) {
+        if let Some(stack) = detect::detect_stack(std::path::Path::new(root)) {
+            return stack.language;
+        }
+    }
+    Language::Python // default
+}
+
+async fn execute_generate_code(_operations: &Operations, args: &Value) -> McpToolCallResult {
+    let db = match get_str(args, "database") {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+    let coll = match get_str(args, "collection") {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+
+    let language = resolve_language(args);
+    let operation = args
+        .get("operation")
+        .and_then(|v| v.as_str())
+        .unwrap_or("find");
+
+    // Build MQL value from filter or pipeline
+    let mql = if operation == "aggregate" {
+        if let Some(pipeline) = args.get("pipeline") {
+            json!({"pipeline": pipeline})
+        } else {
+            json!({"pipeline": []})
+        }
+    } else {
+        if let Some(filter) = args.get("filter") {
+            json!({"filter": filter})
+        } else {
+            json!({"filter": {}})
+        }
+    };
+
+    match query_gen::generate_query_code(language, db, coll, operation, &mql, "localhost:50051") {
+        Ok(code) => {
+            let mut result = json!({
+                "code": code,
+                "language": language.display_name(),
+            });
+
+            // Detect framework if workspace_root provided
+            if let Some(root) = args.get("workspace_root").and_then(|v| v.as_str()) {
+                if let Some(stack) = detect::detect_stack(std::path::Path::new(root)) {
+                    result["framework_detected"] = json!(stack.framework.display_name());
+                    if let Some(rec) = stack.framework.skill_recommendation() {
+                        result["recommendation"] = json!(rec);
+                    }
+                }
+            }
+
+            success_result(serde_json::to_string_pretty(&result).unwrap_or_default())
+        }
+        Err(e) => error_result(format!("generate_code failed: {}", e)),
+    }
+}
+
+async fn execute_generate_model(operations: &Operations, args: &Value) -> McpToolCallResult {
+    let db = match get_str(args, "database") {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+    let coll = match get_str(args, "collection") {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+
+    let language = resolve_language(args);
+    let sample_size = args
+        .get("sample_size")
+        .and_then(|v| v.as_i64())
+        .unwrap_or(100);
+
+    // Sample documents using $sample aggregation (same pattern as collection_schema)
+    let pipeline = vec![bson::doc! { "$sample": { "size": sample_size } }];
+
+    match operations.aggregate(db, coll, pipeline).await {
+        Ok(docs) => {
+            // Collect field names and types from sampled docs
+            let mut field_map: HashMap<String, String> = HashMap::new();
+            for doc in &docs {
+                for (key, value) in doc.iter() {
+                    field_map.entry(key.clone()).or_insert_with(|| {
+                        bson_type_to_model_type(value)
+                    });
+                }
+            }
+
+            let mut fields: Vec<(String, String)> = field_map.into_iter().collect();
+            fields.sort_by(|a, b| a.0.cmp(&b.0));
+
+            let model = model_gen::generate_model(language, coll, &fields);
+            let fields_count = fields.len();
+
+            let result = json!({
+                "model": model,
+                "language": language.display_name(),
+                "collection": coll,
+                "fields_count": fields_count,
+            });
+
+            success_result(serde_json::to_string_pretty(&result).unwrap_or_default())
+        }
+        Err(e) => error_result(format!("generate_model failed: {}", e)),
+    }
+}
+
+/// Map a BSON value to a model type string used by model_gen.
+fn bson_type_to_model_type(value: &bson::Bson) -> String {
+    match value {
+        bson::Bson::Double(_) => "Double",
+        bson::Bson::String(_) => "String",
+        bson::Bson::Array(_) => "Array",
+        bson::Bson::Document(_) => "Document",
+        bson::Bson::Boolean(_) => "Boolean",
+        bson::Bson::Int32(_) => "Int32",
+        bson::Bson::Int64(_) => "Int64",
+        bson::Bson::ObjectId(_) => "ObjectId",
+        bson::Bson::DateTime(_) => "DateTime",
+        _ => "String",
+    }
+    .to_string()
+}
+
+async fn execute_generate_index(args: &Value) -> McpToolCallResult {
+    let filter_value = match args.get("filter") {
+        Some(f) => f.clone(),
+        None => return error_result("Missing required field: filter".to_string()),
+    };
+    let db = match get_str(args, "database") {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+    let coll = match get_str(args, "collection") {
+        Ok(v) => v,
+        Err(e) => return e,
+    };
+
+    let language = resolve_language(args);
+    let suggestion = index_gen::suggest_index(language, db, coll, &filter_value);
+
+    let result = json!({
+        "index_spec": suggestion.index_spec,
+        "fields": suggestion.fields,
+        "code": suggestion.code,
+        "explanation": suggestion.explanation,
+        "language": language.display_name(),
+    });
+
+    success_result(serde_json::to_string_pretty(&result).unwrap_or_default())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1279,7 +2290,7 @@ mod tests {
     #[test]
     fn test_tool_definitions_count() {
         let tools = tool_definitions();
-        assert_eq!(tools.len(), 22);
+        assert_eq!(tools.len(), 35);
     }
 
     #[test]
@@ -1319,6 +2330,7 @@ mod tests {
         assert!(names.contains(&"cancel_ingest"));
         assert!(names.contains(&"watch_directory"));
         assert!(names.contains(&"stop_watch"));
+        assert!(names.contains(&"collection_schema"));
     }
 
     #[test]

@@ -251,6 +251,51 @@ This made iterating on individual languages fast (setup once, run many) while ke
 
 ---
 
+## Session 3: The Intelligent Data Companion (v0.8)
+
+### The Vision: "Groundbreaking MCP"
+
+The session opened with a research question: "What exists in the database MCP space, and how do we go beyond it?" A survey of existing servers (the official MongoDB MCP with ~45 admin tools, PostgreSQL's minimal single `query` tool, various novel patterns like semantic decision logging and intelligent routing) revealed a gap: nobody had built an **intelligent data companion** — something that understands your data, answers questions in natural language, generates application code, and proactively suggests optimizations.
+
+MongoCore already had the building blocks (NL→MQL compiled queries, Voyage AI embeddings, analytics ring buffer, Polars ingestion) that no other MCP server possessed. The design challenge was composition, not invention.
+
+### The Zero-Config Insight
+
+**The key conversation:** "Is there a way for the sidecar to use the CLI's LLM rather than needing a separate LLM configuration?"
+
+This led to the hybrid LLM strategy: when MongoCore runs inside Claude as an MCP server, it uses MCP sampling to ask Claude itself to generate MQL. No API key needed. The template cache ensures subsequent similar queries don't need any LLM call at all. Result: users add 3 lines to their MCP config and immediately get NL→MQL capability.
+
+### Skills as a Force Multiplier
+
+**The conversation that elevated the design:** "Could this MCP service use skills as much as possible for repeatable processes?"
+
+Instead of just exposing raw tools, MongoCore ships guided workflows (skills) that orchestrate multiple tool calls into coherent processes. The `add_vector_search` skill chains schema inspection → embedding → index creation → code generation into one conversation. 13 skills across 4 categories, exposed via both MCP Prompts protocol (native Claude Desktop UI) and tool-based fallbacks.
+
+### Composable Skill Recommendations
+
+**The final architectural insight:** "When a user asks to generate MongoDB code, the skill/MCP recommends combining with whatever skill is foremost for that language and framework."
+
+Rather than encoding every framework's patterns (which would rot), MongoCore detects the stack (FastAPI, Express, Spring Boot, etc.) and **recommends** a framework-specific skill by name. Claude handles finding and invoking it. Falls back to LLM general knowledge for unknown frameworks. MongoCore stays the data expert; framework knowledge lives elsewhere.
+
+### The Numbers
+
+| Metric | Before (v0.7) | After (v0.8) |
+|--------|---------------|--------------|
+| MCP tools | 21 | 34 |
+| MCP skills | 0 | 13 |
+| MCP resources | 3 | 4 |
+| Supported MCP methods | 4 | 6 (+ prompts/list, prompts/get) |
+| Code generation languages | 0 | 4 |
+| Embedding tools | 0 | 3 |
+
+### Reflection
+
+This session was about **composition over invention**. Every major feature (ask, codegen, embedding, skills) combined existing subsystems in new ways rather than building from scratch. The stdio transport was the only truly new infrastructure — everything else was plumbing between existing capabilities.
+
+The design process worked well: brainstorm → clarifying questions → 3 approaches → user picks → present sections for approval → write spec → write plan. Each decision point surfaced requirements that wouldn't have emerged from a solo design session (build.gradle.kts support, the MCP sampling insight, composable skill recommendations).
+
+---
+
 ## Statistics & Final State
 
 | Metric | Count |
@@ -263,11 +308,11 @@ This made iterating on individual languages fast (setup once, run many) while ke
 | Criterion benchmarks | 11 (sidecar internals) |
 | Driver benchmarks | 8 per language (native + MongoCore) |
 | gRPC RPCs | 25 |
-| MCP tools | 21 |
+| MCP tools | 34 |
 | Client libraries | 4 (Python, TypeScript, Go, Java) |
-| Design specs | 12 |
-| Implementation plans | 12 |
-| Versions | v0.1 → v0.6 |
+| Design specs | 13 |
+| Implementation plans | 18 |
+| Versions | v0.1 → v0.8 |
 
 ---
 

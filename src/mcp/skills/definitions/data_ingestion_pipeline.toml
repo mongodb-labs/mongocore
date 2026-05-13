@@ -1,0 +1,41 @@
+[skill]
+name = "data_ingestion_pipeline"
+description = "Set up a data ingestion pipeline: analyze source file, configure transforms, ingest, verify, optionally embed"
+category = "operations"
+
+[[skill.arguments]]
+name = "file_path"
+description = "Path to the source data file"
+required = true
+
+[[skill.arguments]]
+name = "database"
+description = "Target database"
+required = true
+
+[[skill.arguments]]
+name = "collection"
+description = "Target collection"
+required = true
+
+[[skill.steps]]
+description = "Analyze the source file format and sample contents"
+analysis = true
+
+[[skill.steps]]
+description = "Ingest the file into the target collection"
+tool = "ingest"
+dynamic = true
+
+[[skill.steps]]
+description = "Verify ingestion by checking document count and sampling schema"
+tool = "collection_schema"
+
+[[skill.steps]]
+description = "Optionally embed a text field for semantic search capability"
+tool = "embed_and_store"
+dynamic = true
+
+[[skill.steps]]
+description = "Summarize: documents ingested, schema, and available operations"
+synthesis = true

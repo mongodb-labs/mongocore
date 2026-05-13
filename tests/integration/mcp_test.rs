@@ -19,7 +19,7 @@ async fn start_test_mcp_server() -> (HttpClient, String) {
     let port = listener.local_addr().unwrap().port();
     drop(listener);
 
-    let _handle = start_mcp_server(pool, port, None, None, None);
+    let _handle = start_mcp_server(pool, port, None, None, None, None);
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
     let client = HttpClient::new();
@@ -90,7 +90,7 @@ async fn test_mcp_tools_list() {
     let resp = rpc_call(&client, &url, "tools/list", None).await;
     let tools = resp["result"]["tools"].as_array().unwrap();
 
-    assert_eq!(tools.len(), 22);
+    assert_eq!(tools.len(), 35);
 
     let names: Vec<&str> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
     let expected = [
@@ -116,6 +116,19 @@ async fn test_mcp_tools_list() {
         "watch_directory",
         "stop_watch",
         "pipeline",
+        "collection_schema",
+        "ask",
+        "explain_query",
+        "generate_code",
+        "generate_model",
+        "generate_index",
+        "embed_and_store",
+        "semantic_search",
+        "ingest_and_embed",
+        "list_skills",
+        "get_skill",
+        "suggest_indexes",
+        "slow_queries",
     ];
     for name in &expected {
         assert!(names.contains(name), "Missing tool: {}", name);

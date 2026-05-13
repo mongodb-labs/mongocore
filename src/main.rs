@@ -4,11 +4,15 @@ use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
 
 use mongocore::analytics::AnalyticsCollector;
+use mongocore::compiled::providers::sampling::McpSamplingProvider;
+use mongocore::compiled::translator::CompiledQueryTranslator;
 use mongocore::config::{CliArgs, Config};
 use mongocore::connection::ConnectionPool;
 use mongocore::grpc::{start_grpc_server, GrpcServerConfig};
 use mongocore::ingestion::{DirectoryWatcher, IngestionEngine};
-use mongocore::mcp::start_mcp_server;
+use mongocore::mcp::{start_mcp_server, run_stdio_transport, McpHandler};
+use mongocore::mcp::safety::SafetyConfig;
+use mongocore::operations::Operations;
 
 #[tokio::main]
 async fn main() {
@@ -67,8 +71,6 @@ async fn main() {
         tracing_subscriber::fmt().with_env_filter(filter).init();
     }
 
-    print_banner(&config);
-
     // Connect to MongoDB and detect capabilities
     let pool = match ConnectionPool::connect(&config).await {
         Ok(pool) => pool,
@@ -126,44 +128,87 @@ async fn main() {
         (None, None)
     };
 
-    // Start gRPC server
-    let grpc_handle = start_grpc_server(
-        pool.clone(),
-        GrpcServerConfig {
-            port: config.grpc_port,
-            transport: config.transport.clone(),
-            socket_path: config.socket_path.clone(),
-            socket_permissions: config.socket_permissions,
-            max_message_size: config.grpc_max_message_size,
-            compression: config.grpc_compression.clone(),
-            stream_idle_timeout_secs: config.stream_idle_timeout_secs,
-            pipeline_timeout_secs: config.pipeline_timeout_secs,
-            pipeline_max_concurrency: config.pipeline_max_concurrency,
-        },
-        voyage_api_key.as_deref(),
-        analytics.clone(),
-        ingestion_engine.clone(),
-        directory_watcher.clone(),
-    );
+    // Branch based on --stdio flag
+    if cli.stdio {
+        // stdio mode: run MCP over stdin/stdout, skip gRPC and HTTP servers
+        let operations = Operations::new(pool.clone());
+        let safety = SafetyConfig::default();
 
-    // Start MCP server
-    let mcp_handle = start_mcp_server(pool.clone(), config.mcp_port, analytics, ingestion_engine, directory_watcher);
+        // Create sampling channel for zero-config LLM via MCP host
+        let (sampling_tx, sampling_rx) = tokio::sync::mpsc::channel(32);
 
-    info!("MongoCore started successfully");
+        // Use configured LLM key if available, otherwise fall back to MCP sampling
+        let llm_provider: Option<Box<dyn mongocore::compiled::providers::LlmProvider>> =
+            if config.llm_api_key.is_some() || config.llm_gateway.is_some() {
+                // Direct LLM provider would be created here from config
+                // For now, fall through to sampling (the existing provider creation
+                // logic is in the gRPC search handler — we'll unify later)
+                None
+            } else {
+                Some(Box::new(McpSamplingProvider::new(sampling_tx.clone())))
+            };
 
-    // Wait for either server to exit (they run forever unless something fails)
-    tokio::select! {
-        result = grpc_handle => {
-            match result {
-                Ok(Ok(())) => info!("gRPC server shut down"),
-                Ok(Err(e)) => error!("gRPC server error: {e}"),
-                Err(e) => error!("gRPC server task panicked: {e}"),
+        let translator = Some(Arc::new(CompiledQueryTranslator::new(
+            Some(pool.clone()),
+            llm_provider,
+            None,
+        )));
+        let voyage = voyage_api_key.map(|key| Arc::new(mongocore::voyage::client::VoyageClient::new(key)));
+        let handler = Arc::new(McpHandler::new(
+            operations,
+            pool,
+            safety,
+            analytics,
+            ingestion_engine,
+            directory_watcher,
+            translator,
+            voyage,
+            true,
+        ));
+        run_stdio_transport(handler, sampling_rx).await;
+    } else {
+        // Normal mode: print banner and start gRPC + HTTP MCP servers
+        print_banner(&config);
+
+        // Start gRPC server
+        let grpc_handle = start_grpc_server(
+            pool.clone(),
+            GrpcServerConfig {
+                port: config.grpc_port,
+                transport: config.transport.clone(),
+                socket_path: config.socket_path.clone(),
+                socket_permissions: config.socket_permissions,
+                max_message_size: config.grpc_max_message_size,
+                compression: config.grpc_compression.clone(),
+                stream_idle_timeout_secs: config.stream_idle_timeout_secs,
+                pipeline_timeout_secs: config.pipeline_timeout_secs,
+                pipeline_max_concurrency: config.pipeline_max_concurrency,
+            },
+            voyage_api_key.as_deref(),
+            analytics.clone(),
+            ingestion_engine.clone(),
+            directory_watcher.clone(),
+        );
+
+        // Start MCP server
+        let mcp_handle = start_mcp_server(pool.clone(), config.mcp_port, voyage_api_key.as_deref(), analytics, ingestion_engine, directory_watcher);
+
+        info!("MongoCore started successfully");
+
+        // Wait for either server to exit (they run forever unless something fails)
+        tokio::select! {
+            result = grpc_handle => {
+                match result {
+                    Ok(Ok(())) => info!("gRPC server shut down"),
+                    Ok(Err(e)) => error!("gRPC server error: {e}"),
+                    Err(e) => error!("gRPC server task panicked: {e}"),
+                }
             }
-        }
-        result = mcp_handle => {
-            match result {
-                Ok(()) => info!("MCP server shut down"),
-                Err(e) => error!("MCP server task panicked: {e}"),
+            result = mcp_handle => {
+                match result {
+                    Ok(()) => info!("MCP server shut down"),
+                    Err(e) => error!("MCP server task panicked: {e}"),
+                }
             }
         }
     }

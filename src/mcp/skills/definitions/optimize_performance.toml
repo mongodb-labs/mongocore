@@ -1,0 +1,29 @@
+[skill]
+name = "optimize_performance"
+description = "Review database performance: identify bottlenecks, suggest indexes, recommend query rewrites"
+category = "operations"
+
+[[skill.arguments]]
+name = "database"
+description = "Database to optimize (optional — all databases if omitted)"
+required = false
+
+[[skill.steps]]
+description = "Review analytics for overall performance profile"
+tool = "get_analytics"
+
+[[skill.steps]]
+description = "Identify slowest queries above p95 threshold"
+tool = "slow_queries"
+
+[[skill.steps]]
+description = "Analyze slow queries for optimization opportunities"
+analysis = true
+
+[[skill.steps]]
+description = "Generate index recommendations for slow query patterns"
+tool = "suggest_indexes"
+
+[[skill.steps]]
+description = "Produce optimization plan with prioritized recommendations"
+synthesis = true

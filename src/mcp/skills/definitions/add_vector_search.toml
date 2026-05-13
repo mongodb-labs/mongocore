@@ -1,0 +1,41 @@
+[skill]
+name = "add_vector_search"
+description = "Add semantic/vector search to a collection: identify text field, embed documents, create index, generate search code"
+category = "code_scaffolding"
+
+[[skill.arguments]]
+name = "database"
+description = "Database containing the collection"
+required = true
+
+[[skill.arguments]]
+name = "collection"
+description = "Collection to add vector search to"
+required = true
+
+[[skill.steps]]
+description = "Inspect collection schema to identify text fields suitable for embedding"
+tool = "collection_schema"
+
+[[skill.steps]]
+description = "Confirm which field to embed with the user"
+analysis = true
+
+[[skill.steps]]
+description = "Embed a sample of documents to test the pipeline"
+tool = "embed_and_store"
+dynamic = true
+
+[[skill.steps]]
+description = "Run a test semantic search to verify results"
+tool = "semantic_search"
+dynamic = true
+
+[[skill.steps]]
+description = "Generate search code in the user's language with framework recommendations"
+tool = "generate_code"
+dynamic = true
+
+[[skill.steps]]
+description = "Provide next steps: vector index creation command, production considerations"
+synthesis = true

@@ -1,0 +1,30 @@
+[skill]
+name = "migration_check"
+description = "Compare collection schemas across environments or time periods to identify drift and suggest migrations"
+category = "operations"
+
+[[skill.arguments]]
+name = "database"
+description = "Database to check"
+required = true
+
+[[skill.arguments]]
+name = "collection"
+description = "Collection to compare"
+required = true
+
+[[skill.steps]]
+description = "Capture current schema via sampling"
+tool = "collection_schema"
+
+[[skill.steps]]
+description = "Compare against expected schema (from model or previous snapshot)"
+analysis = true
+
+[[skill.steps]]
+description = "Identify schema drift: new fields, removed fields, type changes"
+analysis = true
+
+[[skill.steps]]
+description = "Suggest migration steps if drift is detected"
+synthesis = true
