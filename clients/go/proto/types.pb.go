@@ -433,6 +433,302 @@ func (x *ResponseMetadata) GetSearchMethod() string {
 	return ""
 }
 
+// Streaming batch of documents (used by FindStream, AggregateStream)
+type DocumentBatch struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Documents     []*Document            `protobuf:"bytes,1,rep,name=documents,proto3" json:"documents,omitempty"`
+	BatchIndex    uint32                 `protobuf:"varint,2,opt,name=batch_index,json=batchIndex,proto3" json:"batch_index,omitempty"`
+	HasMore       bool                   `protobuf:"varint,3,opt,name=has_more,json=hasMore,proto3" json:"has_more,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DocumentBatch) Reset() {
+	*x = DocumentBatch{}
+	mi := &file_mongocore_v1_types_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DocumentBatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DocumentBatch) ProtoMessage() {}
+
+func (x *DocumentBatch) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_types_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DocumentBatch.ProtoReflect.Descriptor instead.
+func (*DocumentBatch) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_types_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *DocumentBatch) GetDocuments() []*Document {
+	if x != nil {
+		return x.Documents
+	}
+	return nil
+}
+
+func (x *DocumentBatch) GetBatchIndex() uint32 {
+	if x != nil {
+		return x.BatchIndex
+	}
+	return 0
+}
+
+func (x *DocumentBatch) GetHasMore() bool {
+	if x != nil {
+		return x.HasMore
+	}
+	return false
+}
+
+// Streaming insert batch (client-to-server)
+type InsertBatch struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Database      string                 `protobuf:"bytes,1,opt,name=database,proto3" json:"database,omitempty"`
+	Collection    string                 `protobuf:"bytes,2,opt,name=collection,proto3" json:"collection,omitempty"`
+	Documents     []*Document            `protobuf:"bytes,3,rep,name=documents,proto3" json:"documents,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InsertBatch) Reset() {
+	*x = InsertBatch{}
+	mi := &file_mongocore_v1_types_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InsertBatch) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InsertBatch) ProtoMessage() {}
+
+func (x *InsertBatch) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_types_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InsertBatch.ProtoReflect.Descriptor instead.
+func (*InsertBatch) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_types_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *InsertBatch) GetDatabase() string {
+	if x != nil {
+		return x.Database
+	}
+	return ""
+}
+
+func (x *InsertBatch) GetCollection() string {
+	if x != nil {
+		return x.Collection
+	}
+	return ""
+}
+
+func (x *InsertBatch) GetDocuments() []*Document {
+	if x != nil {
+		return x.Documents
+	}
+	return nil
+}
+
+// Per-batch acknowledgment for bidirectional insert
+type InsertBatchAck struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	BatchIndex    uint32                 `protobuf:"varint,1,opt,name=batch_index,json=batchIndex,proto3" json:"batch_index,omitempty"`
+	InsertedCount uint32                 `protobuf:"varint,2,opt,name=inserted_count,json=insertedCount,proto3" json:"inserted_count,omitempty"`
+	Errors        []*InsertError         `protobuf:"bytes,3,rep,name=errors,proto3" json:"errors,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InsertBatchAck) Reset() {
+	*x = InsertBatchAck{}
+	mi := &file_mongocore_v1_types_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InsertBatchAck) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InsertBatchAck) ProtoMessage() {}
+
+func (x *InsertBatchAck) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_types_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InsertBatchAck.ProtoReflect.Descriptor instead.
+func (*InsertBatchAck) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_types_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *InsertBatchAck) GetBatchIndex() uint32 {
+	if x != nil {
+		return x.BatchIndex
+	}
+	return 0
+}
+
+func (x *InsertBatchAck) GetInsertedCount() uint32 {
+	if x != nil {
+		return x.InsertedCount
+	}
+	return 0
+}
+
+func (x *InsertBatchAck) GetErrors() []*InsertError {
+	if x != nil {
+		return x.Errors
+	}
+	return nil
+}
+
+type InsertError struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Index         uint32                 `protobuf:"varint,1,opt,name=index,proto3" json:"index,omitempty"`
+	Message       string                 `protobuf:"bytes,2,opt,name=message,proto3" json:"message,omitempty"`
+	Code          int32                  `protobuf:"varint,3,opt,name=code,proto3" json:"code,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InsertError) Reset() {
+	*x = InsertError{}
+	mi := &file_mongocore_v1_types_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InsertError) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InsertError) ProtoMessage() {}
+
+func (x *InsertError) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_types_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InsertError.ProtoReflect.Descriptor instead.
+func (*InsertError) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_types_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *InsertError) GetIndex() uint32 {
+	if x != nil {
+		return x.Index
+	}
+	return 0
+}
+
+func (x *InsertError) GetMessage() string {
+	if x != nil {
+		return x.Message
+	}
+	return ""
+}
+
+func (x *InsertError) GetCode() int32 {
+	if x != nil {
+		return x.Code
+	}
+	return 0
+}
+
+// Response for unidirectional streaming insert
+type InsertManyStreamResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	TotalInserted uint64                 `protobuf:"varint,1,opt,name=total_inserted,json=totalInserted,proto3" json:"total_inserted,omitempty"`
+	Errors        []*InsertError         `protobuf:"bytes,2,rep,name=errors,proto3" json:"errors,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *InsertManyStreamResponse) Reset() {
+	*x = InsertManyStreamResponse{}
+	mi := &file_mongocore_v1_types_proto_msgTypes[11]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *InsertManyStreamResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*InsertManyStreamResponse) ProtoMessage() {}
+
+func (x *InsertManyStreamResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_mongocore_v1_types_proto_msgTypes[11]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use InsertManyStreamResponse.ProtoReflect.Descriptor instead.
+func (*InsertManyStreamResponse) Descriptor() ([]byte, []int) {
+	return file_mongocore_v1_types_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *InsertManyStreamResponse) GetTotalInserted() uint64 {
+	if x != nil {
+		return x.TotalInserted
+	}
+	return 0
+}
+
+func (x *InsertManyStreamResponse) GetErrors() []*InsertError {
+	if x != nil {
+		return x.Errors
+	}
+	return nil
+}
+
 var File_mongocore_v1_types_proto protoreflect.FileDescriptor
 
 const file_mongocore_v1_types_proto_rawDesc = "" +
@@ -472,7 +768,30 @@ const file_mongocore_v1_types_proto_rawDesc = "" +
 	"\x05AFTER\x10\x01B\a\n" +
 	"\x05_sort\"7\n" +
 	"\x10ResponseMetadata\x12#\n" +
-	"\rsearch_method\x18\x01 \x01(\tR\fsearchMethodB-Z+github.com/rozza/mongocore/clients/go/protob\x06proto3"
+	"\rsearch_method\x18\x01 \x01(\tR\fsearchMethod\"\x81\x01\n" +
+	"\rDocumentBatch\x124\n" +
+	"\tdocuments\x18\x01 \x03(\v2\x16.mongocore.v1.DocumentR\tdocuments\x12\x1f\n" +
+	"\vbatch_index\x18\x02 \x01(\rR\n" +
+	"batchIndex\x12\x19\n" +
+	"\bhas_more\x18\x03 \x01(\bR\ahasMore\"\x7f\n" +
+	"\vInsertBatch\x12\x1a\n" +
+	"\bdatabase\x18\x01 \x01(\tR\bdatabase\x12\x1e\n" +
+	"\n" +
+	"collection\x18\x02 \x01(\tR\n" +
+	"collection\x124\n" +
+	"\tdocuments\x18\x03 \x03(\v2\x16.mongocore.v1.DocumentR\tdocuments\"\x8b\x01\n" +
+	"\x0eInsertBatchAck\x12\x1f\n" +
+	"\vbatch_index\x18\x01 \x01(\rR\n" +
+	"batchIndex\x12%\n" +
+	"\x0einserted_count\x18\x02 \x01(\rR\rinsertedCount\x121\n" +
+	"\x06errors\x18\x03 \x03(\v2\x19.mongocore.v1.InsertErrorR\x06errors\"Q\n" +
+	"\vInsertError\x12\x14\n" +
+	"\x05index\x18\x01 \x01(\rR\x05index\x12\x18\n" +
+	"\amessage\x18\x02 \x01(\tR\amessage\x12\x12\n" +
+	"\x04code\x18\x03 \x01(\x05R\x04code\"t\n" +
+	"\x18InsertManyStreamResponse\x12%\n" +
+	"\x0etotal_inserted\x18\x01 \x01(\x04R\rtotalInserted\x121\n" +
+	"\x06errors\x18\x02 \x03(\v2\x19.mongocore.v1.InsertErrorR\x06errorsB-Z+github.com/rozza/mongocore/clients/go/protob\x06proto3"
 
 var (
 	file_mongocore_v1_types_proto_rawDescOnce sync.Once
@@ -487,7 +806,7 @@ func file_mongocore_v1_types_proto_rawDescGZIP() []byte {
 }
 
 var file_mongocore_v1_types_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_mongocore_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_mongocore_v1_types_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_mongocore_v1_types_proto_goTypes = []any{
 	(FindAndModifyOptions_ReturnDocument)(0), // 0: mongocore.v1.FindAndModifyOptions.ReturnDocument
 	(*Document)(nil),                         // 1: mongocore.v1.Document
@@ -497,14 +816,23 @@ var file_mongocore_v1_types_proto_goTypes = []any{
 	(*IndexOptions)(nil),                     // 5: mongocore.v1.IndexOptions
 	(*FindAndModifyOptions)(nil),             // 6: mongocore.v1.FindAndModifyOptions
 	(*ResponseMetadata)(nil),                 // 7: mongocore.v1.ResponseMetadata
+	(*DocumentBatch)(nil),                    // 8: mongocore.v1.DocumentBatch
+	(*InsertBatch)(nil),                      // 9: mongocore.v1.InsertBatch
+	(*InsertBatchAck)(nil),                   // 10: mongocore.v1.InsertBatchAck
+	(*InsertError)(nil),                      // 11: mongocore.v1.InsertError
+	(*InsertManyStreamResponse)(nil),         // 12: mongocore.v1.InsertManyStreamResponse
 }
 var file_mongocore_v1_types_proto_depIdxs = []int32{
-	0, // 0: mongocore.v1.FindAndModifyOptions.return_document:type_name -> mongocore.v1.FindAndModifyOptions.ReturnDocument
-	1, // [1:1] is the sub-list for method output_type
-	1, // [1:1] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0,  // 0: mongocore.v1.FindAndModifyOptions.return_document:type_name -> mongocore.v1.FindAndModifyOptions.ReturnDocument
+	1,  // 1: mongocore.v1.DocumentBatch.documents:type_name -> mongocore.v1.Document
+	1,  // 2: mongocore.v1.InsertBatch.documents:type_name -> mongocore.v1.Document
+	11, // 3: mongocore.v1.InsertBatchAck.errors:type_name -> mongocore.v1.InsertError
+	11, // 4: mongocore.v1.InsertManyStreamResponse.errors:type_name -> mongocore.v1.InsertError
+	5,  // [5:5] is the sub-list for method output_type
+	5,  // [5:5] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_mongocore_v1_types_proto_init() }
@@ -521,7 +849,7 @@ func file_mongocore_v1_types_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_mongocore_v1_types_proto_rawDesc), len(file_mongocore_v1_types_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   7,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

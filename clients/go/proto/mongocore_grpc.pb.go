@@ -38,6 +38,10 @@ const (
 	MongoCore_ListCollections_FullMethodName   = "/mongocore.v1.MongoCore/ListCollections"
 	MongoCore_Search_FullMethodName            = "/mongocore.v1.MongoCore/Search"
 	MongoCore_Watch_FullMethodName             = "/mongocore.v1.MongoCore/Watch"
+	MongoCore_FindStream_FullMethodName        = "/mongocore.v1.MongoCore/FindStream"
+	MongoCore_AggregateStream_FullMethodName   = "/mongocore.v1.MongoCore/AggregateStream"
+	MongoCore_InsertManyStream_FullMethodName  = "/mongocore.v1.MongoCore/InsertManyStream"
+	MongoCore_InsertManyBidi_FullMethodName    = "/mongocore.v1.MongoCore/InsertManyBidi"
 	MongoCore_RunCommand_FullMethodName        = "/mongocore.v1.MongoCore/RunCommand"
 	MongoCore_GetAnalytics_FullMethodName      = "/mongocore.v1.MongoCore/GetAnalytics"
 	MongoCore_Ingest_FullMethodName            = "/mongocore.v1.MongoCore/Ingest"
@@ -46,6 +50,7 @@ const (
 	MongoCore_CancelIngest_FullMethodName      = "/mongocore.v1.MongoCore/CancelIngest"
 	MongoCore_WatchDirectory_FullMethodName    = "/mongocore.v1.MongoCore/WatchDirectory"
 	MongoCore_StopWatch_FullMethodName         = "/mongocore.v1.MongoCore/StopWatch"
+	MongoCore_Pipeline_FullMethodName          = "/mongocore.v1.MongoCore/Pipeline"
 )
 
 // MongoCoreClient is the client API for MongoCore service.
@@ -78,6 +83,11 @@ type MongoCoreClient interface {
 	Search(ctx context.Context, in *SearchRequest, opts ...grpc.CallOption) (*SearchResponse, error)
 	// Streaming
 	Watch(ctx context.Context, in *WatchRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[WatchEvent], error)
+	// Streaming bulk operations
+	FindStream(ctx context.Context, in *FindStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DocumentBatch], error)
+	AggregateStream(ctx context.Context, in *AggregateStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DocumentBatch], error)
+	InsertManyStream(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[InsertBatch, InsertManyStreamResponse], error)
+	InsertManyBidi(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[InsertBatch, InsertBatchAck], error)
 	// Raw Passthrough
 	RunCommand(ctx context.Context, in *RunCommandRequest, opts ...grpc.CallOption) (*RunCommandResponse, error)
 	// Analytics
@@ -89,6 +99,8 @@ type MongoCoreClient interface {
 	CancelIngest(ctx context.Context, in *CancelIngestRequest, opts ...grpc.CallOption) (*CancelIngestResponse, error)
 	WatchDirectory(ctx context.Context, in *WatchDirectoryRequest, opts ...grpc.CallOption) (*WatchDirectoryResponse, error)
 	StopWatch(ctx context.Context, in *StopWatchRequest, opts ...grpc.CallOption) (*StopWatchResponse, error)
+	// Pipeline
+	Pipeline(ctx context.Context, in *PipelineRequest, opts ...grpc.CallOption) (*PipelineResponse, error)
 }
 
 type mongoCoreClient struct {
@@ -298,6 +310,70 @@ func (c *mongoCoreClient) Watch(ctx context.Context, in *WatchRequest, opts ...g
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type MongoCore_WatchClient = grpc.ServerStreamingClient[WatchEvent]
 
+func (c *mongoCoreClient) FindStream(ctx context.Context, in *FindStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DocumentBatch], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &MongoCore_ServiceDesc.Streams[1], MongoCore_FindStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[FindStreamRequest, DocumentBatch]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MongoCore_FindStreamClient = grpc.ServerStreamingClient[DocumentBatch]
+
+func (c *mongoCoreClient) AggregateStream(ctx context.Context, in *AggregateStreamRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[DocumentBatch], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &MongoCore_ServiceDesc.Streams[2], MongoCore_AggregateStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[AggregateStreamRequest, DocumentBatch]{ClientStream: stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MongoCore_AggregateStreamClient = grpc.ServerStreamingClient[DocumentBatch]
+
+func (c *mongoCoreClient) InsertManyStream(ctx context.Context, opts ...grpc.CallOption) (grpc.ClientStreamingClient[InsertBatch, InsertManyStreamResponse], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &MongoCore_ServiceDesc.Streams[3], MongoCore_InsertManyStream_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[InsertBatch, InsertManyStreamResponse]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MongoCore_InsertManyStreamClient = grpc.ClientStreamingClient[InsertBatch, InsertManyStreamResponse]
+
+func (c *mongoCoreClient) InsertManyBidi(ctx context.Context, opts ...grpc.CallOption) (grpc.BidiStreamingClient[InsertBatch, InsertBatchAck], error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	stream, err := c.cc.NewStream(ctx, &MongoCore_ServiceDesc.Streams[4], MongoCore_InsertManyBidi_FullMethodName, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &grpc.GenericClientStream[InsertBatch, InsertBatchAck]{ClientStream: stream}
+	return x, nil
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MongoCore_InsertManyBidiClient = grpc.BidiStreamingClient[InsertBatch, InsertBatchAck]
+
 func (c *mongoCoreClient) RunCommand(ctx context.Context, in *RunCommandRequest, opts ...grpc.CallOption) (*RunCommandResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RunCommandResponse)
@@ -378,6 +454,16 @@ func (c *mongoCoreClient) StopWatch(ctx context.Context, in *StopWatchRequest, o
 	return out, nil
 }
 
+func (c *mongoCoreClient) Pipeline(ctx context.Context, in *PipelineRequest, opts ...grpc.CallOption) (*PipelineResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PipelineResponse)
+	err := c.cc.Invoke(ctx, MongoCore_Pipeline_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MongoCoreServer is the server API for MongoCore service.
 // All implementations must embed UnimplementedMongoCoreServer
 // for forward compatibility.
@@ -408,6 +494,11 @@ type MongoCoreServer interface {
 	Search(context.Context, *SearchRequest) (*SearchResponse, error)
 	// Streaming
 	Watch(*WatchRequest, grpc.ServerStreamingServer[WatchEvent]) error
+	// Streaming bulk operations
+	FindStream(*FindStreamRequest, grpc.ServerStreamingServer[DocumentBatch]) error
+	AggregateStream(*AggregateStreamRequest, grpc.ServerStreamingServer[DocumentBatch]) error
+	InsertManyStream(grpc.ClientStreamingServer[InsertBatch, InsertManyStreamResponse]) error
+	InsertManyBidi(grpc.BidiStreamingServer[InsertBatch, InsertBatchAck]) error
 	// Raw Passthrough
 	RunCommand(context.Context, *RunCommandRequest) (*RunCommandResponse, error)
 	// Analytics
@@ -419,6 +510,8 @@ type MongoCoreServer interface {
 	CancelIngest(context.Context, *CancelIngestRequest) (*CancelIngestResponse, error)
 	WatchDirectory(context.Context, *WatchDirectoryRequest) (*WatchDirectoryResponse, error)
 	StopWatch(context.Context, *StopWatchRequest) (*StopWatchResponse, error)
+	// Pipeline
+	Pipeline(context.Context, *PipelineRequest) (*PipelineResponse, error)
 	mustEmbedUnimplementedMongoCoreServer()
 }
 
@@ -486,6 +579,18 @@ func (UnimplementedMongoCoreServer) Search(context.Context, *SearchRequest) (*Se
 func (UnimplementedMongoCoreServer) Watch(*WatchRequest, grpc.ServerStreamingServer[WatchEvent]) error {
 	return status.Error(codes.Unimplemented, "method Watch not implemented")
 }
+func (UnimplementedMongoCoreServer) FindStream(*FindStreamRequest, grpc.ServerStreamingServer[DocumentBatch]) error {
+	return status.Error(codes.Unimplemented, "method FindStream not implemented")
+}
+func (UnimplementedMongoCoreServer) AggregateStream(*AggregateStreamRequest, grpc.ServerStreamingServer[DocumentBatch]) error {
+	return status.Error(codes.Unimplemented, "method AggregateStream not implemented")
+}
+func (UnimplementedMongoCoreServer) InsertManyStream(grpc.ClientStreamingServer[InsertBatch, InsertManyStreamResponse]) error {
+	return status.Error(codes.Unimplemented, "method InsertManyStream not implemented")
+}
+func (UnimplementedMongoCoreServer) InsertManyBidi(grpc.BidiStreamingServer[InsertBatch, InsertBatchAck]) error {
+	return status.Error(codes.Unimplemented, "method InsertManyBidi not implemented")
+}
 func (UnimplementedMongoCoreServer) RunCommand(context.Context, *RunCommandRequest) (*RunCommandResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RunCommand not implemented")
 }
@@ -509,6 +614,9 @@ func (UnimplementedMongoCoreServer) WatchDirectory(context.Context, *WatchDirect
 }
 func (UnimplementedMongoCoreServer) StopWatch(context.Context, *StopWatchRequest) (*StopWatchResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method StopWatch not implemented")
+}
+func (UnimplementedMongoCoreServer) Pipeline(context.Context, *PipelineRequest) (*PipelineResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Pipeline not implemented")
 }
 func (UnimplementedMongoCoreServer) mustEmbedUnimplementedMongoCoreServer() {}
 func (UnimplementedMongoCoreServer) testEmbeddedByValue()                   {}
@@ -866,6 +974,42 @@ func _MongoCore_Watch_Handler(srv interface{}, stream grpc.ServerStream) error {
 // This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
 type MongoCore_WatchServer = grpc.ServerStreamingServer[WatchEvent]
 
+func _MongoCore_FindStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(FindStreamRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(MongoCoreServer).FindStream(m, &grpc.GenericServerStream[FindStreamRequest, DocumentBatch]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MongoCore_FindStreamServer = grpc.ServerStreamingServer[DocumentBatch]
+
+func _MongoCore_AggregateStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(AggregateStreamRequest)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(MongoCoreServer).AggregateStream(m, &grpc.GenericServerStream[AggregateStreamRequest, DocumentBatch]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MongoCore_AggregateStreamServer = grpc.ServerStreamingServer[DocumentBatch]
+
+func _MongoCore_InsertManyStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(MongoCoreServer).InsertManyStream(&grpc.GenericServerStream[InsertBatch, InsertManyStreamResponse]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MongoCore_InsertManyStreamServer = grpc.ClientStreamingServer[InsertBatch, InsertManyStreamResponse]
+
+func _MongoCore_InsertManyBidi_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(MongoCoreServer).InsertManyBidi(&grpc.GenericServerStream[InsertBatch, InsertBatchAck]{ServerStream: stream})
+}
+
+// This type alias is provided for backwards compatibility with existing code that references the prior non-generic stream type by name.
+type MongoCore_InsertManyBidiServer = grpc.BidiStreamingServer[InsertBatch, InsertBatchAck]
+
 func _MongoCore_RunCommand_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RunCommandRequest)
 	if err := dec(in); err != nil {
@@ -1010,6 +1154,24 @@ func _MongoCore_StopWatch_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MongoCore_Pipeline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PipelineRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MongoCoreServer).Pipeline(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MongoCore_Pipeline_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MongoCoreServer).Pipeline(ctx, req.(*PipelineRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MongoCore_ServiceDesc is the grpc.ServiceDesc for MongoCore service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1121,12 +1283,37 @@ var MongoCore_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "StopWatch",
 			Handler:    _MongoCore_StopWatch_Handler,
 		},
+		{
+			MethodName: "Pipeline",
+			Handler:    _MongoCore_Pipeline_Handler,
+		},
 	},
 	Streams: []grpc.StreamDesc{
 		{
 			StreamName:    "Watch",
 			Handler:       _MongoCore_Watch_Handler,
 			ServerStreams: true,
+		},
+		{
+			StreamName:    "FindStream",
+			Handler:       _MongoCore_FindStream_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "AggregateStream",
+			Handler:       _MongoCore_AggregateStream_Handler,
+			ServerStreams: true,
+		},
+		{
+			StreamName:    "InsertManyStream",
+			Handler:       _MongoCore_InsertManyStream_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "InsertManyBidi",
+			Handler:       _MongoCore_InsertManyBidi_Handler,
+			ServerStreams: true,
+			ClientStreams: true,
 		},
 	},
 	Metadata: "mongocore/v1/mongocore.proto",

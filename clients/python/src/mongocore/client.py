@@ -304,3 +304,169 @@ class MongoClient:
 
     async def __aexit__(self, *args):
         await self.close()
+
+    def _build_pipeline_op(self, op):
+        """Convert an operation dataclass to a proto PipelineOperation."""
+        from bson import encode
+        from .generated import mongocore_pb2, types_pb2
+        from . import ops
+
+        pipeline_op = mongocore_pb2.PipelineOperation()
+
+        if isinstance(op, ops.FindOp):
+            options = types_pb2.FindOptions()
+            if op.limit:
+                options.limit = op.limit
+            if op.skip:
+                options.skip = op.skip
+            filter_proto = types_pb2.Filter(data=encode(op.filter) if op.filter else b"")
+            pipeline_op.find.CopyFrom(mongocore_pb2.FindRequest(
+                database=op.database,
+                collection=op.collection,
+                filter=filter_proto,
+                options=options,
+            ))
+        elif isinstance(op, ops.FindOneOp):
+            filter_proto = types_pb2.Filter(data=encode(op.filter) if op.filter else b"")
+            pipeline_op.find_one.CopyFrom(mongocore_pb2.FindOneRequest(
+                database=op.database,
+                collection=op.collection,
+                filter=filter_proto,
+            ))
+        elif isinstance(op, ops.InsertOp):
+            doc_proto = types_pb2.Document(data=encode(op.document))
+            pipeline_op.insert.CopyFrom(mongocore_pb2.InsertRequest(
+                database=op.database,
+                collection=op.collection,
+                document=doc_proto,
+            ))
+        elif isinstance(op, ops.InsertManyOp):
+            docs_proto = [types_pb2.Document(data=encode(d)) for d in op.documents]
+            pipeline_op.insert_many.CopyFrom(mongocore_pb2.InsertManyRequest(
+                database=op.database,
+                collection=op.collection,
+                documents=docs_proto,
+            ))
+        elif isinstance(op, ops.UpdateOp):
+            filter_proto = types_pb2.Filter(data=encode(op.filter))
+            update_proto = types_pb2.Document(data=encode(op.update))
+            pipeline_op.update.CopyFrom(mongocore_pb2.UpdateRequest(
+                database=op.database,
+                collection=op.collection,
+                filter=filter_proto,
+                update=update_proto,
+            ))
+        elif isinstance(op, ops.UpdateManyOp):
+            filter_proto = types_pb2.Filter(data=encode(op.filter))
+            update_proto = types_pb2.Document(data=encode(op.update))
+            pipeline_op.update_many.CopyFrom(mongocore_pb2.UpdateManyRequest(
+                database=op.database,
+                collection=op.collection,
+                filter=filter_proto,
+                update=update_proto,
+            ))
+        elif isinstance(op, ops.DeleteOp):
+            filter_proto = types_pb2.Filter(data=encode(op.filter))
+            pipeline_op.delete.CopyFrom(mongocore_pb2.DeleteRequest(
+                database=op.database,
+                collection=op.collection,
+                filter=filter_proto,
+            ))
+        elif isinstance(op, ops.DeleteManyOp):
+            filter_proto = types_pb2.Filter(data=encode(op.filter))
+            pipeline_op.delete_many.CopyFrom(mongocore_pb2.DeleteManyRequest(
+                database=op.database,
+                collection=op.collection,
+                filter=filter_proto,
+            ))
+        elif isinstance(op, ops.AggregateOp):
+            stages = [encode(stage) for stage in op.pipeline]
+            pipeline_proto = types_pb2.Pipeline(stages=stages)
+            pipeline_op.aggregate.CopyFrom(mongocore_pb2.AggregateRequest(
+                database=op.database,
+                collection=op.collection,
+                pipeline=pipeline_proto,
+            ))
+        elif isinstance(op, ops.RunCommandOp):
+            command_proto = types_pb2.Document(data=encode(op.command))
+            pipeline_op.run_command.CopyFrom(mongocore_pb2.RunCommandRequest(
+                database=op.database,
+                command=command_proto,
+                allow_all=op.allow_all,
+            ))
+        elif isinstance(op, ops.ListDatabasesOp):
+            pipeline_op.list_databases.CopyFrom(mongocore_pb2.ListDatabasesRequest())
+        elif isinstance(op, ops.ListCollectionsOp):
+            pipeline_op.list_collections.CopyFrom(mongocore_pb2.ListCollectionsRequest(
+                database=op.database,
+            ))
+        elif isinstance(op, ops.CreateCollectionOp):
+            pipeline_op.create_collection.CopyFrom(mongocore_pb2.CreateCollectionRequest(
+                database=op.database,
+                collection=op.collection,
+            ))
+        elif isinstance(op, ops.CreateIndexOp):
+            keys_proto = types_pb2.Document(data=encode(op.keys))
+            options = types_pb2.IndexOptions(unique=op.unique)
+            if op.name:
+                options.name = op.name
+            pipeline_op.create_index.CopyFrom(mongocore_pb2.CreateIndexRequest(
+                database=op.database,
+                collection=op.collection,
+                keys=keys_proto,
+                options=options,
+            ))
+        elif isinstance(op, ops.SearchOp):
+            pipeline_op.search.CopyFrom(mongocore_pb2.SearchRequest(
+                database=op.database,
+                collection=op.collection,
+                query=op.query,
+                limit=op.limit,
+            ))
+        elif isinstance(op, ops.FindAndModifyOp):
+            filter_proto = types_pb2.Filter(data=encode(op.filter))
+            update_proto = types_pb2.Document(data=encode(op.update))
+            options = types_pb2.FindAndModifyOptions(
+                return_document=types_pb2.FindAndModifyOptions.AFTER if op.return_new else types_pb2.FindAndModifyOptions.BEFORE,
+                upsert=op.upsert,
+            )
+            pipeline_op.find_and_modify.CopyFrom(mongocore_pb2.FindAndModifyRequest(
+                database=op.database,
+                collection=op.collection,
+                filter=filter_proto,
+                update=update_proto,
+                options=options,
+            ))
+        elif isinstance(op, ops.BeginTransactionOp):
+            pipeline_op.begin_transaction.CopyFrom(mongocore_pb2.BeginTransactionRequest())
+        elif isinstance(op, ops.CommitTransactionOp):
+            pipeline_op.commit_transaction.CopyFrom(mongocore_pb2.CommitTransactionRequest(
+                transaction_id=op.transaction_id,
+            ))
+        elif isinstance(op, ops.AbortTransactionOp):
+            pipeline_op.abort_transaction.CopyFrom(mongocore_pb2.AbortTransactionRequest(
+                transaction_id=op.transaction_id,
+            ))
+        elif isinstance(op, ops.GetAnalyticsOp):
+            pipeline_op.get_analytics.CopyFrom(mongocore_pb2.GetAnalyticsRequest(
+                window_seconds=op.window_seconds,
+            ))
+        else:
+            raise ValueError(f"Unknown operation type: {type(op)}")
+
+        return pipeline_op
+
+    async def pipeline(self, *operations):
+        """Execute multiple operations in a pipeline.
+
+        Returns a list of PipelineResult objects, one per operation.
+        """
+        from .generated import mongocore_pb2, mongocore_pb2_grpc
+
+        stub = mongocore_pb2_grpc.MongoCoreStub(self.channel)
+        proto_ops = [self._build_pipeline_op(op) for op in operations]
+        request = mongocore_pb2.PipelineRequest(operations=proto_ops)
+        response = await stub.Pipeline(request, metadata=_CLIENT_METADATA)
+
+        from .result import PipelineResult
+        return [PipelineResult(result) for result in response.results]
