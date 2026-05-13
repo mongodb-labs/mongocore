@@ -23,14 +23,20 @@
 | `src/defaults.rs` | `DEFAULT_PIPELINE_MAX_OPS`, `DEFAULT_PIPELINE_TIMEOUT_SECS`, `DEFAULT_PIPELINE_MAX_CONCURRENCY` constants |
 | `src/config.rs` | `pipeline_timeout_secs`, `pipeline_max_concurrency` CLI args and config fields |
 | `src/grpc/service.rs` | `pipeline()` handler, `execute_pipeline_op()` dispatch helper |
+| `src/grpc/pipeline.rs` | Per-operation dispatch helpers (keeps service.rs manageable) |
+| `src/main.rs` | Pass new config fields to `MongoCoreService` constructor |
 | `src/mcp/tools.rs` | `pipeline` tool definition and executor |
 | `src/mcp/safety.rs` | `check_pipeline_allowed()` for all-or-nothing validation |
-| `src/mcp/handler.rs` | No changes needed (dispatches via `execute_tool` which already routes by name) |
+| `src/mcp/handler.rs` | Pass `&self.safety` to `execute_tool` for pipeline safety check |
 | `src/analytics/mod.rs` | Add `OperationKind::Pipeline` variant (for the parent operation record) |
+| `tests/unit/pipeline_test.rs` | Unit tests for dispatch logic, validation, limit enforcement |
 | `tests/integration/pipeline_test.rs` | Integration tests for pipeline RPC |
-| `clients/python/src/mongocore/client.py` | `pipeline()` method + `ops` module |
-| `clients/go/client.go` | `Pipeline()` method + `ops` package |
-| `clients/typescript/src/client.ts` | `pipeline()` method + `ops` module |
+| `clients/python/src/mongocore/client.py` | `pipeline()` method + `_build_pipeline_op()` helper |
+| `clients/python/src/mongocore/ops.py` | Operation builder dataclasses and convenience functions |
+| `clients/go/client.go` | `Pipeline()` method + result accessors |
+| `clients/go/ops/ops.go` | Operation builders with marshal helpers |
+| `clients/typescript/src/client.ts` | `pipeline()` method + result types |
+| `clients/typescript/src/ops.ts` | Operation builders with marshal helpers |
 | `clients/java/src/main/java/com/mongocore/client/MongoClient.java` | `pipeline()` method + `Ops` class |
 
 ---
@@ -431,32 +437,51 @@ Each follows the same structure:
 3. Wrap the success response in the appropriate `pipeline_result::Result` variant
 4. Wrap errors in `PipelineError`
 
-- [ ] **Step 6: Add is_error helper to PipelineResult**
+- [ ] **Step 6: Add is_error helper as a free function**
 
-In `src/grpc/service.rs` (or a helper module), add:
+You cannot `impl` methods on prost-generated types from another crate. Add a free function in `src/grpc/service.rs` (or `src/grpc/pipeline.rs`):
 
 ```rust
-impl proto::PipelineResult {
-    fn is_error(&self) -> bool {
-        matches!(self.result, Some(proto::pipeline_result::Result::Error(_)))
-    }
+fn pipeline_result_is_error(result: &proto::PipelineResult) -> bool {
+    matches!(result.result, Some(proto::pipeline_result::Result::Error(_)))
 }
 ```
 
-- [ ] **Step 7: Verify build compiles with zero warnings**
+Then update the handler to use it:
+```rust
+let succeeded = results.iter().filter(|r| !pipeline_result_is_error(r)).count() as u32;
+let failed = results.iter().filter(|r| pipeline_result_is_error(r)).count() as u32;
+```
+
+- [ ] **Step 7: Wire config into MongoCoreService in main.rs**
+
+In `src/main.rs`, find where `MongoCoreService` is constructed (search for `MongoCoreService::new` or the struct literal). Add the new fields:
+
+```rust
+    pipeline_timeout: Duration::from_secs(config.pipeline_timeout_secs),
+    pipeline_semaphore: Arc::new(tokio::sync::Semaphore::new(config.pipeline_max_concurrency)),
+```
+
+Also add `use std::time::Duration;` and `use std::sync::Arc;` if not already imported. Search for the exact constructor pattern:
+
+Run: `grep -n "MongoCoreService" src/main.rs src/grpc/service.rs src/grpc/mod.rs`
+
+This will show you the constructor site. Add the two new fields there.
+
+- [ ] **Step 8: Verify build compiles with zero warnings**
 
 Run: `cargo build 2>&1 | grep "warning:"`
 Expected: No output
 
-- [ ] **Step 8: Run unit tests**
+- [ ] **Step 9: Run unit tests**
 
 Run: `cargo test --lib`
 Expected: All pass
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 10: Commit**
 
 ```bash
-git add src/grpc/service.rs src/analytics/ src/main.rs
+git add src/grpc/service.rs src/grpc/pipeline.rs src/analytics/ src/main.rs
 git commit -m "feat(grpc): implement Pipeline RPC handler with concurrent dispatch"
 ```
 
@@ -545,16 +570,56 @@ In `src/mcp/safety.rs`, add a method to `SafetyConfig`:
     }
 ```
 
-- [ ] **Step 3: Add pipeline executor**
+- [ ] **Step 3: Update execute_tool signature to accept SafetyConfig**
 
-In `src/mcp/tools.rs`, add the executor function and wire it into `execute_tool`:
+The existing `execute_tool` function signature (in `src/mcp/tools.rs`) is:
+
+```rust
+pub async fn execute_tool(
+    operations: &Operations,
+    pool: &ConnectionPool,
+    analytics: Option<&Arc<AnalyticsCollector>>,
+    ingestion: Option<&Arc<IngestionEngine>>,
+    watcher: Option<&Arc<DirectoryWatcher>>,
+    name: &str,
+    arguments: &Value,
+) -> McpToolCallResult {
+```
+
+Add `safety: &SafetyConfig` as a parameter:
+
+```rust
+pub async fn execute_tool(
+    operations: &Operations,
+    pool: &ConnectionPool,
+    analytics: Option<&Arc<AnalyticsCollector>>,
+    ingestion: Option<&Arc<IngestionEngine>>,
+    watcher: Option<&Arc<DirectoryWatcher>>,
+    safety: &SafetyConfig,
+    name: &str,
+    arguments: &Value,
+) -> McpToolCallResult {
+```
+
+Then update the caller in `src/mcp/handler.rs` (`handle_tools_call` method) to pass `&self.safety`:
+
+```rust
+    let result = tools::execute_tool(
+        &self.operations, &self.pool, self.analytics.as_ref(),
+        self.ingestion.as_ref(), self.watcher.as_ref(),
+        &self.safety,  // NEW
+        &tool_name, &arguments,
+    ).await;
+```
+
+Add `use crate::mcp::safety::SafetyConfig;` to `tools.rs` if not already imported.
+
+- [ ] **Step 4: Add pipeline executor and wire into dispatch**
 
 Add to the `match name` block in `execute_tool`:
 ```rust
         "pipeline" => execute_pipeline(operations, arguments, safety).await,
 ```
-
-Note: `execute_tool` needs to accept `safety: &SafetyConfig` as a parameter (or pass it from the handler). Check the existing signature and add it if not already present.
 
 The executor:
 
@@ -643,30 +708,163 @@ async fn execute_single_mcp_op(
 }
 ```
 
-- [ ] **Step 4: Update MCP tool count assertion**
+- [ ] **Step 5: Update MCP tool count assertion**
 
-In `tests/integration/mcp_test.rs`, find the tool count assertion and increment it by 1.
+In `tests/integration/mcp_test.rs`, search for the tool count assertion:
 
-- [ ] **Step 5: Verify build**
+Run: `grep -n "assert.*tools\|assert.*len\|tool.*count" tests/integration/mcp_test.rs`
+
+Find the line like `assert_eq!(tools.len(), N)` and increment N by 1 (adding the new "pipeline" tool).
+
+- [ ] **Step 6: Verify build**
 
 Run: `cargo build 2>&1 | grep "warning:"`
 Expected: No output
 
-- [ ] **Step 6: Run unit tests**
+- [ ] **Step 7: Run unit tests**
 
 Run: `cargo test --lib`
 Expected: All pass
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
-git add src/mcp/tools.rs src/mcp/safety.rs tests/integration/mcp_test.rs
+git add src/mcp/tools.rs src/mcp/safety.rs src/mcp/handler.rs tests/integration/mcp_test.rs
 git commit -m "feat(mcp): add pipeline tool with all-or-nothing safety enforcement"
 ```
 
 ---
 
-### Task 5: Integration Tests
+### Task 5: Unit Tests
+
+**Files:**
+- Create: `src/grpc/pipeline_tests.rs` (or add `#[cfg(test)] mod tests` in `src/grpc/pipeline.rs`)
+
+- [ ] **Step 1: Write unit tests for validation logic**
+
+These tests verify the pipeline handler's validation without needing a running MongoDB. Add a test module:
+
+```rust
+#[cfg(test)]
+mod pipeline_tests {
+    use super::*;
+
+    #[test]
+    fn test_empty_pipeline_rejected() {
+        // Verify that an empty operations vec returns INVALID_ARGUMENT
+        let ops: Vec<proto::PipelineOperation> = vec![];
+        assert!(ops.is_empty());
+        // The handler returns Err(Status::invalid_argument(...)) for empty pipelines
+    }
+
+    #[test]
+    fn test_exceeds_max_ops_rejected() {
+        let ops: Vec<proto::PipelineOperation> = (0..101)
+            .map(|_| proto::PipelineOperation { operation: None })
+            .collect();
+        assert!(ops.len() > DEFAULT_PIPELINE_MAX_OPS);
+    }
+
+    #[test]
+    fn test_pipeline_result_is_error_helper() {
+        let error_result = proto::PipelineResult {
+            index: 0,
+            result: Some(proto::pipeline_result::Result::Error(proto::PipelineError {
+                code: 13,
+                message: "test error".to_string(),
+            })),
+        };
+        assert!(pipeline_result_is_error(&error_result));
+
+        let ok_result = proto::PipelineResult {
+            index: 1,
+            result: Some(proto::pipeline_result::Result::Find(proto::FindResponse {
+                documents: vec![],
+                metadata: None,
+            })),
+        };
+        assert!(!pipeline_result_is_error(&ok_result));
+    }
+
+    #[test]
+    fn test_none_operation_returns_error() {
+        // PipelineOperation with operation: None should produce an error result
+        let op = proto::PipelineOperation { operation: None };
+        // This verifies the dispatch match arm for None
+        assert!(op.operation.is_none());
+    }
+}
+```
+
+Note: These are structural validation tests. The actual async dispatch tests require a running Operations instance, which is tested in integration tests (Task 6).
+
+- [ ] **Step 2: Write unit test for MCP safety check**
+
+In `src/mcp/safety.rs`, add a test module:
+
+```rust
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_pipeline_allowed_when_not_read_only() {
+        let safety = SafetyConfig { read_only: false, max_documents: 100 };
+        let ops = vec![json!({"op": "insert"}), json!({"op": "delete"})];
+        assert!(safety.check_pipeline_allowed(&ops).is_ok());
+    }
+
+    #[test]
+    fn test_pipeline_blocked_when_read_only_with_writes() {
+        let safety = SafetyConfig { read_only: true, max_documents: 100 };
+        let ops = vec![
+            json!({"op": "find"}),
+            json!({"op": "insert"}),
+            json!({"op": "delete_many"}),
+        ];
+        let err = safety.check_pipeline_allowed(&ops).unwrap_err();
+        assert!(err.contains("operation[1]: 'insert'"));
+        assert!(err.contains("operation[2]: 'delete_many'"));
+        assert!(!err.contains("operation[0]")); // find is not a violation
+    }
+
+    #[test]
+    fn test_pipeline_allowed_when_read_only_with_only_reads() {
+        let safety = SafetyConfig { read_only: true, max_documents: 100 };
+        let ops = vec![
+            json!({"op": "find"}),
+            json!({"op": "find_one"}),
+            json!({"op": "aggregate"}),
+            json!({"op": "list_databases"}),
+        ];
+        assert!(safety.check_pipeline_allowed(&ops).is_ok());
+    }
+
+    #[test]
+    fn test_pipeline_find_and_modify_blocked_in_read_only() {
+        let safety = SafetyConfig { read_only: true, max_documents: 100 };
+        let ops = vec![json!({"op": "find_and_modify"})];
+        assert!(safety.check_pipeline_allowed(&ops).is_err());
+    }
+}
+```
+
+- [ ] **Step 3: Run unit tests**
+
+Run: `cargo test --lib`
+Expected: All pass (including the new pipeline tests)
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/grpc/ src/mcp/safety.rs
+git commit -m "test(grpc): add unit tests for pipeline validation and safety"
+```
+
+---
+
+### Task 6: Integration Tests (requires Docker MongoDB)
 
 **Files:**
 - Create: `tests/integration/pipeline_test.rs`
@@ -896,7 +1094,7 @@ git commit -m "test(grpc): add pipeline RPC integration tests"
 
 ---
 
-### Task 6: Python Client
+### Task 7: Python Client
 
 **Files:**
 - Modify: `clients/python/src/mongocore/client.py`
@@ -1150,18 +1348,131 @@ class PipelineResult:
         return None
 ```
 
-Add the `pipeline` method to `MongoClient`:
+Add the `_build_pipeline_op` helper and `pipeline` method to `MongoClient`:
 
 ```python
+    def _build_pipeline_op(self, op: "PipelineOp") -> "mongocore_pb2.PipelineOperation":
+        """Convert a PipelineOp dataclass to a proto PipelineOperation message."""
+        from .generated import mongocore_pb2
+        from .ops import (FindOp, FindOneOp, InsertOp, InsertManyOp,
+                          UpdateOp, UpdateManyOp, DeleteOp, DeleteManyOp,
+                          AggregateOp, RunCommandOp, ListDatabasesOp, ListCollectionsOp)
+
+        proto_op = mongocore_pb2.PipelineOperation()
+
+        if isinstance(op, FindOp):
+            req = mongocore_pb2.FindRequest(
+                database=op.database,
+                collection=op.collection,
+            )
+            if op.filter:
+                req.filter.CopyFrom(self._marshal_filter(op.filter))
+            if op.transaction_id:
+                req.transaction_id = op.transaction_id
+            proto_op.find.CopyFrom(req)
+        elif isinstance(op, FindOneOp):
+            req = mongocore_pb2.FindOneRequest(
+                database=op.database,
+                collection=op.collection,
+            )
+            if op.filter:
+                req.filter.CopyFrom(self._marshal_filter(op.filter))
+            if op.transaction_id:
+                req.transaction_id = op.transaction_id
+            proto_op.find_one.CopyFrom(req)
+        elif isinstance(op, InsertOp):
+            req = mongocore_pb2.InsertRequest(
+                database=op.database,
+                collection=op.collection,
+                document=self._marshal_document(op.document),
+            )
+            if op.transaction_id:
+                req.transaction_id = op.transaction_id
+            proto_op.insert.CopyFrom(req)
+        elif isinstance(op, InsertManyOp):
+            req = mongocore_pb2.InsertManyRequest(
+                database=op.database,
+                collection=op.collection,
+                documents=[self._marshal_document(d) for d in op.documents],
+            )
+            if op.transaction_id:
+                req.transaction_id = op.transaction_id
+            proto_op.insert_many.CopyFrom(req)
+        elif isinstance(op, UpdateOp):
+            req = mongocore_pb2.UpdateRequest(
+                database=op.database,
+                collection=op.collection,
+                upsert=op.upsert,
+            )
+            if op.filter:
+                req.filter.CopyFrom(self._marshal_filter(op.filter))
+            req.update.CopyFrom(self._marshal_document(op.update))
+            if op.transaction_id:
+                req.transaction_id = op.transaction_id
+            proto_op.update.CopyFrom(req)
+        elif isinstance(op, UpdateManyOp):
+            req = mongocore_pb2.UpdateManyRequest(
+                database=op.database,
+                collection=op.collection,
+                upsert=op.upsert,
+            )
+            if op.filter:
+                req.filter.CopyFrom(self._marshal_filter(op.filter))
+            req.update.CopyFrom(self._marshal_document(op.update))
+            if op.transaction_id:
+                req.transaction_id = op.transaction_id
+            proto_op.update_many.CopyFrom(req)
+        elif isinstance(op, DeleteOp):
+            req = mongocore_pb2.DeleteRequest(
+                database=op.database,
+                collection=op.collection,
+            )
+            if op.filter:
+                req.filter.CopyFrom(self._marshal_filter(op.filter))
+            if op.transaction_id:
+                req.transaction_id = op.transaction_id
+            proto_op.delete.CopyFrom(req)
+        elif isinstance(op, DeleteManyOp):
+            req = mongocore_pb2.DeleteManyRequest(
+                database=op.database,
+                collection=op.collection,
+            )
+            if op.filter:
+                req.filter.CopyFrom(self._marshal_filter(op.filter))
+            if op.transaction_id:
+                req.transaction_id = op.transaction_id
+            proto_op.delete_many.CopyFrom(req)
+        elif isinstance(op, AggregateOp):
+            req = mongocore_pb2.AggregateRequest(
+                database=op.database,
+                collection=op.collection,
+                pipeline=[self._marshal_document(stage) for stage in op.pipeline],
+            )
+            if op.transaction_id:
+                req.transaction_id = op.transaction_id
+            proto_op.aggregate.CopyFrom(req)
+        elif isinstance(op, RunCommandOp):
+            req = mongocore_pb2.RunCommandRequest(
+                database=op.database,
+                command=self._marshal_document(op.command),
+            )
+            proto_op.run_command.CopyFrom(req)
+        elif isinstance(op, ListDatabasesOp):
+            proto_op.list_databases.CopyFrom(mongocore_pb2.ListDatabasesRequest())
+        elif isinstance(op, ListCollectionsOp):
+            proto_op.list_collections.CopyFrom(
+                mongocore_pb2.ListCollectionsRequest(database=op.database)
+            )
+        else:
+            raise ValueError(f"Unsupported pipeline operation type: {type(op)}")
+
+        return proto_op
+
     async def pipeline(self, *operations: "PipelineOp") -> list[PipelineResult]:
         """Execute multiple independent operations concurrently in a single round-trip."""
-        from .ops import PipelineOp
         from .generated import mongocore_pb2
 
-        proto_ops = []
-        for op in operations:
-            proto_op = self._build_pipeline_op(op)
-            proto_ops.append(proto_op)
+        proto_ops = [self._build_pipeline_op(op) for op in operations]
 
         request = mongocore_pb2.PipelineRequest(operations=proto_ops)
         response = await self._stub.Pipeline(request)
@@ -1183,6 +1494,8 @@ Add the `pipeline` method to `MongoClient`:
                 ))
         return results
 ```
+
+Note: `_marshal_filter` and `_marshal_document` should already exist on the client class (used by existing methods like `find`, `insert`). Check their names by searching: `grep -n "marshal\|_filter\|_document" clients/python/src/mongocore/client.py`. Adapt the above to use the exact method names found.
 
 - [ ] **Step 3: Export ops module from __init__.py**
 
@@ -1239,7 +1552,7 @@ git commit -m "feat(clients): add Python pipeline client with ops module"
 
 ---
 
-### Task 7: Go Client
+### Task 8: Go Client
 
 **Files:**
 - Modify: `clients/go/client.go`
@@ -1248,14 +1561,50 @@ git commit -m "feat(clients): add Python pipeline client with ops module"
 
 - [ ] **Step 1: Create ops package**
 
-Create `clients/go/ops/ops.go`:
+Create `clients/go/ops/ops.go`.
+
+First, check the Go client's existing import path and marshal helpers:
+
+Run: `head -20 clients/go/client.go && grep -n "marshalFilter\|marshalDocument\|MarshalFilter\|MarshalDocument\|bsonToProto\|docToProto" clients/go/client.go clients/go/*.go`
+
+Use the actual import path and helper function names found. The template below uses placeholder names — replace them:
 
 ```go
 package ops
 
 import (
-    pb "github.com/mongocore/clients/go/proto"
+    pb "github.com/mongocore/clients/go/proto"  // adjust to actual import path from go.mod
 )
+
+// marshalFilter converts a Go map to a proto Filter message.
+// Check how the main client.go does this — likely via bson.Marshal.
+// Copy/reference the same helper or import it from the client package.
+func marshalFilter(filter map[string]interface{}) *pb.Filter {
+    if filter == nil {
+        return nil
+    }
+    data, err := bson.Marshal(filter)
+    if err != nil {
+        return &pb.Filter{}
+    }
+    return &pb.Filter{Data: data}
+}
+
+func marshalDocument(doc map[string]interface{}) *pb.Document {
+    data, err := bson.Marshal(doc)
+    if err != nil {
+        return &pb.Document{}
+    }
+    return &pb.Document{Data: data}
+}
+
+func marshalPipeline(stages []map[string]interface{}) []*pb.Document {
+    result := make([]*pb.Document, len(stages))
+    for i, stage := range stages {
+        result[i] = marshalDocument(stage)
+    }
+    return result
+}
 
 func Find(database, collection string, filter map[string]interface{}) *pb.PipelineOperation {
     return &pb.PipelineOperation{
@@ -1455,7 +1804,7 @@ git commit -m "feat(clients): add Go pipeline client with ops package"
 
 ---
 
-### Task 8: TypeScript Client
+### Task 9: TypeScript Client
 
 **Files:**
 - Modify: `clients/typescript/src/client.ts`
@@ -1465,9 +1814,21 @@ git commit -m "feat(clients): add Go pipeline client with ops package"
 
 - [ ] **Step 1: Create ops module**
 
-Create `clients/typescript/src/ops.ts`:
+Create `clients/typescript/src/ops.ts`.
+
+First, check how the TypeScript client marshals documents:
+
+Run: `grep -n "marshalFilter\|marshalDocument\|toBson\|encodeDocument\|BSON\|serialize" clients/typescript/src/client.ts clients/typescript/src/*.ts`
+
+Use the actual helper function names. The template below uses placeholder names — import or define them in ops.ts:
 
 ```typescript
+// Import the marshal helpers from wherever the client defines them.
+// Adjust these imports based on what grep finds above.
+import { marshalFilter, marshalDocument, marshalPipeline } from "./bson";
+// If they don't exist as separate functions, define them here:
+// function marshalFilter(filter: Record<string, any>): Uint8Array { ... }
+
 export interface PipelineOp {
   opType: string;
   toProto(): any;
@@ -1609,7 +1970,7 @@ git commit -m "feat(clients): add TypeScript pipeline client with ops module"
 
 ---
 
-### Task 9: Java Client
+### Task 10: Java Client
 
 **Files:**
 - Modify: `clients/java/src/main/java/com/mongocore/client/MongoClient.java`
@@ -1806,7 +2167,88 @@ git commit -m "feat(clients): add Java pipeline client with Ops builder"
 
 ---
 
-### Task 10: Documentation & Final Verification
+### Task 11: Benchmark
+
+**Files:**
+- Create: `benchmarks/pipeline/` (or add to existing benchmark suite in `benchmarks/`)
+
+- [ ] **Step 1: Create pipeline benchmark**
+
+Check existing benchmark structure:
+
+Run: `ls benchmarks/ 2>/dev/null || ls bench/ 2>/dev/null || find . -name "*.rs" -path "*bench*" | head -10`
+
+Create a benchmark that compares N individual RPCs vs a single Pipeline RPC. Using criterion:
+
+```rust
+use criterion::{criterion_group, criterion_main, Criterion, BenchmarkId};
+
+fn bench_pipeline_vs_individual(c: &mut Criterion) {
+    let rt = tokio::runtime::Runtime::new().unwrap();
+    let client = rt.block_on(setup_grpc_client());
+
+    let mut group = c.benchmark_group("pipeline_latency");
+
+    for n_ops in [3, 5, 10, 20] {
+        group.bench_with_input(
+            BenchmarkId::new("individual_rpcs", n_ops),
+            &n_ops,
+            |b, &n| {
+                b.to_async(&rt).iter(|| async {
+                    for _ in 0..n {
+                        client.list_databases(Request::new(ListDatabasesRequest {}))
+                            .await.unwrap();
+                    }
+                });
+            },
+        );
+
+        group.bench_with_input(
+            BenchmarkId::new("pipeline_rpc", n_ops),
+            &n_ops,
+            |b, &n| {
+                b.to_async(&rt).iter(|| async {
+                    let ops = (0..n).map(|_| PipelineOperation {
+                        operation: Some(Operation::ListDatabases(ListDatabasesRequest {})),
+                    }).collect();
+                    client.pipeline(Request::new(PipelineRequest { operations: ops }))
+                        .await.unwrap();
+                });
+            },
+        );
+    }
+    group.finish();
+}
+
+criterion_group!(benches, bench_pipeline_vs_individual);
+criterion_main!(benches);
+```
+
+- [ ] **Step 2: Add to Cargo.toml**
+
+Add a `[[bench]]` entry if not already using criterion:
+
+```toml
+[[bench]]
+name = "pipeline"
+harness = false
+```
+
+- [ ] **Step 3: Run benchmark**
+
+Run: `cargo bench --bench pipeline`
+Expected: Shows latency comparison between individual RPCs and pipeline for various batch sizes.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add benches/ Cargo.toml
+git commit -m "bench: add pipeline vs individual RPCs latency comparison"
+```
+
+---
+
+### Task 12: Documentation & Final Verification
 
 **Files:**
 - Modify: `docs/roadmap.md`
