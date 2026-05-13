@@ -10,6 +10,7 @@
 | **v0.4** | Integration (driver metadata, URL ingestion, OpenTelemetry), full client test coverage | **Complete** |
 | **v0.5** | Custom LLM gateway, simplified config, validator hardening, LLM integration tests | **Complete** |
 | **v0.6** | Intelligent NL→MQL routing, LLM-provided templates, template registry | **Complete** |
+| **v0.7** | Cross-language performance benchmarking suite | **Complete** |
 
 ## v0.1 — Core
 
@@ -80,6 +81,19 @@
 - **23 LLM integration tests** — Routing verification, template reuse, multi-database, injection safety
 - **Zero warnings policy** — Enforced in AGENTS.md/CLAUDE.md, all commits must produce zero compiler warnings
 
+## v0.7 — Performance Benchmarking
+
+- **Cross-language benchmark suite** — Python, TypeScript, Go, Java comparing native drivers vs MongoCore sidecar
+- **MongoDB Driver Benchmarking Spec** — Batched iterations (10K ops/iter), warmup, percentile reporting (p10-p99), before_task cleanup
+- **Consistent methodology** — All 8 benchmarks use identical harness structure, batch sizes, and cleanup for fair comparison
+- **Polars ingestion benchmarks** — Native pymongo bulk insert vs MongoCore Polars pipeline at 1MB, 10MB, 100MB
+- **Rust criterion microbenchmarks** — Cache lookup, MQL validation, template matching (sidecar internals)
+- **Auto-generated results** — Jinja2 templates produce per-run README with throughput tables, latency percentiles, SVG charts
+- **Composable justfile** — `bench-setup`/`bench-teardown` lifecycle, per-language and per-variant tasks
+- **Regression detection** — `bench-check-regression` compares runs and exits non-zero on >10% slowdown
+- **Timestamped results** — Each run stored in `results/<timestamp>/` with `latest` symlink, history committed to git
+- **Honest caveats** — Documented limitations (uncontrolled environment, no tuning, localhost, gRPC limits, single client)
+
 ## Future Roadmap
 
 | Area | Description |
@@ -96,7 +110,7 @@
 | gRPC Message Limits | Increase max message size and/or implement streaming for large docs and result sets |
 | BulkWrite Operations | Collection-level and client-level bulkWrite with mixed insert/update/delete |
 | Database/Collection Management | Drop database, drop collection, rename collection, list indexes, compact |
-| Performance | Benchmarking suite comparing MongoCore vs native drivers for common workloads |
+| Performance Tuning | Connection pooling, gRPC streaming, batch optimizations to reduce sidecar overhead |
 | Visualizations | Configurable web UI for analytics, query flow, and ingestion progress |
 | Migration & Ecosystem | Framework adapters (Mongoose, Spring Data, etc.), migration paths |
 | Self-Contained AI | Local NL→MQL model, no external LLM dependency required |
