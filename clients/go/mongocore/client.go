@@ -364,3 +364,178 @@ func (c *Client) GetAnalytics(ctx context.Context) (*AnalyticsData, error) {
 		TopCollections:  resp.TopCollections,
 	}, nil
 }
+
+// PipelineResult represents a single result from a pipeline execution.
+type PipelineResult struct {
+	Index   uint32
+	Success bool
+	Error   string
+	Raw     *pb.PipelineResult
+}
+
+// AsFind returns the result as a FindResponse if it was a Find operation.
+func (r *PipelineResult) AsFind() (*pb.FindResponse, bool) {
+	if r.Raw == nil {
+		return nil, false
+	}
+	if resp, ok := r.Raw.Result.(*pb.PipelineResult_Find); ok {
+		return resp.Find, true
+	}
+	return nil, false
+}
+
+// AsFindOne returns the result as a FindOneResponse if it was a FindOne operation.
+func (r *PipelineResult) AsFindOne() (*pb.FindOneResponse, bool) {
+	if r.Raw == nil {
+		return nil, false
+	}
+	if resp, ok := r.Raw.Result.(*pb.PipelineResult_FindOne); ok {
+		return resp.FindOne, true
+	}
+	return nil, false
+}
+
+// AsInsert returns the result as an InsertResponse if it was an Insert operation.
+func (r *PipelineResult) AsInsert() (*pb.InsertResponse, bool) {
+	if r.Raw == nil {
+		return nil, false
+	}
+	if resp, ok := r.Raw.Result.(*pb.PipelineResult_Insert); ok {
+		return resp.Insert, true
+	}
+	return nil, false
+}
+
+// AsInsertMany returns the result as an InsertManyResponse if it was an InsertMany operation.
+func (r *PipelineResult) AsInsertMany() (*pb.InsertManyResponse, bool) {
+	if r.Raw == nil {
+		return nil, false
+	}
+	if resp, ok := r.Raw.Result.(*pb.PipelineResult_InsertMany); ok {
+		return resp.InsertMany, true
+	}
+	return nil, false
+}
+
+// AsUpdate returns the result as an UpdateResponse if it was an Update operation.
+func (r *PipelineResult) AsUpdate() (*pb.UpdateResponse, bool) {
+	if r.Raw == nil {
+		return nil, false
+	}
+	if resp, ok := r.Raw.Result.(*pb.PipelineResult_Update); ok {
+		return resp.Update, true
+	}
+	return nil, false
+}
+
+// AsUpdateMany returns the result as an UpdateManyResponse if it was an UpdateMany operation.
+func (r *PipelineResult) AsUpdateMany() (*pb.UpdateManyResponse, bool) {
+	if r.Raw == nil {
+		return nil, false
+	}
+	if resp, ok := r.Raw.Result.(*pb.PipelineResult_UpdateMany); ok {
+		return resp.UpdateMany, true
+	}
+	return nil, false
+}
+
+// AsDelete returns the result as a DeleteResponse if it was a Delete operation.
+func (r *PipelineResult) AsDelete() (*pb.DeleteResponse, bool) {
+	if r.Raw == nil {
+		return nil, false
+	}
+	if resp, ok := r.Raw.Result.(*pb.PipelineResult_Delete); ok {
+		return resp.Delete, true
+	}
+	return nil, false
+}
+
+// AsDeleteMany returns the result as a DeleteManyResponse if it was a DeleteMany operation.
+func (r *PipelineResult) AsDeleteMany() (*pb.DeleteManyResponse, bool) {
+	if r.Raw == nil {
+		return nil, false
+	}
+	if resp, ok := r.Raw.Result.(*pb.PipelineResult_DeleteMany); ok {
+		return resp.DeleteMany, true
+	}
+	return nil, false
+}
+
+// AsAggregate returns the result as an AggregateResponse if it was an Aggregate operation.
+func (r *PipelineResult) AsAggregate() (*pb.AggregateResponse, bool) {
+	if r.Raw == nil {
+		return nil, false
+	}
+	if resp, ok := r.Raw.Result.(*pb.PipelineResult_Aggregate); ok {
+		return resp.Aggregate, true
+	}
+	return nil, false
+}
+
+// AsRunCommand returns the result as a RunCommandResponse if it was a RunCommand operation.
+func (r *PipelineResult) AsRunCommand() (*pb.RunCommandResponse, bool) {
+	if r.Raw == nil {
+		return nil, false
+	}
+	if resp, ok := r.Raw.Result.(*pb.PipelineResult_RunCommand); ok {
+		return resp.RunCommand, true
+	}
+	return nil, false
+}
+
+// AsListDatabases returns the result as a ListDatabasesResponse if it was a ListDatabases operation.
+func (r *PipelineResult) AsListDatabases() (*pb.ListDatabasesResponse, bool) {
+	if r.Raw == nil {
+		return nil, false
+	}
+	if resp, ok := r.Raw.Result.(*pb.PipelineResult_ListDatabases); ok {
+		return resp.ListDatabases, true
+	}
+	return nil, false
+}
+
+// AsListCollections returns the result as a ListCollectionsResponse if it was a ListCollections operation.
+func (r *PipelineResult) AsListCollections() (*pb.ListCollectionsResponse, bool) {
+	if r.Raw == nil {
+		return nil, false
+	}
+	if resp, ok := r.Raw.Result.(*pb.PipelineResult_ListCollections); ok {
+		return resp.ListCollections, true
+	}
+	return nil, false
+}
+
+// AsError returns the error if the operation failed.
+func (r *PipelineResult) AsError() (*pb.PipelineError, bool) {
+	if r.Raw == nil {
+		return nil, false
+	}
+	if errResp, ok := r.Raw.Result.(*pb.PipelineResult_Error); ok {
+		return errResp.Error, true
+	}
+	return nil, false
+}
+
+// Pipeline executes a sequence of operations atomically (or as a batch).
+func (c *Client) Pipeline(ctx context.Context, operations ...*pb.PipelineOperation) ([]PipelineResult, error) {
+	resp, err := c.stub.Pipeline(clientContext(ctx), &pb.PipelineRequest{
+		Operations: operations,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]PipelineResult, len(resp.Results))
+	for i, res := range resp.Results {
+		results[i] = PipelineResult{
+			Index:   res.Index,
+			Success: res.Result != nil,
+			Raw:     res,
+		}
+		if pipeErr, ok := results[i].AsError(); ok {
+			results[i].Success = false
+			results[i].Error = pipeErr.Message
+		}
+	}
+	return results, nil
+}
