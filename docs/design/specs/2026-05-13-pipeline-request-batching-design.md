@@ -40,6 +40,8 @@ All operations in a pipeline execute concurrently via `tokio::join_all`. There i
 
 The pipeline accepts any operation that has unary (request/response) semantics. Streaming RPCs (Watch, FindStream, AggregateStream, InsertManyStream, InsertManyBidi) are excluded since they require ongoing connections.
 
+Ingestion RPCs (Ingest, GetIngestStatus, ListIngestJobs, CancelIngest) are also excluded — they are long-running job-management operations that don't benefit from batching and would hold up the pipeline response.
+
 ### All-or-nothing MCP safety enforcement
 
 When invoked via the MCP `pipeline` tool, **all operations are validated before any execute**. If any operation violates safety rules (writes in read-only mode, blocked commands), the entire pipeline is rejected with an error listing which operations failed validation and why.
@@ -153,6 +155,38 @@ async fn pipeline(&self, request: Request<PipelineRequest>) -> Result<Response<P
 
 Each `execute_pipeline_op` dispatches through the same `Operations` module that individual RPCs use — no logic duplication.
 
+### Timeout handling
+
+The pipeline inherits the gRPC deadline set by the client (standard tonic behavior). Additionally:
+
+- **Pipeline-level timeout:** Configurable via `--pipeline-timeout` (default: 30s). If the entire pipeline exceeds this, all incomplete ops are cancelled and their results are returned as `PipelineError` with code `DEADLINE_EXCEEDED`.
+- **No per-op timeout in v0.9** — individual ops inherit the pipeline deadline. A slow op doesn't block others (they run concurrently) but the pipeline as a whole must complete within the deadline.
+- The effective timeout is `min(grpc_deadline, pipeline_timeout)`.
+
+### Concurrency limit
+
+A semaphore limits concurrent ops within a single pipeline to prevent connection pool exhaustion:
+
+- **Default: 20 concurrent ops** (configurable via `--pipeline-max-concurrency`)
+- A 100-op pipeline runs in batches of 20, not all 100 simultaneously
+- Uses `tokio::sync::Semaphore` — ops acquire a permit before executing, release on completion
+- The connection pool (default 10 connections) is the ultimate backstop, but the semaphore prevents queueing 100 ops on 10 connections
+
+### Cancellation semantics
+
+If the client cancels the gRPC call (drops the connection, exceeds deadline):
+
+- Tonic drops the response future, which triggers `tokio::select!` cancellation
+- In-progress MongoDB operations that have already been sent to the server will complete on MongoDB's side (MongoDB doesn't support cancelling in-flight ops)
+- The sidecar stops dispatching new ops from the pipeline and drops pending futures
+- No partial response is sent — the client gets a transport error
+
+### Edge cases
+
+- **Empty pipeline** (`operations` is empty): returns `INVALID_ARGUMENT` error — an empty pipeline is always a client bug
+- **Duplicate ops**: allowed — the same query can appear multiple times (useful for testing or fan-out patterns)
+- **Mixed databases**: allowed — ops can target different databases within the same pipeline
+
 ### Error semantics
 
 - Individual op failures → captured in `PipelineResult.error` (the RPC succeeds)
@@ -162,8 +196,12 @@ Each `execute_pipeline_op` dispatches through the same `Operations` module that 
 ### Analytics & observability
 
 - Each sub-operation is recorded individually in the analytics collector
-- A parent span wraps the pipeline; child spans per operation (when OTel enabled)
 - Tenant quota is counted per-operation (a 10-op pipeline counts as 10 toward rate limit)
+- **OTel span structure** (when `--features otel` enabled):
+  - Parent span: `pipeline` with attributes `pipeline.size`, `pipeline.succeeded`, `pipeline.failed`
+  - Child spans: `pipeline.op[{index}].{op_type}` (e.g., `pipeline.op[0].find`, `pipeline.op[1].insert`)
+  - Each child span carries the same attributes as the standalone RPC span (database, collection, latency)
+  - Failed ops have `otel.status_code = ERROR` with the error message
 
 ## Client API (Typed Builder)
 
@@ -271,10 +309,14 @@ InsertResult insert = results.get(2).asInsert();
 | Constraint | Value | Rationale |
 |-----------|-------|-----------|
 | Max operations per pipeline | 100 | Prevents resource exhaustion from unbounded batches |
+| Max concurrent ops per pipeline | 20 | Prevents connection pool exhaustion (configurable via `--pipeline-max-concurrency`) |
+| Pipeline timeout | 30s | Prevents single slow pipeline from holding resources (configurable via `--pipeline-timeout`) |
 | Max total response size | 64MB | Existing gRPC message size limit (configurable) |
+| Empty pipeline | Rejected | Returns `INVALID_ARGUMENT` — empty batches are always a client bug |
 | Quota accounting | Per-operation | Each op counts toward tenant rate limit individually |
 | Blocked commands | Per-op validation | RunCommand ops validated against blocklist |
 | MCP safety mode | All-or-nothing | All ops validated before execution; reject entire pipeline if any violate |
+| Excluded operations | Streaming + Ingestion | Watch, FindStream, AggregateStream, InsertManyStream, InsertManyBidi, Ingest, GetIngestStatus, ListIngestJobs, CancelIngest |
 
 ## Testing Strategy
 
