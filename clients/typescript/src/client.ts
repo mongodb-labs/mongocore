@@ -3,7 +3,8 @@ import * as protoLoader from '@grpc/proto-loader';
 import * as path from 'path';
 import { Database } from './database';
 import { SidecarManager } from './sidecar';
-import type { Analytics } from './types';
+import type { Analytics, PipelineResult } from './types';
+import type { PipelineOp } from './ops';
 
 const PROTO_PATH = path.resolve(__dirname, '../../../proto/mongocore/v1/mongocore.proto');
 
@@ -312,6 +313,218 @@ export class MongoClient {
       this.getGrpcClient().stopWatch({ watchId }, CLIENT_METADATA, (err: any, response: any) => {
         if (err) return reject(err);
         resolve(response as { watchId: string; status: string });
+      });
+    });
+  }
+
+  // --- Pipeline Methods ---
+
+  /** Execute a batch of operations in a pipeline */
+  async pipeline(...operations: PipelineOp[]): Promise<PipelineResult[]> {
+    const { BSON } = await import('bson');
+
+    const encodeBson = (doc: Record<string, unknown>): Buffer => {
+      return Buffer.from(BSON.serialize(doc));
+    };
+
+    const decodeBson = (data: Buffer | Uint8Array): Record<string, unknown> => {
+      return BSON.deserialize(Buffer.from(data)) as Record<string, unknown>;
+    };
+
+    // Convert each operation to a proto PipelineOperation
+    const protoOps = operations.map((op) => {
+      const protoOp: any = {};
+
+      switch (op.type) {
+        case 'find':
+          protoOp.find = {
+            database: op.database,
+            collection: op.collection,
+            filter: { data: encodeBson(op.filter || {}) },
+            options: {
+              limit: op.limit,
+              skip: op.skip,
+            },
+          };
+          break;
+
+        case 'findOne':
+          protoOp.findOne = {
+            database: op.database,
+            collection: op.collection,
+            filter: { data: encodeBson(op.filter || {}) },
+          };
+          break;
+
+        case 'insert':
+          protoOp.insert = {
+            database: op.database,
+            collection: op.collection,
+            document: { data: encodeBson(op.document) },
+          };
+          break;
+
+        case 'insertMany':
+          protoOp.insertMany = {
+            database: op.database,
+            collection: op.collection,
+            documents: op.documents.map((d) => ({ data: encodeBson(d) })),
+          };
+          break;
+
+        case 'update':
+          protoOp.update = {
+            database: op.database,
+            collection: op.collection,
+            filter: { data: encodeBson(op.filter) },
+            update: { data: encodeBson(op.update) },
+            upsert: false,
+          };
+          break;
+
+        case 'updateMany':
+          protoOp.updateMany = {
+            database: op.database,
+            collection: op.collection,
+            filter: { data: encodeBson(op.filter) },
+            update: { data: encodeBson(op.update) },
+            upsert: false,
+          };
+          break;
+
+        case 'delete':
+          protoOp.delete = {
+            database: op.database,
+            collection: op.collection,
+            filter: { data: encodeBson(op.filter) },
+          };
+          break;
+
+        case 'deleteMany':
+          protoOp.deleteMany = {
+            database: op.database,
+            collection: op.collection,
+            filter: { data: encodeBson(op.filter) },
+          };
+          break;
+
+        case 'aggregate':
+          protoOp.aggregate = {
+            database: op.database,
+            collection: op.collection,
+            pipeline: op.pipeline.map((stage) => ({ data: encodeBson(stage) })),
+          };
+          break;
+
+        case 'runCommand':
+          protoOp.runCommand = {
+            database: op.database,
+            command: { data: encodeBson(op.command) },
+            allowAll: op.allowAll || false,
+          };
+          break;
+
+        case 'listDatabases':
+          protoOp.listDatabases = {};
+          break;
+
+        case 'listCollections':
+          protoOp.listCollections = {
+            database: op.database,
+          };
+          break;
+
+        default:
+          throw new Error(`Unknown operation type: ${(op as any).type}`);
+      }
+
+      return protoOp;
+    });
+
+    return new Promise((resolve, reject) => {
+      const request = { operations: protoOps };
+      this.getGrpcClient().pipeline(request, CLIENT_METADATA, (err: any, response: any) => {
+        if (err) return reject(err);
+
+        const results = (response.results || []).map((r: any) => {
+          const result: PipelineResult = {
+            index: r.index,
+            success: false,
+          };
+
+          // Check which result variant is present
+          if (r.find) {
+            result.success = true;
+            result.result = {
+              documents: (r.find.documents || []).map((d: any) => decodeBson(d.data)),
+            };
+          } else if (r.findOne) {
+            result.success = true;
+            result.result = {
+              document: r.findOne.document?.data ? decodeBson(r.findOne.document.data) : null,
+            };
+          } else if (r.insert) {
+            result.success = true;
+            result.result = {
+              insertedId: r.insert.insertedId,
+            };
+          } else if (r.insertMany) {
+            result.success = true;
+            result.result = {
+              insertedIds: r.insertMany.insertedIds || [],
+              insertedCount: r.insertMany.insertedCount || 0,
+            };
+          } else if (r.update) {
+            result.success = true;
+            result.result = {
+              matchedCount: r.update.matchedCount || 0,
+              modifiedCount: r.update.modifiedCount || 0,
+              upsertedId: r.update.upsertedId,
+            };
+          } else if (r.updateMany) {
+            result.success = true;
+            result.result = {
+              matchedCount: r.updateMany.matchedCount || 0,
+              modifiedCount: r.updateMany.modifiedCount || 0,
+              upsertedId: r.updateMany.upsertedId,
+            };
+          } else if (r.delete) {
+            result.success = true;
+            result.result = {
+              deletedCount: r.delete.deletedCount || 0,
+            };
+          } else if (r.deleteMany) {
+            result.success = true;
+            result.result = {
+              deletedCount: r.deleteMany.deletedCount || 0,
+            };
+          } else if (r.aggregate) {
+            result.success = true;
+            result.result = {
+              documents: (r.aggregate.documents || []).map((d: any) => decodeBson(d.data)),
+            };
+          } else if (r.runCommand) {
+            result.success = true;
+            result.result = decodeBson(r.runCommand.result.data);
+          } else if (r.listDatabases) {
+            result.success = true;
+            result.result = {
+              databases: r.listDatabases.databases || [],
+            };
+          } else if (r.listCollections) {
+            result.success = true;
+            result.result = {
+              collections: r.listCollections.collections || [],
+            };
+          } else if (r.error) {
+            result.success = false;
+            result.error = r.error;
+          }
+
+          return result;
+        });
+
+        resolve(results);
       });
     });
   }

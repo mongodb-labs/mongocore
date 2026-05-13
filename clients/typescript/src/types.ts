@@ -69,3 +69,10 @@ export interface Analytics {
   topOperations: Array<{ operation: string; count: number }>;
   topCollections: Array<{ collection: string; count: number }>;
 }
+
+export interface PipelineResult {
+  index: number;
+  success: boolean;
+  error?: string;
+  result?: any;
+}
