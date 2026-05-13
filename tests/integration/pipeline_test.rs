@@ -272,6 +272,37 @@ async fn test_pipeline_exceeds_max_ops() {
 }
 
 #[tokio::test]
+async fn test_pipeline_timeout() {
+    let mut client = start_test_server().await;
+    let coll = unique_collection();
+
+    // Create a pipeline with a valid find operation
+    let operations = vec![PipelineOperation {
+        operation: Some(Operation::Find(FindRequest {
+            database: TEST_DB.to_string(),
+            collection: coll.clone(),
+            filter: make_filter(&doc! {}),
+            options: None,
+            transaction_id: None,
+        })),
+    }];
+
+    // Set an impossibly short gRPC deadline to trigger timeout
+    let mut request = tonic::Request::new(PipelineRequest { operations });
+    request.set_timeout(std::time::Duration::from_millis(1));
+
+    let result = client.pipeline(request).await;
+
+    assert!(result.is_err());
+    let err = result.unwrap_err();
+    assert!(
+        err.code() == tonic::Code::DeadlineExceeded || err.code() == tonic::Code::Cancelled,
+        "Expected DeadlineExceeded or Cancelled, got: {:?}",
+        err.code()
+    );
+}
+
+#[tokio::test]
 async fn test_pipeline_concurrent_execution() {
     let mut client = start_test_server().await;
     let coll = unique_collection();
