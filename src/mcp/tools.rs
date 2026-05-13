@@ -5,11 +5,13 @@ use std::sync::Arc;
 
 use crate::analytics::AnalyticsCollector;
 use crate::connection::pool::ConnectionPool;
+use crate::defaults::DEFAULT_PIPELINE_MAX_OPS;
 use crate::ingestion::engine::IngestionEngine;
 use crate::ingestion::types::*;
 use crate::ingestion::watch::{DirectoryWatcher, WatchConfig};
 use crate::operations::{FindOptions, IndexOptions, Operations, RawCommandOptions, ValidationMode};
 
+use super::safety::SafetyConfig;
 use super::types::{McpContent, McpToolCallResult, McpToolDefinition};
 
 /// Maximum number of documents returned by find operations (safety control for AI agents).
@@ -312,6 +314,41 @@ pub fn tool_definitions() -> Vec<McpToolDefinition> {
                 "required": ["watch_id"]
             }),
         },
+        McpToolDefinition {
+            name: "pipeline".to_string(),
+            description: "Execute multiple independent operations concurrently in a single round-trip. All operations are validated before execution — if any violates safety rules, the entire pipeline is rejected.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "operations": {
+                        "type": "array",
+                        "description": "List of operations to execute concurrently",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "op": {
+                                    "type": "string",
+                                    "enum": ["find", "find_one", "insert", "insert_many", "update", "update_many", "delete", "delete_many", "aggregate", "find_and_modify", "run_command", "search", "create_collection", "create_index", "list_databases", "list_collections", "begin_transaction", "commit_transaction", "abort_transaction", "get_analytics"],
+                                    "description": "Operation type"
+                                },
+                                "database": { "type": "string", "description": "Database name" },
+                                "collection": { "type": "string", "description": "Collection name" },
+                                "filter": { "type": "object", "description": "Query filter" },
+                                "document": { "type": "object", "description": "Document to insert" },
+                                "documents": { "type": "array", "description": "Documents for insert_many" },
+                                "pipeline": { "type": "array", "description": "Aggregation pipeline stages" },
+                                "update": { "type": "object", "description": "Update specification" },
+                                "command": { "type": "object", "description": "Raw command document" },
+                                "options": { "type": "object", "description": "Operation-specific options (limit, skip, sort, projection, upsert)" }
+                            },
+                            "required": ["op"]
+                        },
+                        "maxItems": 100
+                    }
+                },
+                "required": ["operations"]
+            }),
+        },
     ]
 }
 
@@ -322,6 +359,7 @@ pub async fn execute_tool(
     analytics: Option<&Arc<AnalyticsCollector>>,
     ingestion: Option<&Arc<IngestionEngine>>,
     watcher: Option<&Arc<DirectoryWatcher>>,
+    safety: &SafetyConfig,
     name: &str,
     arguments: &Value,
 ) -> McpToolCallResult {
@@ -347,6 +385,10 @@ pub async fn execute_tool(
         "cancel_ingest" => execute_cancel_ingest(ingestion, arguments).await,
         "watch_directory" => execute_watch_directory(watcher, arguments).await,
         "stop_watch" => execute_stop_watch(watcher, arguments).await,
+        "pipeline" => {
+            execute_pipeline(operations, pool, analytics, ingestion, watcher, safety, arguments)
+                .await
+        }
         _ => error_result(format!("Unknown tool: {}", name)),
     }
 }
@@ -1145,6 +1187,91 @@ async fn execute_stop_watch(
     }
 }
 
+// --- Pipeline executor ---
+
+async fn execute_pipeline(
+    operations: &Operations,
+    pool: &ConnectionPool,
+    analytics: Option<&Arc<AnalyticsCollector>>,
+    ingestion: Option<&Arc<IngestionEngine>>,
+    watcher: Option<&Arc<DirectoryWatcher>>,
+    safety: &SafetyConfig,
+    args: &Value,
+) -> McpToolCallResult {
+    let ops = match args.get("operations").and_then(|v| v.as_array()) {
+        Some(arr) => arr,
+        None => return error_result("Missing required field: operations".to_string()),
+    };
+
+    if ops.is_empty() {
+        return error_result("Pipeline must contain at least one operation".to_string());
+    }
+
+    if ops.len() > DEFAULT_PIPELINE_MAX_OPS {
+        return error_result(format!(
+            "Pipeline exceeds maximum of {} operations (got {})",
+            DEFAULT_PIPELINE_MAX_OPS,
+            ops.len()
+        ));
+    }
+
+    // All-or-nothing safety validation
+    if let Err(reason) = safety.check_pipeline_allowed(ops) {
+        return error_result(reason);
+    }
+
+    // Execute all operations concurrently
+    let futures: Vec<_> = ops
+        .iter()
+        .map(|op| {
+            let op_type = op.get("op").and_then(|v| v.as_str()).unwrap_or("unknown");
+            async move {
+                let result = execute_tool(
+                    operations, pool, analytics, ingestion, watcher, safety, op_type, op,
+                )
+                .await;
+                (op_type.to_string(), result)
+            }
+        })
+        .collect();
+
+    let results = futures::future::join_all(futures).await;
+
+    let mut succeeded = 0u64;
+    let mut failed = 0u64;
+    let mut result_entries: Vec<Value> = Vec::with_capacity(results.len());
+
+    for (i, (op_type, result)) in results.into_iter().enumerate() {
+        if result.is_error {
+            failed += 1;
+        } else {
+            succeeded += 1;
+        }
+
+        let content_text = result
+            .content
+            .first()
+            .map(|c| c.text.clone())
+            .unwrap_or_default();
+
+        result_entries.push(json!({
+            "index": i,
+            "op": op_type,
+            "success": !result.is_error,
+            "content": content_text
+        }));
+    }
+
+    let output = json!({
+        "results": result_entries,
+        "succeeded": succeeded,
+        "failed": failed,
+        "total": succeeded + failed
+    });
+
+    success_result(serde_json::to_string_pretty(&output).unwrap_or_else(|_| "{}".to_string()))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1152,7 +1279,7 @@ mod tests {
     #[test]
     fn test_tool_definitions_count() {
         let tools = tool_definitions();
-        assert_eq!(tools.len(), 21);
+        assert_eq!(tools.len(), 22);
     }
 
     #[test]

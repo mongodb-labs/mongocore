@@ -1,3 +1,5 @@
+use serde_json::Value;
+
 /// Safety controls for AI agents interacting with MongoDB through MongoCore.
 #[derive(Debug, Clone)]
 pub struct SafetyConfig {
@@ -40,6 +42,49 @@ impl SafetyConfig {
             }
         }
         Ok(())
+    }
+
+    /// Check if all operations in a pipeline are allowed under current safety config.
+    /// Returns Ok(()) if all allowed, Err(reason) if any violate safety rules.
+    /// This provides all-or-nothing validation — if any operation violates rules,
+    /// the entire pipeline is rejected before execution.
+    pub fn check_pipeline_allowed(&self, operations: &[Value]) -> Result<(), String> {
+        if !self.read_only {
+            return Ok(());
+        }
+
+        let mut violations = Vec::new();
+        for (i, op) in operations.iter().enumerate() {
+            if let Some(op_type) = op.get("op").and_then(|v| v.as_str()) {
+                const WRITE_OPS: &[&str] = &[
+                    "insert",
+                    "insert_many",
+                    "update",
+                    "update_many",
+                    "delete",
+                    "delete_many",
+                    "create_collection",
+                    "create_index",
+                    "run_command",
+                    "find_and_modify",
+                ];
+                if WRITE_OPS.contains(&op_type) {
+                    violations.push(format!(
+                        "operation[{}]: '{}' is a write operation",
+                        i, op_type
+                    ));
+                }
+            }
+        }
+
+        if violations.is_empty() {
+            Ok(())
+        } else {
+            Err(format!(
+                "Pipeline rejected: server is in read-only mode. Violations:\n{}",
+                violations.join("\n")
+            ))
+        }
     }
 }
 

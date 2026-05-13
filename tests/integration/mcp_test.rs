@@ -90,7 +90,7 @@ async fn test_mcp_tools_list() {
     let resp = rpc_call(&client, &url, "tools/list", None).await;
     let tools = resp["result"]["tools"].as_array().unwrap();
 
-    assert_eq!(tools.len(), 21);
+    assert_eq!(tools.len(), 22);
 
     let names: Vec<&str> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
     let expected = [
@@ -115,6 +115,7 @@ async fn test_mcp_tools_list() {
         "cancel_ingest",
         "watch_directory",
         "stop_watch",
+        "pipeline",
     ];
     for name in &expected {
         assert!(names.contains(name), "Missing tool: {}", name);
