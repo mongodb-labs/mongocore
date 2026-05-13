@@ -12,6 +12,7 @@
 | **v0.6** | Intelligent NL→MQL routing, LLM-provided templates, template registry | **Complete** |
 | **v0.7** | Cross-language performance benchmarking suite | **Complete** |
 | **v0.8** | Performance Tier 1 (transport, streaming, compression) | **Complete** |
+| **v0.9** | Request pipelining (Performance Tier 2) | **Complete** |
 
 ## v0.1 — Core
 
@@ -105,6 +106,16 @@
 - **Client auto-discovery** — Python and Go clients automatically find UDS socket, fall back to TCP
 - **Socket lifecycle** — Automatic cleanup on shutdown, stale file removal on startup, graceful fallback on bind failure
 
+## v0.9 — Request Pipelining
+
+- **Pipeline RPC** — Batch N independent operations in a single gRPC round-trip with concurrent execution
+- **All non-streaming operations** — Find, FindOne, Insert, InsertMany, Update, UpdateMany, Delete, DeleteMany, Aggregate, FindAndModify, RunCommand, Search, CreateCollection, CreateIndex, ListDatabases, ListCollections, transactions, GetAnalytics
+- **Concurrent execution** — Operations fan out via tokio with semaphore-based concurrency limit (default 20)
+- **Per-operation errors** — Individual failures don't abort the pipeline; results indexed by position
+- **Pipeline timeout** — Configurable deadline (default 30s) with cancellation of incomplete ops
+- **MCP pipeline tool** — All-or-nothing safety validation (rejects entire pipeline if any op violates read-only mode)
+- **Typed client builders** — `ops` modules in Python, TypeScript, Go, Java with typed result accessors
+
 ## Future Roadmap
 
 | Area | Description |
@@ -119,7 +130,7 @@
 | MCP + Claude Integration | Auto-detect API key from Claude's environment when launched as MCP server |
 | Packaging & Deployment | Pre-built binaries (GitHub Releases, Homebrew), Docker images (GHCR), Helm chart |
 | Performance Tier 1 | gRPC over Unix Domain Sockets + streaming bulk responses + raised message limits | **Complete (v0.8)** |
-| Performance Tier 2 | Request pipelining — batch N independent operations in a single round-trip |
+| Performance Tier 2 | Request pipelining — batch N independent operations in a single round-trip | **Complete (v0.9)** |
 | Performance Tier 2b | Transactional pipeline — sequential ops with result forwarding between steps (dependent operations) |
 | Performance Tier 3 | Native embedding via FFI (PyO3, Neon, cgo) for zero-IPC overhead |
 | BulkWrite Operations | Collection-level and client-level bulkWrite with mixed insert/update/delete |
