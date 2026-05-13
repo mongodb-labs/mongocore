@@ -121,6 +121,7 @@
 | Area | Description |
 |------|-------------|
 | Client UDS Support | Add Unix Domain Socket auto-discovery to Java and TypeScript clients (Python and Go already supported) |
+| Pipeline Benchmarks | Add pipeline equivalents to the cross-language benchmark suite (Python, TypeScript, Go, Java) — compare N individual driver calls vs single pipeline RPC at various batch sizes |
 | Search RPC Integration | Wire compiled query translator into search handler as intelligent router |
 | Query Explanation | Show generated MQL, confidence scores, and alternative interpretations to users |
 | Hybrid Search (RRF) | Vector + fulltext with reciprocal rank fusion scoring — industry standard for RAG |
