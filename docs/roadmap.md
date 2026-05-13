@@ -120,6 +120,7 @@
 | Packaging & Deployment | Pre-built binaries (GitHub Releases, Homebrew), Docker images (GHCR), Helm chart |
 | Performance Tier 1 | gRPC over Unix Domain Sockets + streaming bulk responses + raised message limits | **Complete (v0.8)** |
 | Performance Tier 2 | Request pipelining — batch N independent operations in a single round-trip |
+| Performance Tier 2b | Transactional pipeline — sequential ops with result forwarding between steps (dependent operations) |
 | Performance Tier 3 | Native embedding via FFI (PyO3, Neon, cgo) for zero-IPC overhead |
 | BulkWrite Operations | Collection-level and client-level bulkWrite with mixed insert/update/delete |
 | Database/Collection Management | Drop database, drop collection, rename collection, list indexes, compact |
