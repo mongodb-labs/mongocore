@@ -23,7 +23,7 @@ MONGODB_URI = "mongodb://localhost:27017"
 MONGOCORE_ADDR = "localhost:50051"
 DB_NAME = "mongocore_bench_ingest"
 
-FILE_SIZES = ["1mb", "10mb", "100mb"]
+FILE_SIZES = ["10k", "100k", "500k"]
 FORMATS = ["csv", "ndjson"]
 
 

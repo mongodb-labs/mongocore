@@ -163,7 +163,7 @@ def generate_ingestion_chart(ingestion_results):
 
     CHARTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    sizes = ["1mb", "10mb", "100mb"]
+    sizes = ["10k", "100k", "500k"]
     formats = ["ndjson"]  # Use ndjson only for chart clarity
     scenarios = [
         ("Ingest", "mongocore_ingest_", "native_bulk_"),
@@ -465,7 +465,7 @@ def build_pipeline_rows(pipeline_results, single_doc_results):
 
 def build_ingestion_rows(ingestion_results):
     """Build ingestion table rows: one row per scenario+size, MC vs native side by side."""
-    sizes = ["1mb", "10mb", "100mb"]
+    sizes = ["10k", "100k", "500k"]
     formats = ["csv", "ndjson"]
     scenarios = [
         ("ingest", "mongocore_ingest_", "native_bulk_"),
