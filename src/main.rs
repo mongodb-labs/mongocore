@@ -13,6 +13,7 @@ use mongocore::ingestion::{DirectoryWatcher, IngestionEngine};
 use mongocore::mcp::{start_mcp_server, run_stdio_transport, McpHandler};
 use mongocore::mcp::safety::SafetyConfig;
 use mongocore::operations::Operations;
+use mongocore::web_ui::start_web_ui_server;
 
 #[tokio::main]
 async fn main() {
@@ -152,6 +153,7 @@ async fn main() {
             Some(pool.clone()),
             llm_provider,
             None,
+            analytics.clone(),
         )));
         let voyage = voyage_api_key.map(|key| Arc::new(mongocore::voyage::client::VoyageClient::new(key)));
         let handler = Arc::new(McpHandler::new(
@@ -169,6 +171,39 @@ async fn main() {
     } else {
         // Normal mode: print banner and start gRPC + HTTP MCP servers
         print_banner(&config);
+
+        // Create shared compiled query translator (used by both MCP and Web UI)
+        let llm_provider: Option<Box<dyn mongocore::compiled::providers::LlmProvider>> =
+            if let Some(ref gw) = config.llm_gateway {
+                Some(Box::new(mongocore::compiled::providers::gateway::GatewayProvider::new(
+                    mongocore::compiled::providers::gateway::GatewayConfig {
+                        base_url: gw.base_url.clone(),
+                        api_key: gw.api_key.clone(),
+                        auth_header: gw.auth_header.clone(),
+                        model: gw.model.clone(),
+                        provider_type: gw.provider_type.clone(),
+                    },
+                )))
+            } else {
+                None
+            };
+
+        let translator = Arc::new(CompiledQueryTranslator::new(
+            Some(pool.clone()),
+            llm_provider,
+            None,
+            analytics.clone(),
+        ));
+
+        // Start Web UI dashboard (if enabled)
+        let _web_ui_handle = start_web_ui_server(
+            &config,
+            pool.clone(),
+            analytics.clone(),
+            Some(translator.clone()),
+            ingestion_engine.clone(),
+            directory_watcher.clone(),
+        );
 
         // Start gRPC server
         let grpc_handle = start_grpc_server(
@@ -191,7 +226,7 @@ async fn main() {
         );
 
         // Start MCP server
-        let mcp_handle = start_mcp_server(pool.clone(), config.mcp_port, voyage_api_key.as_deref(), analytics, ingestion_engine, directory_watcher);
+        let mcp_handle = start_mcp_server(pool.clone(), config.mcp_port, voyage_api_key.as_deref(), analytics, ingestion_engine, directory_watcher, Some(translator));
 
         info!("MongoCore started successfully");
 
@@ -251,6 +286,9 @@ fn print_banner(config: &Config) {
     println!("  MongoCore v{}", env!("CARGO_PKG_VERSION"));
     println!("  gRPC port: {}", config.grpc_port);
     println!("  MCP port:  {}", config.mcp_port);
+    if config.web_ui_enabled {
+        println!("  Web UI:    http://127.0.0.1:{}", config.web_ui_port);
+    }
     println!("  Transport: {}", config.transport);
     if config.transport != "tcp" {
         println!("  UDS path:  {}", config.socket_path);

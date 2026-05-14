@@ -581,6 +581,65 @@ pub async fn execute_tool(
     name: &str,
     arguments: &Value,
 ) -> McpToolCallResult {
+    let start = std::time::Instant::now();
+    let result = execute_tool_inner(operations, pool, analytics, ingestion, watcher, safety, translator, voyage, skills, name, arguments).await;
+
+    // Record analytics for data operations
+    if let Some(analytics) = analytics {
+        if let Some(op_kind) = tool_name_to_operation_kind(name) {
+            let database = arguments.get("database").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let collection = arguments.get("collection").and_then(|v| v.as_str()).unwrap_or("").to_string();
+            let success = !result.is_error;
+            analytics.record(crate::analytics::AnalyticsEvent::new(
+                op_kind,
+                database,
+                collection,
+                start.elapsed(),
+                success,
+            ));
+        }
+    }
+
+    result
+}
+
+fn tool_name_to_operation_kind(name: &str) -> Option<crate::analytics::OperationKind> {
+    use crate::analytics::OperationKind;
+    match name {
+        "find" => Some(OperationKind::Find),
+        "find_one" => Some(OperationKind::FindOne),
+        "insert" => Some(OperationKind::Insert),
+        "insert_many" => Some(OperationKind::InsertMany),
+        "update" => Some(OperationKind::Update),
+        "update_many" => Some(OperationKind::UpdateMany),
+        "delete" => Some(OperationKind::Delete),
+        "delete_many" => Some(OperationKind::DeleteMany),
+        "aggregate" => Some(OperationKind::Aggregate),
+        "run_command" => Some(OperationKind::RunCommand),
+        "search" | "semantic_search" => Some(OperationKind::Search),
+        "ask" | "explain_query" => Some(OperationKind::Search),
+        "list_databases" => Some(OperationKind::ListDatabases),
+        "list_collections" => Some(OperationKind::ListCollections),
+        "create_collection" => Some(OperationKind::CreateCollection),
+        "create_index" => Some(OperationKind::CreateIndex),
+        "pipeline" => Some(OperationKind::Pipeline),
+        _ => None,
+    }
+}
+
+async fn execute_tool_inner(
+    operations: &Operations,
+    pool: &ConnectionPool,
+    analytics: Option<&Arc<AnalyticsCollector>>,
+    ingestion: Option<&Arc<IngestionEngine>>,
+    watcher: Option<&Arc<DirectoryWatcher>>,
+    safety: &SafetyConfig,
+    translator: Option<&Arc<CompiledQueryTranslator>>,
+    voyage: Option<&Arc<crate::voyage::client::VoyageClient>>,
+    skills: &SkillRegistry,
+    name: &str,
+    arguments: &Value,
+) -> McpToolCallResult {
     match name {
         "find" => execute_find(operations, arguments).await,
         "find_one" => execute_find_one(operations, arguments).await,

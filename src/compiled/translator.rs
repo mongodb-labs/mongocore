@@ -1,7 +1,10 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use bson::Document;
 
+use crate::analytics::AnalyticsCollector;
+use crate::analytics::types::LlmCallEvent;
 use crate::connection::pool::ConnectionPool;
 
 use super::cache::CacheHierarchy;
@@ -16,6 +19,7 @@ pub struct CompiledQueryTranslator {
     cache: CacheHierarchy,
     provider: Option<Box<dyn LlmProvider>>,
     template_registry: TemplateRegistry,
+    analytics: Option<Arc<AnalyticsCollector>>,
 }
 
 impl CompiledQueryTranslator {
@@ -23,12 +27,14 @@ impl CompiledQueryTranslator {
         pool: Option<ConnectionPool>,
         provider: Option<Box<dyn LlmProvider>>,
         cache_dir: Option<PathBuf>,
+        analytics: Option<Arc<AnalyticsCollector>>,
     ) -> Self {
         let cache = CacheHierarchy::new(pool, cache_dir);
         Self {
             cache,
             provider,
             template_registry: TemplateRegistry::new(),
+            analytics,
         }
     }
 
@@ -73,10 +79,29 @@ impl CompiledQueryTranslator {
         // 3. Call LLM
         let provider = self.provider.as_ref().ok_or(TranslateError::NoProvider)?;
 
-        let response = provider
+        // Instrument LLM call with timing
+        let start = std::time::Instant::now();
+        let response_result = provider
             .translate(intent, database, collection, context)
-            .await
-            .map_err(TranslateError::Llm)?;
+            .await;
+        let latency = start.elapsed();
+
+        // Record LLM call event
+        if let Some(ref analytics) = self.analytics {
+            let success = response_result.is_ok();
+            let event = LlmCallEvent {
+                provider: "unknown".to_string(),
+                model: "unknown".to_string(),
+                tokens_in: 0,  // Token counts not available from trait
+                tokens_out: 0,
+                latency,
+                success,
+                timestamp: std::time::Instant::now(),
+            };
+            analytics.record_llm_call(event);
+        }
+
+        let response = response_result.map_err(TranslateError::Llm)?;
 
         // Parse LLM response (with method and optional template)
         let parsed = Self::parse_llm_response(&response)?;
@@ -239,6 +264,10 @@ impl CompiledQueryTranslator {
     pub fn template_registry_size(&self) -> usize {
         self.template_registry.len()
     }
+
+    pub fn cache_stats(&self) -> super::cache::CacheStats {
+        self.cache.cache_stats()
+    }
 }
 
 #[derive(Debug)]
@@ -329,7 +358,7 @@ mod tests {
 
     #[tokio::test]
     async fn translate_no_provider_returns_error() {
-        let translator = CompiledQueryTranslator::new(None, None, None);
+        let translator = CompiledQueryTranslator::new(None, None, None, None);
         let context = TranslationContext::default();
         let result = translator
             .translate("find all users", "mydb", "users", &context)
@@ -343,7 +372,7 @@ mod tests {
 
     #[tokio::test]
     async fn translate_cache_hit() {
-        let translator = CompiledQueryTranslator::new(None, None, None);
+        let translator = CompiledQueryTranslator::new(None, None, None, None);
 
         // Pre-populate cache
         let hash = QueryHasher::hash("find active users", "mydb", "users", None);

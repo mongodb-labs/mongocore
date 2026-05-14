@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MongoCore Dashboard</title>
+    <link rel="stylesheet" href="/assets/pico.min.css">
+    <link rel="stylesheet" href="/assets/uplot.min.css">
+    <link rel="stylesheet" href="/assets/style.css">
+    <script src="/assets/htmx.min.js"></script>
+    <script src="/assets/uplot.min.js"></script>
+    <script defer src="/assets/alpine.min.js"></script>
+    <script src="/assets/dashboard.js"></script>
+</head>
+<body x-data="dashboard()">
+    <!-- Status Bar -->
+    <header class="status-bar" hx-get="/api/status" hx-trigger="load, every 2s" hx-swap="innerHTML">
+        <span>Loading...</span>
+    </header>
+
+    <main class="container">
+        <h1>MongoCore Dashboard</h1>
+
+        <!-- Time Window Controls -->
+        <div class="time-controls">
+            <button :class="{ 'active': window === '1m' }" @click="setWindow('1m')">1m</button>
+            <button :class="{ 'active': window === '5m' }" @click="setWindow('5m')">5m</button>
+            <button :class="{ 'active': window === '15m' }" @click="setWindow('15m')">15m</button>
+            <button :class="{ 'active': window === '1h' }" @click="setWindow('1h')">1h</button>
+        </div>
+
+        <!-- Charts -->
+        <div class="chart-grid">
+            <article>
+                <header>Operations / sec</header>
+                <div id="chart-ops" class="chart-container"></div>
+            </article>
+            <article>
+                <header>Latency (ms)</header>
+                <div id="chart-latency" class="chart-container"></div>
+            </article>
+        </div>
+
+        <!-- Operations Panel -->
+        <article>
+            <header>Top Operations</header>
+            <div hx-get="/api/operations" hx-trigger="load, every 2s" hx-swap="innerHTML">
+                <p class="empty-state">Loading...</p>
+            </div>
+        </article>
+
+        <!-- Queries Panel -->
+        <details>
+            <summary>Slowest Queries</summary>
+            <div hx-get="/api/queries" hx-trigger="load, every 2s" hx-swap="innerHTML">
+                <p class="empty-state">Loading...</p>
+            </div>
+        </details>
+
+        <!-- Pipelines Panel -->
+        <details>
+            <summary>Pipelines</summary>
+            <div hx-get="/api/pipelines" hx-trigger="load, every 2s" hx-swap="innerHTML">
+                <p class="empty-state">Loading...</p>
+            </div>
+        </details>
+
+        <!-- Errors Panel -->
+        <details>
+            <summary>Recent Errors</summary>
+            <div hx-get="/api/errors" hx-trigger="load, every 2s" hx-swap="innerHTML">
+                <p class="empty-state">Loading...</p>
+            </div>
+        </details>
+
+        <!-- Expandable Sections -->
+        <details>
+            <summary>Ingestion</summary>
+            <div hx-get="/api/ingestion" hx-trigger="load, every 5s" hx-swap="innerHTML">
+                <p class="empty-state">Loading...</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>LLM Calls</summary>
+            <div hx-get="/api/llm" hx-trigger="load, every 5s" hx-swap="innerHTML">
+                <p class="empty-state">Loading...</p>
+            </div>
+        </details>
+
+        <details>
+            <summary>Cache</summary>
+            <div hx-get="/api/cache" hx-trigger="load, every 5s" hx-swap="innerHTML">
+                <p class="empty-state">Loading...</p>
+            </div>
+        </details>
+    </main>
+</body>
+</html>

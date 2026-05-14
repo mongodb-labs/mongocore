@@ -12,7 +12,7 @@ use futures::StreamExt;
 use tonic::{Request, Response, Status};
 use uuid::Uuid;
 
-use crate::analytics::{AnalyticsCollector, AnalyticsEvent, OperationKind};
+use crate::analytics::{AnalyticsCollector, AnalyticsEvent, OperationKind, PipelineEvent};
 use crate::defaults::{DEFAULT_PIPELINE_MAX_OPS, MAX_STREAM_BATCH_SIZE, MIN_STREAM_BATCH_SIZE};
 use crate::connection::pool::ConnectionPool;
 use crate::error::MongoCoreError;
@@ -1499,6 +1499,9 @@ impl MongoCore for MongoCoreService {
         // Convert proto steps to internal PipelineStepDefs
         let steps = req.steps.iter().map(|s| convert_transaction_step(s)).collect::<Result<Vec<_>, _>>()?;
 
+        // Capture step count before steps vec is consumed
+        let step_count = steps.len();
+
         // Convert options
         let options = match req.options {
             Some(opts) => InternalTxnPipelineOptions {
@@ -1510,7 +1513,9 @@ impl MongoCore for MongoCoreService {
         };
 
         // Execute the transactional pipeline
+        let pipeline_start = std::time::Instant::now();
         let result = execute_transaction_pipeline(&self.pool, steps, options).await;
+        let pipeline_latency = pipeline_start.elapsed();
 
         match result {
             Ok(exec_result) => {
@@ -1519,6 +1524,18 @@ impl MongoCore for MongoCoreService {
                 span.record("txn_pipeline.completed", exec_result.steps_completed);
 
                 self.record_analytics(OperationKind::Pipeline, "", "", start.elapsed(), true);
+
+                // Record pipeline event for analytics dashboard
+                if let Some(ref analytics) = self.analytics {
+                    analytics.record_pipeline(PipelineEvent {
+                        is_transaction: true,
+                        steps: step_count,
+                        latency: pipeline_latency,
+                        success: true,
+                        retries: 0,
+                        timestamp: std::time::Instant::now(),
+                    });
+                }
 
                 // Convert step results to proto
                 let proto_steps: Vec<proto::TransactionStepResult> = exec_result.steps.iter().map(|sr| {
@@ -1540,6 +1557,18 @@ impl MongoCore for MongoCoreService {
             }
             Err(failure) => {
                 self.record_analytics(OperationKind::Pipeline, "", "", start.elapsed(), false);
+
+                // Record pipeline event for analytics dashboard
+                if let Some(ref analytics) = self.analytics {
+                    analytics.record_pipeline(PipelineEvent {
+                        is_transaction: true,
+                        steps: step_count,
+                        latency: pipeline_latency,
+                        success: false,
+                        retries: 0,
+                        timestamp: std::time::Instant::now(),
+                    });
+                }
 
                 let failure_json = serde_json::json!({
                     "failed_step": failure.failed_step,

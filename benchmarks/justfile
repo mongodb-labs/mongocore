@@ -139,12 +139,6 @@ bench-all:
     echo ">>> Running Java benchmarks..."
     cd drivers/java && mvn -q compile exec:java -Dexec.mainClass="com.mongocore.bench.BenchNative" && mvn -q exec:java -Dexec.mainClass="com.mongocore.bench.BenchMongocore" && cd ../..
     echo ""
-    echo ">>> Running Pipeline benchmarks..."
-    cd drivers/python && python bench_pipeline.py && cd ../..
-    cd drivers/typescript && npx ts-node bench_pipeline.ts && cd ../..
-    cd drivers/go && go run bench_pipeline.go && cd ../..
-    cd drivers/java && mvn -q compile exec:java -Dexec.mainClass="com.mongocore.bench.BenchPipeline" && cd ../..
-    echo ""
     echo ">>> Running ingestion benchmarks..."
     cd ingestion && python bench_ingest.py && cd ..
     echo ""
@@ -173,10 +167,6 @@ bench-drivers: require-setup
     just _bench-go-mongocore
     just _bench-java-native
     just _bench-java-mongocore
-    just _bench-python-pipeline
-    just _bench-typescript-pipeline
-    just _bench-go-pipeline
-    just _bench-java-pipeline
 
 # All native driver benchmarks only
 bench-drivers-native: require-setup
@@ -205,7 +195,6 @@ bench-python: require-setup
     cd {{justfile_directory()}}
     just _bench-python-native
     just _bench-python-mongocore
-    just _bench-python-pipeline
 
 # Python: native pymongo only
 bench-python-native: require-setup
@@ -228,7 +217,6 @@ bench-typescript: require-setup
     cd {{justfile_directory()}}
     just _bench-typescript-native
     just _bench-typescript-mongocore
-    just _bench-typescript-pipeline
 
 # TypeScript: native MongoDB driver only
 bench-typescript-native: require-setup
@@ -251,7 +239,6 @@ bench-go: require-setup
     cd {{justfile_directory()}}
     just _bench-go-native
     just _bench-go-mongocore
-    just _bench-go-pipeline
 
 # Go: native mongo-go-driver only
 bench-go-native: require-setup
@@ -274,7 +261,6 @@ bench-java: require-setup
     cd {{justfile_directory()}}
     just _bench-java-native
     just _bench-java-mongocore
-    just _bench-java-pipeline
 
 # Java: native MongoDB sync driver only
 bench-java-native: require-setup
@@ -289,44 +275,6 @@ bench-java-mongocore: require-setup
     set -e
     cd {{justfile_directory()}}
     just _bench-java-mongocore
-
-# Pipeline batching benchmarks (all languages)
-bench-drivers-pipeline: require-setup
-    #!/usr/bin/env bash
-    set -e
-    cd {{justfile_directory()}}
-    just _bench-python-pipeline
-    just _bench-typescript-pipeline
-    just _bench-go-pipeline
-    just _bench-java-pipeline
-
-# Python: pipeline batching
-bench-python-pipeline: require-setup
-    #!/usr/bin/env bash
-    set -e
-    cd {{justfile_directory()}}
-    just _bench-python-pipeline
-
-# TypeScript: pipeline batching
-bench-typescript-pipeline: require-setup
-    #!/usr/bin/env bash
-    set -e
-    cd {{justfile_directory()}}
-    just _bench-typescript-pipeline
-
-# Go: pipeline batching
-bench-go-pipeline: require-setup
-    #!/usr/bin/env bash
-    set -e
-    cd {{justfile_directory()}}
-    just _bench-go-pipeline
-
-# Java: pipeline batching
-bench-java-pipeline: require-setup
-    #!/usr/bin/env bash
-    set -e
-    cd {{justfile_directory()}}
-    just _bench-java-pipeline
 
 # Polars ingestion benchmarks
 bench-ingestion: require-setup
@@ -399,19 +347,3 @@ _bench-ingestion:
 [private]
 _bench-compiled:
     cd drivers/python && python bench_compiled.py
-
-[private]
-_bench-python-pipeline:
-    cd drivers/python && pip install -r requirements.txt -q && python bench_pipeline.py
-
-[private]
-_bench-typescript-pipeline:
-    cd drivers/typescript && npm install --silent && npx ts-node bench_pipeline.ts
-
-[private]
-_bench-go-pipeline:
-    cd drivers/go && go run bench_pipeline.go
-
-[private]
-_bench-java-pipeline:
-    cd drivers/java && mvn -q compile exec:java -Dexec.mainClass="com.mongocore.bench.BenchPipeline"

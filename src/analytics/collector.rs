@@ -1,11 +1,15 @@
 use crate::analytics::{AnalyticsEvent, RingBuffer};
+use crate::analytics::types::{LlmCallEvent, PipelineEvent};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Mutex;
 
 /// Main analytics collector that tracks operations using a ring buffer and atomic counters.
 pub struct AnalyticsCollector {
     buffer: RingBuffer,
     total_ops: AtomicU64,
     total_errors: AtomicU64,
+    llm_calls: Mutex<Vec<LlmCallEvent>>,
+    pipeline_events: Mutex<Vec<PipelineEvent>>,
 }
 
 impl AnalyticsCollector {
@@ -15,6 +19,8 @@ impl AnalyticsCollector {
             buffer: RingBuffer::new(buffer_capacity),
             total_ops: AtomicU64::new(0),
             total_errors: AtomicU64::new(0),
+            llm_calls: Mutex::new(Vec::new()),
+            pipeline_events: Mutex::new(Vec::new()),
         }
     }
 
@@ -49,6 +55,30 @@ impl AnalyticsCollector {
     /// Returns a snapshot of all events currently in the buffer.
     pub fn snapshot(&self) -> Vec<AnalyticsEvent> {
         self.buffer.snapshot()
+    }
+
+    pub fn record_llm_call(&self, event: LlmCallEvent) {
+        let mut calls = self.llm_calls.lock().unwrap();
+        if calls.len() >= 1000 {
+            calls.remove(0);
+        }
+        calls.push(event);
+    }
+
+    pub fn llm_calls_snapshot(&self) -> Vec<LlmCallEvent> {
+        self.llm_calls.lock().unwrap().clone()
+    }
+
+    pub fn record_pipeline(&self, event: PipelineEvent) {
+        let mut events = self.pipeline_events.lock().unwrap();
+        if events.len() >= 1000 {
+            events.remove(0);
+        }
+        events.push(event);
+    }
+
+    pub fn pipeline_events_snapshot(&self) -> Vec<PipelineEvent> {
+        self.pipeline_events.lock().unwrap().clone()
     }
 }
 

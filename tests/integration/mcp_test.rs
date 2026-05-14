@@ -19,7 +19,7 @@ async fn start_test_mcp_server() -> (HttpClient, String) {
     let port = listener.local_addr().unwrap().port();
     drop(listener);
 
-    let _handle = start_mcp_server(pool, port, None, None, None, None);
+    let _handle = start_mcp_server(pool, port, None, None, None, None, None);
     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
 
     let client = HttpClient::new();

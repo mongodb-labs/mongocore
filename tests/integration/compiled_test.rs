@@ -65,7 +65,7 @@ impl LlmProvider for MockLlmProvider {
 #[tokio::test]
 async fn test_compiled_query_basic_translation() {
     let provider = MockLlmProvider::new();
-    let translator = CompiledQueryTranslator::new(None, Some(Box::new(provider)), None);
+    let translator = CompiledQueryTranslator::new(None, Some(Box::new(provider)), None, None);
     let context = TranslationContext::default();
 
     let result = translator
@@ -88,7 +88,7 @@ async fn test_compiled_query_basic_translation() {
 async fn test_compiled_query_cache_hit() {
     let counter = Arc::new(AtomicUsize::new(0));
     let provider = MockLlmProvider::with_counter(counter.clone());
-    let translator = CompiledQueryTranslator::new(None, Some(Box::new(provider)), None);
+    let translator = CompiledQueryTranslator::new(None, Some(Box::new(provider)), None, None);
     let context = TranslationContext::default();
 
     // First call - should hit LLM
@@ -115,7 +115,7 @@ async fn test_compiled_query_cache_hit() {
 async fn test_compiled_query_different_intents() {
     let counter = Arc::new(AtomicUsize::new(0));
     let provider = MockLlmProvider::with_counter(counter.clone());
-    let translator = CompiledQueryTranslator::new(None, Some(Box::new(provider)), None);
+    let translator = CompiledQueryTranslator::new(None, Some(Box::new(provider)), None, None);
     let context = TranslationContext::default();
 
     let result1 = translator
@@ -139,7 +139,7 @@ async fn test_compiled_query_different_intents() {
 #[tokio::test]
 async fn test_compiled_query_aggregate_translation() {
     let provider = MockLlmProvider::new();
-    let translator = CompiledQueryTranslator::new(None, Some(Box::new(provider)), None);
+    let translator = CompiledQueryTranslator::new(None, Some(Box::new(provider)), None, None);
     let context = TranslationContext::default();
 
     let result = translator
@@ -170,7 +170,7 @@ async fn test_compiled_query_with_atlas_cache() {
 
     let provider = MockLlmProvider::new();
     let translator =
-        CompiledQueryTranslator::new(Some(pool.clone()), Some(Box::new(provider)), None);
+        CompiledQueryTranslator::new(Some(pool.clone()), Some(Box::new(provider)), None, None);
     let context = TranslationContext::default();
 
     // Translate - stores in L1 and L3 (Atlas)
@@ -190,7 +190,7 @@ async fn test_compiled_query_with_atlas_cache() {
     assert!(stored.is_some(), "Query should be stored in Atlas cache");
 
     // Create a new translator with the same pool (no LLM) to verify L3 cache hit
-    let translator2 = CompiledQueryTranslator::new(Some(pool.clone()), None, None);
+    let translator2 = CompiledQueryTranslator::new(Some(pool.clone()), None, None, None);
 
     let cached = translator2
         .translate("find active users", "testdb", "users", &context)
@@ -209,6 +209,7 @@ async fn test_compiled_query_disk_cache() {
         None,
         Some(Box::new(provider)),
         Some(dir.path().to_path_buf()),
+        None,
     );
     let context = TranslationContext::default();
 
@@ -227,7 +228,7 @@ async fn test_compiled_query_disk_cache() {
     assert!(!entries.is_empty(), "Disk cache should have files");
 
     // Create new translator with same disk dir but no LLM - simulates fresh start
-    let translator2 = CompiledQueryTranslator::new(None, None, Some(dir.path().to_path_buf()));
+    let translator2 = CompiledQueryTranslator::new(None, None, Some(dir.path().to_path_buf()), None);
 
     let cached = translator2
         .translate("find active users", "testdb", "users", &context)
@@ -242,7 +243,7 @@ async fn test_compiled_query_disk_cache() {
 #[tokio::test]
 async fn test_compiled_query_template_extraction() {
     let provider = MockLlmProvider::new();
-    let translator = CompiledQueryTranslator::new(None, Some(Box::new(provider)), None);
+    let translator = CompiledQueryTranslator::new(None, Some(Box::new(provider)), None, None);
     let context = TranslationContext::default();
 
     let result = translator

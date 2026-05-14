@@ -310,7 +310,7 @@ async fn test_llm_find_italian_restaurants() {
         return;
     }
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let context = restaurants_context();
 
     let result = translator
@@ -347,7 +347,7 @@ async fn test_llm_find_restaurants_in_borough() {
         return;
     }
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let context = restaurants_context();
 
     let result = translator
@@ -384,7 +384,7 @@ async fn test_llm_find_high_scoring_restaurants() {
         return;
     }
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let context = restaurants_context();
 
     let result = translator
@@ -415,7 +415,7 @@ async fn test_llm_count_by_cuisine() {
         return;
     }
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let context = restaurants_context();
 
     let result = translator
@@ -458,7 +458,7 @@ async fn test_llm_average_score_by_borough() {
         return;
     }
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let context = restaurants_context();
 
     let result = translator
@@ -489,7 +489,7 @@ async fn test_llm_cache_reuse() {
         return;
     }
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let context = restaurants_context();
 
     // First call — hits LLM
@@ -526,7 +526,7 @@ async fn test_llm_template_cache_reuse() {
         return;
     }
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let context = restaurants_context();
 
     // First call with "Manhattan" — hits LLM
@@ -582,7 +582,7 @@ async fn test_llm_mflix_scifi_90s() {
         return;
     }
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let result = translator
         .translate("find sci-fi movies from the 1990s", "sample_mflix", "movies", &movies_context())
         .await
@@ -610,7 +610,7 @@ async fn test_llm_supplies_sales_by_location() {
         return;
     }
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let result = translator
         .translate("total sales amount by store location", "sample_supplies", "sales", &sales_context())
         .await
@@ -638,7 +638,7 @@ async fn test_llm_training_zips_ny_population() {
         return;
     }
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let result = translator
         .translate("find cities in New York with population over 50000", "sample_training", "zips", &zips_context())
         .await
@@ -672,7 +672,7 @@ async fn test_llm_mflix_top_directors() {
         return;
     }
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let result = translator
         .translate("top 5 directors by average movie rating", "sample_mflix", "movies", &movies_context())
         .await
@@ -715,7 +715,7 @@ async fn test_llm_cache_different_phrasing() {
         return;
     }
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let context = restaurants_context();
 
     // Two different phrasings of the same intent
@@ -751,7 +751,7 @@ async fn test_llm_cache_cross_collection_isolation() {
         return;
     }
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
 
     // Same intent on different collections
     let result1 = translator
@@ -786,7 +786,7 @@ async fn test_llm_cache_parameterized_numbers() {
         return;
     }
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let context = zips_context();
 
     // First call with 50000 — hits LLM
@@ -830,7 +830,7 @@ async fn test_llm_injection_where_clause() {
         return;
     };
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let context = restaurants_context();
 
     // Attempt to trick LLM into producing $where
@@ -874,7 +874,7 @@ async fn test_llm_injection_out_stage() {
         return;
     };
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let context = restaurants_context();
 
     let result = translator
@@ -907,7 +907,7 @@ async fn test_llm_injection_prompt_override() {
         return;
     };
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let context = restaurants_context();
 
     // Classic prompt injection attempt
@@ -943,7 +943,7 @@ async fn test_llm_injection_cross_collection() {
         return;
     };
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let context = restaurants_context();
 
     // Try to trick into accessing a different collection
@@ -977,7 +977,7 @@ async fn test_llm_injection_sql_style() {
         return;
     };
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let context = restaurants_context();
 
     // SQL injection style — should not crash
@@ -1008,7 +1008,7 @@ async fn test_llm_injection_special_chars() {
         return;
     };
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let context = restaurants_context();
 
     // Special characters that could break JSON parsing
@@ -1049,7 +1049,7 @@ async fn test_llm_routing_filter_query() {
         return;
     }
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let context = restaurants_context();
 
     let result = translator
@@ -1081,7 +1081,7 @@ async fn test_llm_routing_aggregate_query() {
         return;
     }
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let context = restaurants_context();
 
     let result = translator
@@ -1113,7 +1113,7 @@ async fn test_llm_template_registry_reuse() {
         return;
     }
 
-    let translator = CompiledQueryTranslator::new(None, Some(provider), None);
+    let translator = CompiledQueryTranslator::new(None, Some(provider), None, None);
     let context = restaurants_context();
 
     // First call — hits LLM, should register a template

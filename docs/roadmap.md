@@ -100,6 +100,16 @@
 - **Schema resource** — `mongocore://schema/{database}/{collection}` MCP resource
 - **35 MCP tools total** — up from 21 in v0.7
 
+### Web UI & Diagnostics
+
+- **Web UI Dashboard** — Built-in diagnostic dashboard with real-time analytics
+- **Real-time Charts** — Operations/sec and latency charts powered by analytics ring buffer
+- **Operation Insights** — Operation breakdown, query insights, pipeline and transaction stats
+- **Error Tracking** — Recent errors with context
+- **Expandable Statistics** — LLM usage, ingestion progress, cache statistics
+- **Localhost-only binding** — Secure by default, binds to 127.0.0.1:27999
+- **Configuration** — Enable/disable via `--web-ui` flag, port configurable via `--web-ui-port`
+
 ### Performance Tier 1
 
 - **Unix Domain Socket transport** — `--transport` flag (both/uds/tcp), default both. Automatic socket at `/tmp/mongocore.sock`
@@ -139,7 +149,6 @@ Items ordered by recommended implementation sequence.
 
 | Area | Description |
 |------|-------------|
-| Visualizations | Web UI for analytics, query flow, and ingestion progress |
 | Search RPC Integration | Wire compiled query translator into search fallback chain as intelligent router |
 | MCP Code Quality | Extract schema helpers into `src/mcp/schema.rs`; split `tools.rs` into submodules; add document count limit to `embed_and_store`; complete `ingest_and_embed` pipeline |
 | Pipeline Benchmarks | Add pipeline equivalents to cross-language benchmark suite — compare N individual driver calls vs single pipeline RPC |

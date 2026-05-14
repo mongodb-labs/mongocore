@@ -104,33 +104,3 @@ Comparing MongoCore Polars ingestion pipeline vs native pymongo bulk insert.
 ![Ingestion Performance Chart](./{{ ingestion.chart_path }})
 {% endif %}
 {% endif %}
-{% if pipeline_data %}
-
-## Pipeline Batching
-
-Shows throughput gain from batching operations into single Pipeline RPC calls at different batch sizes.
-{% for lang in pipeline_data %}
-
-### {{ lang.name }}
-
-| Operation | Native (ops/s) | MC Individual (ops/s) | Pipeline×100 | Pipeline×1K | Pipeline×10K | Best Speedup vs Native |
-|-----------|---------------|----------------------|--------------|-------------|--------------|----------------------|
-{% for row in lang.rows -%}
-| {{ row.operation }} | {{ row.native_ops }} | {{ row.mc_individual_ops }} | {{ row.p100 }} | {{ row.p1000 }} | {{ row.p10000 }} | {{ row.best_speedup }} |
-{% endfor %}
-{% if lang.chart_path %}
-
-![Pipeline Scaling — {{ lang.name }}](./{{ lang.chart_path }})
-{% endif %}
-{% endfor %}
-{% endif %}
-{% if compiled_data %}
-
-## Compiled Query Cache
-
-| Benchmark | ops/s | p50 | p99 |
-|-----------|-------|-----|-----|
-{% for row in compiled_data -%}
-| {{ row.benchmark }} | {{ row.ops_per_sec }} | {{ row.p50 }} | {{ row.p99 }} |
-{% endfor %}
-{% endif %}

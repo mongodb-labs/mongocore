@@ -127,6 +127,29 @@ impl QueryFingerprint {
     }
 }
 
+/// Tracks a single LLM API call for the dashboard.
+#[derive(Debug, Clone)]
+pub struct LlmCallEvent {
+    pub provider: String,
+    pub model: String,
+    pub tokens_in: u32,
+    pub tokens_out: u32,
+    pub latency: Duration,
+    pub success: bool,
+    pub timestamp: Instant,
+}
+
+/// Tracks a pipeline or transaction pipeline execution.
+#[derive(Debug, Clone)]
+pub struct PipelineEvent {
+    pub is_transaction: bool,
+    pub steps: usize,
+    pub latency: Duration,
+    pub success: bool,
+    pub retries: u32,
+    pub timestamp: Instant,
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

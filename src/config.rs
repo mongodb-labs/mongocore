@@ -8,6 +8,7 @@ use crate::defaults::{
     DEFAULT_OTEL_ENDPOINT, DEFAULT_OTEL_SERVICE_NAME, DEFAULT_PIPELINE_MAX_CONCURRENCY,
     DEFAULT_PIPELINE_TIMEOUT_SECS, DEFAULT_SOCKET_PATH, DEFAULT_SOCKET_PERMISSIONS,
     DEFAULT_STREAM_BATCH_SIZE, DEFAULT_STREAM_IDLE_TIMEOUT_SECS, DEFAULT_TRANSPORT,
+    DEFAULT_WEB_UI_ENABLED, DEFAULT_WEB_UI_PORT,
 };
 use crate::error::MongoCoreError;
 
@@ -122,6 +123,14 @@ pub struct CliArgs {
     /// Run in MCP stdio mode (stdin/stdout JSON-RPC, no gRPC server)
     #[arg(long, env = "MONGOCORE_STDIO")]
     pub stdio: bool,
+
+    /// Enable web UI dashboard
+    #[arg(long, env = "MONGOCORE_WEB_UI")]
+    pub web_ui: Option<bool>,
+
+    /// Web UI port
+    #[arg(long, env = "MONGOCORE_WEB_UI_PORT")]
+    pub web_ui_port: Option<u16>,
 }
 
 /// Per-tenant configuration structure.
@@ -132,6 +141,13 @@ pub struct TenantFileConfig {
     pub max_cache_entries: Option<usize>,
     pub rate_limit_ops_per_sec: Option<u64>,
     pub connection_uri: Option<String>,
+}
+
+/// Web UI configuration from TOML.
+#[derive(Debug, Deserialize, Clone, Default)]
+pub struct WebUiFileConfig {
+    pub enabled: Option<bool>,
+    pub port: Option<u16>,
 }
 
 /// Ingestion watch configuration from TOML.
@@ -241,6 +257,7 @@ pub struct FileConfig {
     pub grpc_compression: Option<String>,
     pub pipeline_timeout_secs: Option<u64>,
     pub pipeline_max_concurrency: Option<usize>,
+    pub web_ui: Option<WebUiFileConfig>,
 }
 
 /// Resolved configuration for MongoCore.
@@ -273,6 +290,8 @@ pub struct Config {
     pub grpc_compression: String,
     pub pipeline_timeout_secs: u64,
     pub pipeline_max_concurrency: usize,
+    pub web_ui_enabled: bool,
+    pub web_ui_port: u16,
 }
 
 impl Config {
@@ -441,6 +460,16 @@ impl Config {
             .or(file_config.otel_service_name)
             .unwrap_or_else(|| DEFAULT_OTEL_SERVICE_NAME.to_string());
 
+        let web_ui_file = file_config.web_ui.unwrap_or_default();
+        let web_ui_enabled = cli
+            .web_ui
+            .or(web_ui_file.enabled)
+            .unwrap_or(DEFAULT_WEB_UI_ENABLED);
+        let web_ui_port = cli
+            .web_ui_port
+            .or(web_ui_file.port)
+            .unwrap_or(DEFAULT_WEB_UI_PORT);
+
         Ok(Config {
             connection_uri,
             grpc_port,
@@ -469,6 +498,8 @@ impl Config {
             grpc_compression,
             pipeline_timeout_secs,
             pipeline_max_concurrency,
+            web_ui_enabled,
+            web_ui_port,
         })
     }
 }
@@ -509,6 +540,8 @@ mod tests {
             pipeline_timeout_secs: None,
             pipeline_max_concurrency: None,
             stdio: false,
+            web_ui: None,
+            web_ui_port: None,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -565,6 +598,8 @@ log_level = "debug"
             pipeline_timeout_secs: None,
             pipeline_max_concurrency: None,
             stdio: false,
+            web_ui: None,
+            web_ui_port: None,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -617,6 +652,8 @@ log_level = "debug"
             pipeline_timeout_secs: None,
             pipeline_max_concurrency: None,
             stdio: false,
+            web_ui: None,
+            web_ui_port: None,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -659,6 +696,8 @@ log_level = "debug"
             pipeline_timeout_secs: None,
             pipeline_max_concurrency: None,
             stdio: false,
+            web_ui: None,
+            web_ui_port: None,
         };
 
         let result = Config::load(&cli);
@@ -713,6 +752,8 @@ connection_uri = "mongodb://other:27017"
             pipeline_timeout_secs: None,
             pipeline_max_concurrency: None,
             stdio: false,
+            web_ui: None,
+            web_ui_port: None,
         };
 
         let config = Config::load(&cli).unwrap();
@@ -766,6 +807,8 @@ connection_uri = "mongodb://other:27017"
             pipeline_timeout_secs: None,
             pipeline_max_concurrency: None,
             stdio: false,
+            web_ui: None,
+            web_ui_port: None,
         }
     }
 
@@ -833,6 +876,8 @@ conflict_strategy = "merge"
             pipeline_timeout_secs: None,
             pipeline_max_concurrency: None,
             stdio: false,
+            web_ui: None,
+            web_ui_port: None,
         };
         let config = Config::load(&cli).unwrap();
         assert_eq!(config.ingestion.sample_size, 2000);

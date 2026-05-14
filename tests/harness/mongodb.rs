@@ -40,6 +40,8 @@ pub async fn get_test_pool() -> ConnectionPool {
         grpc_compression: "none".to_string(),
         pipeline_timeout_secs: 30,
         pipeline_max_concurrency: 20,
+        web_ui_enabled: true,
+        web_ui_port: 27999,
     };
 
     ConnectionPool::connect(&config)

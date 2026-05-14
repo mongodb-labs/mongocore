@@ -3,6 +3,7 @@ pub mod disk;
 pub mod memory;
 
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use crate::connection::pool::ConnectionPool;
 
@@ -11,10 +12,29 @@ use atlas::AtlasCache;
 use disk::DiskCache;
 use memory::MemoryCache;
 
+#[derive(Debug, Clone)]
+pub struct CacheStats {
+    pub l1_hits: u64,
+    pub l1_misses: u64,
+    pub l2_hits: u64,
+    pub l2_misses: u64,
+    pub l3_hits: u64,
+    pub l3_misses: u64,
+    pub evictions: u64,
+    pub l1_size: usize,
+}
+
 pub struct CacheHierarchy {
     l1: MemoryCache,
     l2: Option<DiskCache>,
     l3: Option<AtlasCache>,
+    l1_hits: AtomicU64,
+    l1_misses: AtomicU64,
+    l2_hits: AtomicU64,
+    l2_misses: AtomicU64,
+    l3_hits: AtomicU64,
+    l3_misses: AtomicU64,
+    evictions: AtomicU64,
 }
 
 impl CacheHierarchy {
@@ -25,6 +45,13 @@ impl CacheHierarchy {
             l1: MemoryCache::default(),
             l2,
             l3,
+            l1_hits: AtomicU64::new(0),
+            l1_misses: AtomicU64::new(0),
+            l2_hits: AtomicU64::new(0),
+            l2_misses: AtomicU64::new(0),
+            l3_hits: AtomicU64::new(0),
+            l3_misses: AtomicU64::new(0),
+            evictions: AtomicU64::new(0),
         }
     }
 
@@ -32,24 +59,32 @@ impl CacheHierarchy {
     pub async fn get(&self, hash: &str) -> Option<CompiledQuery> {
         // L1
         if let Some(query) = self.l1.get(hash) {
+            self.l1_hits.fetch_add(1, Ordering::Relaxed);
             return Some(query);
         }
+        self.l1_misses.fetch_add(1, Ordering::Relaxed);
+
         // L2
         if let Some(ref l2) = self.l2 {
             if let Some(query) = l2.get(hash) {
+                self.l2_hits.fetch_add(1, Ordering::Relaxed);
                 self.l1.put(query.clone()); // promote to L1
                 return Some(query);
             }
+            self.l2_misses.fetch_add(1, Ordering::Relaxed);
         }
+
         // L3
         if let Some(ref l3) = self.l3 {
             if let Some(query) = l3.get(hash).await {
+                self.l3_hits.fetch_add(1, Ordering::Relaxed);
                 self.l1.put(query.clone()); // promote to L1
                 if let Some(ref l2) = self.l2 {
                     let _ = l2.put(&query); // promote to L2
                 }
                 return Some(query);
             }
+            self.l3_misses.fetch_add(1, Ordering::Relaxed);
         }
         None
     }
@@ -91,6 +126,19 @@ impl CacheHierarchy {
 
     pub fn l1_size(&self) -> usize {
         self.l1.len()
+    }
+
+    pub fn cache_stats(&self) -> CacheStats {
+        CacheStats {
+            l1_hits: self.l1_hits.load(Ordering::Relaxed),
+            l1_misses: self.l1_misses.load(Ordering::Relaxed),
+            l2_hits: self.l2_hits.load(Ordering::Relaxed),
+            l2_misses: self.l2_misses.load(Ordering::Relaxed),
+            l3_hits: self.l3_hits.load(Ordering::Relaxed),
+            l3_misses: self.l3_misses.load(Ordering::Relaxed),
+            evictions: self.evictions.load(Ordering::Relaxed),
+            l1_size: self.l1_size(),
+        }
     }
 }
 

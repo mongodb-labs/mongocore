@@ -6,6 +6,8 @@ pub mod template_registry;
 pub mod translator;
 pub mod validator;
 
+pub use cache::CacheStats;
+
 use bson::Document;
 use serde::{Deserialize, Serialize};
 

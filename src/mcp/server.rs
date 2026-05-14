@@ -11,6 +11,7 @@ use tower_http::cors::CorsLayer;
 use tracing::info;
 
 use crate::analytics::AnalyticsCollector;
+use crate::compiled::translator::CompiledQueryTranslator;
 use crate::connection::pool::ConnectionPool;
 use crate::ingestion::engine::IngestionEngine;
 use crate::ingestion::watch::DirectoryWatcher;
@@ -36,11 +37,12 @@ pub fn start_mcp_server(
     analytics: Option<Arc<AnalyticsCollector>>,
     ingestion: Option<Arc<IngestionEngine>>,
     watcher: Option<Arc<DirectoryWatcher>>,
+    translator: Option<Arc<CompiledQueryTranslator>>,
 ) -> JoinHandle<()> {
     let operations = Operations::new(pool.clone());
     let safety = SafetyConfig::default();
     let voyage = voyage_api_key.map(|key| Arc::new(VoyageClient::new(key.to_string())));
-    let handler = McpHandler::new(operations, pool, safety, analytics, ingestion, watcher, None, voyage, false);
+    let handler = McpHandler::new(operations, pool, safety, analytics, ingestion, watcher, translator, voyage, false);
     let state = Arc::new(AppState { handler });
 
     let app = Router::new()

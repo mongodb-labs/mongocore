@@ -1,0 +1,75 @@
+.status-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--pico-card-background-color);
+    border-bottom: 1px solid var(--pico-muted-border-color);
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-size: 0.85rem;
+}
+
+.status-bar .status-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.status-bar .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-bar .dot.green { background: #22c55e; }
+.status-bar .dot.red { background: #ef4444; }
+
+.time-controls {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.time-controls button {
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+    width: auto;
+    margin: 0;
+}
+
+.time-controls button.active {
+    background: var(--pico-primary);
+    color: var(--pico-primary-inverse);
+}
+
+.chart-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+    .chart-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.chart-container {
+    min-height: 200px;
+    width: 100%;
+}
+
+.empty-state {
+    color: var(--pico-muted-color);
+    font-style: italic;
+    text-align: center;
+    padding: 1rem;
+}
+
+table {
+    font-size: 0.85rem;
+}

@@ -108,6 +108,29 @@ All config options can be set via environment variables:
 | `MONGOCORE_GRPC_COMPRESSION` | Compression algorithm | `none` |
 | `MONGOCORE_STREAM_BATCH_SIZE` | Streaming batch size | `1000` |
 | `MONGOCORE_STREAM_IDLE_TIMEOUT_SECS` | Stream idle timeout | `60` |
+| `MONGOCORE_WEB_UI` | Enable/disable Web UI | `true` |
+| `MONGOCORE_WEB_UI_PORT` | Web UI port | `27999` |
+
+### Configuration Priority
+
+CLI args > Environment variables > TOML file > Defaults
+
+## Web UI Dashboard
+
+MongoCore includes a built-in diagnostic dashboard served on localhost.
+
+| Setting | CLI | Env Var | TOML | Default |
+|---------|-----|---------|------|---------|
+| Enable/disable | `--web-ui` | `MONGOCORE_WEB_UI` | `[web_ui] enabled` | `true` |
+| Port | `--web-ui-port` | `MONGOCORE_WEB_UI_PORT` | `[web_ui] port` | `27999` |
+
+The dashboard binds to `127.0.0.1` only (not accessible from other machines).
+Open `http://127.0.0.1:27999` after starting MongoCore to view:
+- Real-time operations/sec and latency charts
+- Operation breakdown and query insights
+- Pipeline and transaction pipeline stats
+- Recent errors
+- LLM usage, ingestion progress, and cache statistics (expandable)
 
 ### Configuration Priority
 

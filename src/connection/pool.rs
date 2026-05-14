@@ -251,6 +251,8 @@ mod tests {
             grpc_compression: "none".to_string(),
             pipeline_timeout_secs: 30,
             pipeline_max_concurrency: 20,
+            web_ui_enabled: true,
+            web_ui_port: 27999,
         };
 
         let options = ConnectionPool::build_client_options(&config).await.unwrap();
@@ -312,6 +314,8 @@ mod tests {
             grpc_compression: "none".to_string(),
             pipeline_timeout_secs: 30,
             pipeline_max_concurrency: 20,
+            web_ui_enabled: true,
+            web_ui_port: 27999,
         };
 
         let options = ConnectionPool::build_client_options(&config).await.unwrap();
@@ -352,6 +356,8 @@ mod tests {
             grpc_compression: "none".to_string(),
             pipeline_timeout_secs: 30,
             pipeline_max_concurrency: 20,
+            web_ui_enabled: true,
+            web_ui_port: 27999,
         };
 
         let options = ConnectionPool::build_client_options(&config).await.unwrap();
@@ -390,6 +396,8 @@ mod tests {
             grpc_compression: "none".to_string(),
             pipeline_timeout_secs: 30,
             pipeline_max_concurrency: 20,
+            web_ui_enabled: true,
+            web_ui_port: 27999,
         };
 
         let options = ConnectionPool::build_client_options(&config).await.unwrap();

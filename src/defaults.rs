@@ -96,3 +96,9 @@ pub fn default_read_preference() -> mongodb::options::ReadPreference {
         options: Default::default(),
     }
 }
+
+/// Default Web UI port.
+pub const DEFAULT_WEB_UI_PORT: u16 = 27999;
+
+/// Whether the Web UI is enabled by default.
+pub const DEFAULT_WEB_UI_ENABLED: bool = true;
