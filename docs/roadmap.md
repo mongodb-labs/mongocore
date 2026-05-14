@@ -1,22 +1,8 @@
 # Roadmap & Version History
 
-## Version History
+## Completed Features
 
-| Version | Focus | Status |
-|---------|-------|--------|
-| **v0.1** | Core sidecar, gRPC + MCP, compiled queries, Voyage AI, search, change streams | **Complete** |
-| **v0.2** | Raw passthrough, query analytics, multi-tenant support | **Complete** |
-| **v0.3** | Intelligent data ingestion (Polars-powered ETL) | **Complete** |
-| **v0.4** | Integration (driver metadata, URL ingestion, OpenTelemetry), full client test coverage | **Complete** |
-| **v0.5** | Custom LLM gateway, simplified config, validator hardening, LLM integration tests | **Complete** |
-| **v0.6** | Intelligent NL→MQL routing, LLM-provided templates, template registry | **Complete** |
-| **v0.7** | Cross-language performance benchmarking suite | **Complete** |
-| **v0.8** | MCP + Claude Integration: Intelligent Data Companion | **Complete** |
-| **v0.8.1** | Performance Tier 1 (transport, streaming, compression) | **Complete** |
-| **v0.9** | Request pipelining (Performance Tier 2) | **Complete** |
-| **v0.10** | Transactional pipelines (dependent operations with result forwarding) | **Complete** |
-
-## v0.1 — Core
+### Core
 
 - **25 gRPC RPCs** — Full CRUD, aggregation, transactions, search, admin, watch, ingestion
 - **Change streams (Watch)** — Server-streaming RPC with auto-close in all clients (Python `async with`, TypeScript `AsyncDisposable`, Go `io.Closer`, Java `AutoCloseable`)
@@ -28,7 +14,7 @@
 - **Polyglot clients** — Python, TypeScript, Go, and Java with full CRUD, Watch, and ingestion support
 - **Opinionated defaults** — Majority concerns, retryable ops, sensible timeouts, auto `readConcern:local` for search
 
-## v0.2 — Power Users & Operations
+### Power Users & Operations
 
 - **Raw wire protocol passthrough** — `RunCommand` RPC for arbitrary MongoDB commands with safety validation
 - **Command blocklist** — Dangerous commands (`dropDatabase`, `shutdown`, etc.) blocked by default, explicit opt-in override
@@ -39,7 +25,7 @@
 - **Per-tenant rate limiting** — Configurable ops/sec with `RESOURCE_EXHAUSTED` on breach
 - **Tenant registry** — TOML `[[tenants]]` config with per-tenant connection URI override
 
-## v0.3 — Intelligent Data Ingestion
+### Intelligent Data Ingestion
 
 - **Polars-based ingestion** — CSV, JSON, NDJSON, Parquet with parallel processing via Polars LazyFrames
 - **Schema inference** — Spark-connector-inspired multi-row sampling with Polars→BSON type mapping and type widening
@@ -53,7 +39,7 @@
 - **6 gRPC RPCs** — Ingest, GetIngestStatus, ListIngestJobs, CancelIngest, WatchDirectory, StopWatch
 - **6 MCP tools** — Full AI agent support for data ingestion workflows
 
-## v0.4 — Integration & Testing
+### Integration & Testing
 
 - **Driver metadata** — MongoCore identifies itself in MongoDB handshakes (`mongocore/0.1.0`), per-client-language tagging via `x-client-language` header
 - **URL-based ingestion** — Ingest from HTTP/HTTPS, S3, GCS, Azure Blob URLs via Polars cloud feature (no download step)
@@ -64,7 +50,7 @@
 - **AGENTS.md / CLAUDE.md** — Universal AI agent development guide and Claude Code specialization
 - **Testing rules** — Enforced test parity across all clients, verbose output, proto regeneration workflow documented
 
-## v0.5 — LLM Gateway & Security
+### LLM Gateway & Security
 
 - **Custom LLM gateway** — Configurable base URL, auth header, and model for corporate AI gateways/proxies (supports both Anthropic and OpenAI request formats)
 - **Simplified LLM config** — Direct API keys in TOML (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`) with env var fallback, auto-detect provider
@@ -75,7 +61,7 @@
 - **Sample data in Docker** — `just docker-up` loads Atlas sample datasets for LLM testing
 - **TEST_LLM_INTEGRATION flag** — Opt-in flag for LLM tests, reads config from `config.test.toml`
 
-## v0.6 — Intelligent NL→MQL Routing & Templates
+### Intelligent NL→MQL Routing & Templates
 
 - **LLM-provided templates** — LLM returns parameterized templates alongside MQL, enabling cache reuse across semantic variants ("Italian restaurants" → "Chinese restaurants" without LLM call)
 - **Intelligent method routing** — LLM classifies query intent and routes to optimal execution: filter, aggregate, vector_search, fulltext, or geo
@@ -85,7 +71,7 @@
 - **23 LLM integration tests** — Routing verification, template reuse, multi-database, injection safety
 - **Zero warnings policy** — Enforced in AGENTS.md/CLAUDE.md, all commits must produce zero compiler warnings
 
-## v0.7 — Performance Benchmarking
+### Performance Benchmarking
 
 - **Cross-language benchmark suite** — Python, TypeScript, Go, Java comparing native drivers vs MongoCore sidecar
 - **MongoDB Driver Benchmarking Spec** — Batched iterations (10K ops/iter), warmup, percentile reporting (p10-p99), before_task cleanup
@@ -98,7 +84,7 @@
 - **Timestamped results** — Each run stored in `results/<timestamp>/` with `latest` symlink, history committed to git
 - **Honest caveats** — Documented limitations (uncontrolled environment, no tuning, localhost, gRPC limits, single client)
 
-## v0.8 — MCP + Claude Integration
+### MCP + Claude Integration
 
 - **Stdio MCP transport** — `--stdio` flag for Claude Desktop/Code integration, JSON-RPC over stdin/stdout
 - **`ask` tool** — Natural language questions → MQL → execute → return answer with generated query and confidence
@@ -114,7 +100,7 @@
 - **Schema resource** — `mongocore://schema/{database}/{collection}` MCP resource
 - **35 MCP tools total** — up from 21 in v0.7
 
-## v0.8.1 — Performance Tier 1
+### Performance Tier 1
 
 - **Unix Domain Socket transport** — `--transport` flag (both/uds/tcp), default both. Automatic socket at `/tmp/mongocore.sock`
 - **64MB message limit** — Raised from 4MB default, configurable via `--grpc-max-message-size`
@@ -124,7 +110,7 @@
 - **Client auto-discovery** — Python and Go clients automatically find UDS socket, fall back to TCP
 - **Socket lifecycle** — Automatic cleanup on shutdown, stale file removal on startup, graceful fallback on bind failure
 
-## v0.9 — Request Pipelining
+### Request Pipelining
 
 - **Pipeline RPC** — Batch N independent operations in a single gRPC round-trip with concurrent execution
 - **All non-streaming operations** — Find, FindOne, Insert, InsertMany, Update, UpdateMany, Delete, DeleteMany, Aggregate, FindAndModify, RunCommand, Search, CreateCollection, CreateIndex, ListDatabases, ListCollections, transactions, GetAnalytics
@@ -134,7 +120,7 @@
 - **MCP pipeline tool** — All-or-nothing safety validation (rejects entire pipeline if any op violates read-only mode)
 - **Typed client builders** — `ops` modules in Python, TypeScript, Go, Java with typed result accessors
 
-## v0.10 — Transactional Pipelines
+### Transactional Pipelines
 
 - **TransactionPipeline RPC** — Execute sequential dependent operations atomically within a single MongoDB transaction
 - **Result forwarding** — `{{step_name.field}}` reference syntax resolves prior step results into subsequent operations
