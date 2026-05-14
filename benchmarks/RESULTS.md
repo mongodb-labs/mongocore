@@ -1,10 +1,12 @@
 # Benchmark Results
 
-Generated: 2026-05-14 16:44 UTC
+Generated: 2026-05-14 16:46 UTC
 
 ![Native vs MongoCore Overhead](results/charts/sidecar_overhead.svg)
 
-## Single-Document Operations
+## Driver Operations
+
+MongoCore ops/s per language vs fastest native driver.
 
 | Operation | Python | TypeScript | Go | Java | Fastest Native | Overhead |
 |-----------|-------:|-----------:|---:|-----:|---------------:|---------:|
@@ -12,11 +14,6 @@ Generated: 2026-05-14 16:44 UTC
 | insert_one_large | 39 | 38 | 38 | 31 | 46 | +21% |
 | insert_one_small | 1286 | 1440 | 1499 | 1400 | 4288 | +67% |
 | run_command | 2628 | 2933 | 3607 | 3849 | 6081 | +46% |
-
-## Multi-Document Operations
-
-| Operation | Python | TypeScript | Go | Java | Fastest Native | Overhead |
-|-----------|-------:|-----------:|---:|-----:|---------------:|---------:|
 | bulk_insert_large | 42 | — | 42 | — | 50 | +15% |
 | bulk_insert_small | 113.5K | 137.0K | 148.5K | 147.5K | 215.9K | +37% |
 | find_many | 245.0K | 249.7K | 182.7K | 227.7K | 522.4K | +57% |

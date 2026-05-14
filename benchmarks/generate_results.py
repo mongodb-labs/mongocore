@@ -526,13 +526,15 @@ def generate():
     # Build template data
     system = next((r.get("system", {}) for r in results if r.get("system")), {})
 
+    # Combine single-doc and multi-doc into one table
+    driver_ops = build_comparison_rows(single_doc_results) + build_comparison_rows(multi_doc_results)
+
     context = {
         "generated_at": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "overhead_chart": rel(overhead_chart),
         "pipeline_chart": rel(pipeline_chart),
         "ingestion_chart": rel(ingestion_chart),
-        "single_doc": build_comparison_rows(single_doc_results),
-        "multi_doc": build_comparison_rows(multi_doc_results),
+        "driver_ops": driver_ops,
         "pipeline": build_pipeline_rows(pipeline_results, single_doc_results),
         "ingestion": build_ingestion_rows(ingestion_results),
         "system": system,

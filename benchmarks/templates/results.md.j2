@@ -6,28 +6,18 @@ Generated: {{ generated_at }}
 ![Native vs MongoCore Overhead]({{ overhead_chart }})
 
 {% endif %}
-## Single-Document Operations
+## Driver Operations
 
-{% if single_doc %}
+MongoCore ops/s per language vs fastest native driver.
+
+{% if driver_ops %}
 | Operation | Python | TypeScript | Go | Java | Fastest Native | Overhead |
 |-----------|-------:|-----------:|---:|-----:|---------------:|---------:|
-{% for row in single_doc %}
+{% for row in driver_ops %}
 | {{ row.operation }} | {{ row.python }} | {{ row.typescript }} | {{ row.go }} | {{ row.java }} | {{ row.native }} | {{ row.overhead }} |
 {% endfor %}
 {% else %}
-No single-document results available.
-{% endif %}
-
-## Multi-Document Operations
-
-{% if multi_doc %}
-| Operation | Python | TypeScript | Go | Java | Fastest Native | Overhead |
-|-----------|-------:|-----------:|---:|-----:|---------------:|---------:|
-{% for row in multi_doc %}
-| {{ row.operation }} | {{ row.python }} | {{ row.typescript }} | {{ row.go }} | {{ row.java }} | {{ row.native }} | {{ row.overhead }} |
-{% endfor %}
-{% else %}
-No multi-document results available.
+No driver operation results available.
 {% endif %}
 
 ## Pipeline Batching
