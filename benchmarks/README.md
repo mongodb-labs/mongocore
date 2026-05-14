@@ -45,8 +45,8 @@ These benchmarks provide a directional comparison, not absolute performance numb
 1. **Uncontrolled environment.** Benchmarks run on a developer workstation with no attempt to disable CPU frequency scaling, isolate cores, or eliminate background noise. Results will vary between runs.
 2. **No tuning.** Neither the native drivers nor MongoCore have been tuned for optimal throughput (e.g. connection pool sizes, batch sizes, write concerns are all defaults).
 3. **Localhost only.** Running against a local Docker MongoDB eliminates network latency — the dominant cost in production. These numbers isolate sidecar overhead, not end-to-end performance.
-4. **gRPC message limits.** MongoCore benchmarks skip `bulk_insert_large` and `find_many_large` due to the default 4MB gRPC message size limit. Native drivers have no such constraint.
-5. **Single-client.** All benchmarks use a single connection/client. MongoCore's connection pooling and multiplexing benefits don't appear in these results.
+4. **Single-client.** All benchmarks use a single connection/client. MongoCore's connection pooling and multiplexing benefits don't appear in these results.
+5. **Client library overhead included.** MongoCore benchmarks use the language-specific client libraries (not raw gRPC), so results include BSON encoding/decoding and client-side marshalling — matching what real applications would experience.
 
 ## Results
 
