@@ -139,21 +139,15 @@ Items ordered by recommended implementation sequence.
 
 | Area | Description |
 |------|-------------|
-| Streaming Client Wrappers | Expose FindStream, AggregateStream, InsertManyStream, InsertManyBidi in all 4 client libraries |
+| Visualizations | Web UI for analytics, query flow, and ingestion progress |
 | Search RPC Integration | Wire compiled query translator into search fallback chain as intelligent router |
-| Hybrid Search (RRF) | Vector + fulltext with reciprocal rank fusion scoring — industry standard for RAG |
 | MCP Code Quality | Extract schema helpers into `src/mcp/schema.rs`; split `tools.rs` into submodules; add document count limit to `embed_and_store`; complete `ingest_and_embed` pipeline |
-| BulkWrite Operations | Collection-level and client-level bulkWrite with mixed insert/update/delete |
-| Database/Collection Management | Drop database, drop collection, rename collection, list indexes, compact |
-| Query Explanation (Enhanced) | Add confidence scores, alternative interpretations, and cost estimates to `explain_query` |
 | Pipeline Benchmarks | Add pipeline equivalents to cross-language benchmark suite — compare N individual driver calls vs single pipeline RPC |
-| Window Functions | Moving averages, running totals, rankings via $setWindowFields |
-| Graph Queries | $graphLookup support with safety constraints for recursive hierarchy traversal |
-| Enterprise Compliance | Audit trail, multi-tenant auto-scoping, role-based field redaction, query governance |
 | Demo | Curated restaurant dataset, scripted demo flow |
+| Query Explanation (Enhanced) | Add confidence scores, alternative interpretations, and cost estimates to `explain_query` |
 | Self-Contained AI | Local NL→MQL model, no external LLM dependency required |
 | Native Embedding (FFI) | PyO3, Neon, cgo embedding for zero-IPC overhead |
-| Visualizations | Web UI for analytics, query flow, and ingestion progress |
+| Driver API parity | Add all the standard driver level database / client apis |
 | Migration & Ecosystem | Framework adapters (Mongoose, Spring Data, etc.), migration paths |
 | WASM & Extensibility | Browser client, WASM compilation target, plugin system |
 | Packaging & Deployment | Pre-built binaries (GitHub Releases, Homebrew), Docker images (GHCR), Helm chart |

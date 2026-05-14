@@ -60,7 +60,7 @@ cargo run
 cargo run -- --config config.toml
 ```
 
-See [Testing](./docs/testing.md) for test setup, commands, and Docker configuration.
+See [testing](./docs/testing.md) for test setup, commands, and Docker configuration.
 
 ### Connect (Python example)
 
@@ -77,7 +77,7 @@ See [Quick Start](./docs/quick-start.md) for all languages (Python, TypeScript, 
 
 ## Documentation
 
-Full documentation is available in the [`docs/`](./docs/) folder — see the [Documentation Index](./docs/README.md) for all guides.
+Full documentation is available in the [`docs/`](./docs#readme) folder.
 
 ## Opinionated Defaults
 
