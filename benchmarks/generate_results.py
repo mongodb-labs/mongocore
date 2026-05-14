@@ -198,7 +198,7 @@ def generate_ingestion_chart(ingestion_results):
 
     group_width = plot_width / num_groups
     bar_width = group_width / 3
-    colors = ["#f97316", "#3b82f6"]  # orange = MongoCore, blue = native
+    colors = ["#3b82f6", "#f97316"]  # blue = native, orange = MongoCore
 
     max_val = max(max(d["mongocore_mbps"], d["native_mbps"]) for d in chart_data)
     y_scale = plot_height / max_val
@@ -223,7 +223,7 @@ def generate_ingestion_chart(ingestion_results):
     for g_idx, d in enumerate(chart_data):
         group_x = margin_left + g_idx * group_width
 
-        for b_idx, (key, color) in enumerate(zip(["mongocore_mbps", "native_mbps"], colors)):
+        for b_idx, (key, color) in enumerate(zip(["native_mbps", "mongocore_mbps"], colors)):
             val = d[key]
             x = group_x + (b_idx + 0.5) * bar_width
             bar_h = val * y_scale
@@ -237,7 +237,7 @@ def generate_ingestion_chart(ingestion_results):
     # Legend
     legend_x = margin_left + 10
     legend_y = margin_top + plot_height + 45
-    for i, (color, label) in enumerate(zip(colors, ["MongoCore (1 RPC)", "Native (read+parse+insert)"])):
+    for i, (color, label) in enumerate(zip(colors, ["Native (read+parse+insert)", "MongoCore (1 RPC)"])):
         x = legend_x + i * 220
         svg.append(f'  <rect x="{x}" y="{legend_y}" width="12" height="12" fill="{color}" rx="2"/>')
         svg.append(f'  <text x="{x + 16}" y="{legend_y + 10}" font-size="11" fill="#374151">{label}</text>')
@@ -479,13 +479,22 @@ def build_ingestion_rows(ingestion_results):
                 mc = next((r for r in ingestion_results if r["benchmark"] == f"{mc_prefix}{size}_{fmt}"), None)
                 native = next((r for r in ingestion_results if r["benchmark"] == f"{native_prefix}{size}_{fmt}"), None)
 
+                mc_mbps = mc["mb_per_sec"] if mc else None
+                native_mbps = native["mb_per_sec"] if native else None
+
+                if mc_mbps and native_mbps and native_mbps > 0:
+                    speedup = mc_mbps / native_mbps
+                    speedup_str = f"{speedup:.1f}x"
+                else:
+                    speedup_str = "—"
+
                 rows.append({
                     "operation": scenario_label,
                     "format": fmt,
                     "size": size,
-                    "mc_mbps": f"{mc['mb_per_sec']:.2f}" if mc else "—",
-                    "native_mbps": f"{native['mb_per_sec']:.2f}" if native else "—",
-                    "p50": f"{mc['percentiles']['p50']:.3f}" if mc else "—",
+                    "mc_mbps": f"{mc_mbps:.2f}" if mc_mbps else "—",
+                    "native_mbps": f"{native_mbps:.2f}" if native_mbps else "—",
+                    "speedup": speedup_str,
                 })
     return rows
 

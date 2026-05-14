@@ -14,26 +14,26 @@
   <line x1="70" y1="40.0" x2="670" y2="40.0" stroke="#e5e7eb" stroke-width="1"/>
   <text x="62" y="44.0" text-anchor="end" font-size="11" fill="#6b7280">65</text>
   <text x="15" y="155.0" text-anchor="middle" font-size="11" fill="#6b7280" transform="rotate(-90 15 155.0)">MB/s</text>
-  <rect x="86.66666666666667" y="214.44332247058645" width="26.66666666666667" height="55.55667752941356" fill="#f97316" rx="2"/>
-  <rect x="120.0" y="203.9287954590658" width="26.66666666666667" height="66.07120454093419" fill="#3b82f6" rx="2"/>
+  <rect x="86.66666666666667" y="203.9287954590658" width="26.66666666666667" height="66.07120454093419" fill="#3b82f6" rx="2"/>
+  <rect x="120.0" y="214.44332247058645" width="26.66666666666667" height="55.55667752941356" fill="#f97316" rx="2"/>
   <text x="120.0" y="288" text-anchor="middle" font-size="11">10k Ingest</text>
-  <rect x="186.66666666666666" y="170.14366365263692" width="26.66666666666667" height="99.8563363473631" fill="#f97316" rx="2"/>
-  <rect x="220.0" y="207.7644160891051" width="26.66666666666667" height="62.235583910894874" fill="#3b82f6" rx="2"/>
+  <rect x="186.66666666666666" y="207.7644160891051" width="26.66666666666667" height="62.235583910894874" fill="#3b82f6" rx="2"/>
+  <rect x="220.0" y="170.14366365263692" width="26.66666666666667" height="99.8563363473631" fill="#f97316" rx="2"/>
   <text x="220.0" y="288" text-anchor="middle" font-size="11">10k + Transform</text>
-  <rect x="286.6666666666667" y="111.94075978029713" width="26.66666666666667" height="158.05924021970287" fill="#f97316" rx="2"/>
-  <rect x="320.0" y="210.77309098698" width="26.66666666666667" height="59.22690901301999" fill="#3b82f6" rx="2"/>
+  <rect x="286.6666666666667" y="210.77309098698" width="26.66666666666667" height="59.22690901301999" fill="#3b82f6" rx="2"/>
+  <rect x="320.0" y="111.94075978029713" width="26.66666666666667" height="158.05924021970287" fill="#f97316" rx="2"/>
   <text x="320.0" y="288" text-anchor="middle" font-size="11">100k Ingest</text>
-  <rect x="386.6666666666667" y="64.51278285215955" width="26.66666666666667" height="205.48721714784045" fill="#f97316" rx="2"/>
-  <rect x="420.0" y="206.99025412707886" width="26.66666666666667" height="63.00974587292115" fill="#3b82f6" rx="2"/>
+  <rect x="386.6666666666667" y="206.99025412707886" width="26.66666666666667" height="63.00974587292115" fill="#3b82f6" rx="2"/>
+  <rect x="420.0" y="64.51278285215955" width="26.66666666666667" height="205.48721714784045" fill="#f97316" rx="2"/>
   <text x="420.0" y="288" text-anchor="middle" font-size="11">100k + Transform</text>
-  <rect x="486.6666666666667" y="88.78276036168359" width="26.66666666666667" height="181.2172396383164" fill="#f97316" rx="2"/>
-  <rect x="520.0" y="212.6064472697786" width="26.66666666666667" height="57.39355273022138" fill="#3b82f6" rx="2"/>
+  <rect x="486.6666666666667" y="212.6064472697786" width="26.66666666666667" height="57.39355273022138" fill="#3b82f6" rx="2"/>
+  <rect x="520.0" y="88.78276036168359" width="26.66666666666667" height="181.2172396383164" fill="#f97316" rx="2"/>
   <text x="520.0" y="288" text-anchor="middle" font-size="11">500k Ingest</text>
-  <rect x="586.6666666666666" y="40.0" width="26.66666666666667" height="230.0" fill="#f97316" rx="2"/>
-  <rect x="620.0" y="210.72734505286027" width="26.66666666666667" height="59.27265494713973" fill="#3b82f6" rx="2"/>
+  <rect x="586.6666666666666" y="210.72734505286027" width="26.66666666666667" height="59.27265494713973" fill="#3b82f6" rx="2"/>
+  <rect x="620.0" y="40.0" width="26.66666666666667" height="230.0" fill="#f97316" rx="2"/>
   <text x="620.0" y="288" text-anchor="middle" font-size="11">500k + Transform</text>
-  <rect x="80" y="315" width="12" height="12" fill="#f97316" rx="2"/>
-  <text x="96" y="325" font-size="11" fill="#374151">MongoCore (1 RPC)</text>
-  <rect x="300" y="315" width="12" height="12" fill="#3b82f6" rx="2"/>
-  <text x="316" y="325" font-size="11" fill="#374151">Native (read+parse+insert)</text>
+  <rect x="80" y="315" width="12" height="12" fill="#3b82f6" rx="2"/>
+  <text x="96" y="325" font-size="11" fill="#374151">Native (read+parse+insert)</text>
+  <rect x="300" y="315" width="12" height="12" fill="#f97316" rx="2"/>
+  <text x="316" y="325" font-size="11" fill="#374151">MongoCore (1 RPC)</text>
 </svg>
