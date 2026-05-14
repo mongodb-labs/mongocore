@@ -157,40 +157,37 @@ def generate_overhead_chart(single_doc_results, multi_doc_results):
 
 
 def generate_ingestion_chart(ingestion_results):
-    """Generate SVG chart comparing MongoCore ingestion vs native bulk insert."""
+    """Generate SVG chart comparing MongoCore vs native for both ingest and transform."""
     if not ingestion_results:
         return None
 
     CHARTS_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Group by size (1mb, 10mb, 100mb) and format (csv, ndjson)
-    mc_results = [r for r in ingestion_results if "mongocore" in r["driver"]]
-    native_results = [r for r in ingestion_results if "native" in r["driver"]]
-
-    if not mc_results or not native_results:
-        return None
-
-    # Extract size from benchmark name, e.g. "mongocore_ingest_10mb_csv"
     sizes = ["1mb", "10mb", "100mb"]
-    formats = ["csv", "ndjson"]
+    formats = ["ndjson"]  # Use ndjson only for chart clarity
+    scenarios = [
+        ("Ingest", "mongocore_ingest_", "native_bulk_"),
+        ("+ Transform", "mongocore_transform_", "native_transform_"),
+    ]
 
     chart_data = []
     for size in sizes:
         for fmt in formats:
-            mc = next((r for r in mc_results if size in r["benchmark"] and fmt in r["benchmark"]), None)
-            native = next((r for r in native_results if size in r["benchmark"] and fmt in r["benchmark"]), None)
-            if mc and native:
-                chart_data.append({
-                    "label": f"{size} {fmt}",
-                    "mongocore_mbps": mc["mb_per_sec"],
-                    "native_mbps": native["mb_per_sec"],
-                })
+            for scenario_label, mc_prefix, native_prefix in scenarios:
+                mc = next((r for r in ingestion_results if r["benchmark"] == f"{mc_prefix}{size}_{fmt}"), None)
+                native = next((r for r in ingestion_results if r["benchmark"] == f"{native_prefix}{size}_{fmt}"), None)
+                if mc and native:
+                    chart_data.append({
+                        "label": f"{size} {scenario_label}",
+                        "mongocore_mbps": mc["mb_per_sec"],
+                        "native_mbps": native["mb_per_sec"],
+                    })
 
     if not chart_data:
         return None
 
     num_groups = len(chart_data)
-    chart_width = max(600, num_groups * 100)
+    chart_width = max(700, num_groups * 110)
     chart_height = 350
     margin_left = 70
     margin_right = 30
@@ -209,7 +206,7 @@ def generate_ingestion_chart(ingestion_results):
     svg = []
     svg.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {chart_width} {chart_height}" font-family="system-ui, sans-serif" font-size="12">')
     svg.append(f'  <rect width="{chart_width}" height="{chart_height}" fill="white"/>')
-    svg.append(f'  <text x="{chart_width/2}" y="20" text-anchor="middle" font-size="14" font-weight="bold">Ingestion Throughput (MB/s)</text>')
+    svg.append(f'  <text x="{chart_width/2}" y="20" text-anchor="middle" font-size="14" font-weight="bold">End-to-End Ingestion Throughput — NDJSON (MB/s)</text>')
 
     # Y-axis
     num_ticks = 5
@@ -240,8 +237,8 @@ def generate_ingestion_chart(ingestion_results):
     # Legend
     legend_x = margin_left + 10
     legend_y = margin_top + plot_height + 45
-    for i, (color, label) in enumerate(zip(colors, ["MongoCore (Polars)", "Native (pymongo bulk)"])):
-        x = legend_x + i * 200
+    for i, (color, label) in enumerate(zip(colors, ["MongoCore (1 RPC)", "Native (read+parse+insert)"])):
+        x = legend_x + i * 220
         svg.append(f'  <rect x="{x}" y="{legend_y}" width="12" height="12" fill="{color}" rx="2"/>')
         svg.append(f'  <text x="{x + 16}" y="{legend_y + 10}" font-size="11" fill="#374151">{label}</text>')
 
@@ -467,26 +464,29 @@ def build_pipeline_rows(pipeline_results, single_doc_results):
 
 
 def build_ingestion_rows(ingestion_results):
-    """Build ingestion table rows: one row per operation+size, MC vs native side by side."""
-    mc_results = [r for r in ingestion_results if "mongocore" in r["driver"]]
-    native_results = [r for r in ingestion_results if "native" in r["driver"]]
-
+    """Build ingestion table rows: one row per scenario+size, MC vs native side by side."""
     sizes = ["1mb", "10mb", "100mb"]
     formats = ["csv", "ndjson"]
+    scenarios = [
+        ("ingest", "mongocore_ingest_", "native_bulk_"),
+        ("ingest + transform", "mongocore_transform_", "native_transform_"),
+    ]
 
     rows = []
-    for size in sizes:
-        for fmt in formats:
-            mc = next((r for r in mc_results if size in r["benchmark"] and fmt in r["benchmark"]), None)
-            native = next((r for r in native_results if size in r["benchmark"] and fmt in r["benchmark"]), None)
+    for scenario_label, mc_prefix, native_prefix in scenarios:
+        for size in sizes:
+            for fmt in formats:
+                mc = next((r for r in ingestion_results if r["benchmark"] == f"{mc_prefix}{size}_{fmt}"), None)
+                native = next((r for r in ingestion_results if r["benchmark"] == f"{native_prefix}{size}_{fmt}"), None)
 
-            rows.append({
-                "operation": fmt,
-                "size": size,
-                "mc_mbps": f"{mc['mb_per_sec']:.2f}" if mc else "—",
-                "native_mbps": f"{native['mb_per_sec']:.2f}" if native else "—",
-                "p50": f"{mc['percentiles']['p50']:.3f}" if mc else "—",
-            })
+                rows.append({
+                    "operation": scenario_label,
+                    "format": fmt,
+                    "size": size,
+                    "mc_mbps": f"{mc['mb_per_sec']:.2f}" if mc else "—",
+                    "native_mbps": f"{native['mb_per_sec']:.2f}" if native else "—",
+                    "p50": f"{mc['percentiles']['p50']:.3f}" if mc else "—",
+                })
     return rows
 
 

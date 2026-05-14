@@ -45,10 +45,10 @@ No pipeline results available.
 
 {% endif %}
 {% if ingestion %}
-| Operation | Size | MongoCore (MB/s) | Native (MB/s) | p50 (s) |
-|-----------|-----:|-----------------:|--------------:|--------:|
+| Scenario | Format | Size | MongoCore (MB/s) | Native (MB/s) | p50 (s) |
+|----------|--------|-----:|-----------------:|--------------:|--------:|
 {% for row in ingestion %}
-| {{ row.operation }} | {{ row.size }} | {{ row.mc_mbps }} | {{ row.native_mbps }} | {{ row.p50 }} |
+| {{ row.operation }} | {{ row.format }} | {{ row.size }} | {{ row.mc_mbps }} | {{ row.native_mbps }} | {{ row.p50 }} |
 {% endfor %}
 {% else %}
 No ingestion results available.

@@ -1,39 +1,30 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 350" font-family="system-ui, sans-serif" font-size="12">
-  <rect width="600" height="350" fill="white"/>
-  <text x="300.0" y="20" text-anchor="middle" font-size="14" font-weight="bold">Ingestion Throughput (MB/s)</text>
-  <line x1="70" y1="270.0" x2="570" y2="270.0" stroke="#e5e7eb" stroke-width="1"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 350" font-family="system-ui, sans-serif" font-size="12">
+  <rect width="700" height="350" fill="white"/>
+  <text x="350.0" y="20" text-anchor="middle" font-size="14" font-weight="bold">End-to-End Ingestion Throughput — NDJSON (MB/s)</text>
+  <line x1="70" y1="270.0" x2="670" y2="270.0" stroke="#e5e7eb" stroke-width="1"/>
   <text x="62" y="274.0" text-anchor="end" font-size="11" fill="#6b7280">0</text>
-  <line x1="70" y1="224.0" x2="570" y2="224.0" stroke="#e5e7eb" stroke-width="1"/>
+  <line x1="70" y1="224.0" x2="670" y2="224.0" stroke="#e5e7eb" stroke-width="1"/>
   <text x="62" y="228.0" text-anchor="end" font-size="11" fill="#6b7280">4</text>
-  <line x1="70" y1="178.0" x2="570" y2="178.0" stroke="#e5e7eb" stroke-width="1"/>
+  <line x1="70" y1="178.0" x2="670" y2="178.0" stroke="#e5e7eb" stroke-width="1"/>
   <text x="62" y="182.0" text-anchor="end" font-size="11" fill="#6b7280">8</text>
-  <line x1="70" y1="132.0" x2="570" y2="132.0" stroke="#e5e7eb" stroke-width="1"/>
+  <line x1="70" y1="132.0" x2="670" y2="132.0" stroke="#e5e7eb" stroke-width="1"/>
   <text x="62" y="136.0" text-anchor="end" font-size="11" fill="#6b7280">12</text>
-  <line x1="70" y1="86.0" x2="570" y2="86.0" stroke="#e5e7eb" stroke-width="1"/>
+  <line x1="70" y1="86.0" x2="670" y2="86.0" stroke="#e5e7eb" stroke-width="1"/>
   <text x="62" y="90.0" text-anchor="end" font-size="11" fill="#6b7280">16</text>
-  <line x1="70" y1="40.0" x2="570" y2="40.0" stroke="#e5e7eb" stroke-width="1"/>
+  <line x1="70" y1="40.0" x2="670" y2="40.0" stroke="#e5e7eb" stroke-width="1"/>
   <text x="62" y="44.0" text-anchor="end" font-size="11" fill="#6b7280">20</text>
   <text x="15" y="155.0" text-anchor="middle" font-size="11" fill="#6b7280" transform="rotate(-90 15 155.0)">MB/s</text>
-  <rect x="83.88888888888889" y="180.17357762777243" width="22.22222222222222" height="89.82642237222758" fill="#f97316" rx="2"/>
-  <rect x="111.66666666666666" y="128.36725371770797" width="22.22222222222222" height="141.63274628229203" fill="#3b82f6" rx="2"/>
-  <text x="111.66666666666666" y="288" text-anchor="middle" font-size="11">1mb csv</text>
-  <rect x="167.2222222222222" y="167.93990762827997" width="22.22222222222222" height="102.06009237172005" fill="#f97316" rx="2"/>
-  <rect x="194.99999999999997" y="40.0" width="22.22222222222222" height="230.0" fill="#3b82f6" rx="2"/>
-  <text x="194.99999999999997" y="288" text-anchor="middle" font-size="11">1mb ndjson</text>
-  <rect x="250.55555555555554" y="135.77983048266762" width="22.22222222222222" height="134.22016951733238" fill="#f97316" rx="2"/>
-  <rect x="278.3333333333333" y="113.50708014008018" width="22.22222222222222" height="156.49291985991982" fill="#3b82f6" rx="2"/>
-  <text x="278.3333333333333" y="288" text-anchor="middle" font-size="11">10mb csv</text>
-  <rect x="333.8888888888889" y="78.55707252702635" width="22.22222222222222" height="191.44292747297365" fill="#f97316" rx="2"/>
-  <rect x="361.6666666666667" y="42.81327716591383" width="22.22222222222222" height="227.18672283408617" fill="#3b82f6" rx="2"/>
-  <text x="361.6666666666667" y="288" text-anchor="middle" font-size="11">10mb ndjson</text>
-  <rect x="417.22222222222223" y="131.8809318377912" width="22.22222222222222" height="138.1190681622088" fill="#f97316" rx="2"/>
-  <rect x="445.0" y="129.55793533979596" width="22.22222222222222" height="140.44206466020404" fill="#3b82f6" rx="2"/>
-  <text x="445.0" y="288" text-anchor="middle" font-size="11">100mb csv</text>
-  <rect x="500.55555555555554" y="69.56859361518548" width="22.22222222222222" height="200.43140638481452" fill="#f97316" rx="2"/>
-  <rect x="528.3333333333333" y="73.8527127848551" width="22.22222222222222" height="196.1472872151449" fill="#3b82f6" rx="2"/>
-  <text x="528.3333333333333" y="288" text-anchor="middle" font-size="11">100mb ndjson</text>
+  <rect x="103.33333333333334" y="167.93990762827997" width="53.33333333333334" height="102.06009237172005" fill="#f97316" rx="2"/>
+  <rect x="170.0" y="40.0" width="53.33333333333334" height="230.0" fill="#3b82f6" rx="2"/>
+  <text x="170.0" y="288" text-anchor="middle" font-size="11">1mb Ingest</text>
+  <rect x="303.3333333333333" y="78.55707252702635" width="53.33333333333334" height="191.44292747297365" fill="#f97316" rx="2"/>
+  <rect x="370.0" y="42.81327716591383" width="53.33333333333334" height="227.18672283408617" fill="#3b82f6" rx="2"/>
+  <text x="370.0" y="288" text-anchor="middle" font-size="11">10mb Ingest</text>
+  <rect x="503.3333333333333" y="69.56859361518548" width="53.33333333333334" height="200.43140638481452" fill="#f97316" rx="2"/>
+  <rect x="570.0" y="73.8527127848551" width="53.33333333333334" height="196.1472872151449" fill="#3b82f6" rx="2"/>
+  <text x="570.0" y="288" text-anchor="middle" font-size="11">100mb Ingest</text>
   <rect x="80" y="315" width="12" height="12" fill="#f97316" rx="2"/>
-  <text x="96" y="325" font-size="11" fill="#374151">MongoCore (Polars)</text>
-  <rect x="280" y="315" width="12" height="12" fill="#3b82f6" rx="2"/>
-  <text x="296" y="325" font-size="11" fill="#374151">Native (pymongo bulk)</text>
+  <text x="96" y="325" font-size="11" fill="#374151">MongoCore (1 RPC)</text>
+  <rect x="300" y="315" width="12" height="12" fill="#3b82f6" rx="2"/>
+  <text x="316" y="325" font-size="11" fill="#374151">Native (read+parse+insert)</text>
 </svg>
