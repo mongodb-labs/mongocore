@@ -1,6 +1,6 @@
 # Benchmark Results
 
-Generated: 2026-05-14 19:15 UTC
+Generated: 2026-05-14 19:17 UTC
 
 ![Native vs MongoCore Overhead](results/charts/sidecar_overhead.svg)
 
@@ -17,8 +17,8 @@ Generated: 2026-05-14 19:15 UTC
 | find_many | 245.0K | 249.7K | 182.7K | 227.7K | 522.4K | +57% |
 | find_many_large | 48 | — | 45 | — | 57 | +18% |
 
-**Native:** Each driver connects directly to MongoDB and executes 10,000 operations per iteration.
-**MongoCore:** Same operations routed through the gRPC sidecar using each language's client library.
+**Native:** Each driver connects directly to MongoDB and executes 10,000 operations per iteration.<br>
+**MongoCore:** Same operations routed through the gRPC sidecar using each language's client library.<br>
 **What this shows:** The pure sidecar overhead (gRPC serialization + proxy hop) on localhost with no network latency to amortize it — this is the worst case for MongoCore.
 
 ## Pipeline Batching
@@ -37,8 +37,8 @@ Generated: 2026-05-14 19:15 UTC
 | run_command | 1000 | 17.9K | 16.8K | 18.8K | 19.6K | 6081 | 3.0x |
 | run_command | 10000 | 18.2K | 16.8K | 19.2K | 19.7K | 6081 | 3.0x |
 
-**Native:** Each operation is a separate round-trip to MongoDB (10,000 individual calls per iteration).
-**MongoCore:** N operations batched into a single gRPC call (e.g. batch 1000 = 10 calls of 1000 ops each).
+**Native:** Each operation is a separate round-trip to MongoDB (10,000 individual calls per iteration).<br>
+**MongoCore:** N operations batched into a single gRPC call (e.g. batch 1000 = 10 calls of 1000 ops each).<br>
 **What this shows:** The benefit of reducing round-trips — even with sidecar overhead, batching multiple operations into fewer network calls is significantly faster than individual calls.
 
 ## Ingestion
@@ -60,8 +60,8 @@ Generated: 2026-05-14 19:15 UTC
 | ingest + transform | csv | 500k | 12.68 | 41.98 | 3.3x |
 | ingest + transform | ndjson | 500k | 16.84 | 65.36 | 3.9x |
 
-**Native:** Read file from disk, parse with Python's csv/json stdlib, apply transforms in a per-row loop, batch insert with 4 concurrent threads (pymongo).
-**MongoCore:** Single gRPC call triggers Polars (Rust) to read, parse, and apply vectorized transforms, then write with 4 concurrent async tasks.
+**Native:** Read file from disk, parse with Python's csv/json stdlib, apply transforms in a per-row loop, batch insert with 4 concurrent threads (pymongo).<br>
+**MongoCore:** Single gRPC call triggers Polars (Rust) to read, parse, and apply vectorized transforms, then write with 4 concurrent async tasks.<br>
 **What this shows:** At scale, Polars' columnar processing and Rust-native I/O outperform Python's per-row parsing and transformation — the gap widens with row count.
 
 ## Environment
