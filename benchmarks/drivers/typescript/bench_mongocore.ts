@@ -1,31 +1,15 @@
 /**
  * Benchmark MongoCore TypeScript client (via gRPC sidecar).
- * Uses @grpc/grpc-js + @grpc/proto-loader to connect directly.
+ * Uses the @mongocore/client library.
  */
 
-import { BSON } from "bson";
-import * as grpc from '@grpc/grpc-js';
-import * as protoLoader from '@grpc/proto-loader';
 import { readFileSync, mkdirSync, writeFileSync } from 'fs';
-import { join, resolve } from 'path';
+import { join } from 'path';
 import { performance } from 'perf_hooks';
 import * as os from 'os';
 import * as crypto from 'crypto';
+import { MongoClient } from '../../../clients/typescript/src';
 
-// Load proto
-const PROTO_PATH = resolve(__dirname, '..', '..', '..', 'proto', 'mongocore', 'v1', 'mongocore.proto');
-const packageDef = protoLoader.loadSync(PROTO_PATH, {
-  keepCase: false,
-  longs: Number,
-  enums: String,
-  defaults: true,
-  oneofs: true,
-  includeDirs: [resolve(__dirname, '..', '..', '..', 'proto')],
-});
-const proto = grpc.loadPackageDefinition(packageDef) as any;
-const MongoCore = proto.mongocore.v1.MongoCore;
-
-// Load config
 const CONFIG = JSON.parse(readFileSync(join(__dirname, '..', 'common.json'), 'utf-8'));
 const DATA_DIR = join(__dirname, '..', '..', 'data');
 const RESULTS_DIR = join(__dirname, '..', '..', 'results');
@@ -40,15 +24,6 @@ const ADDR = CONFIG.mongocore_address;
 
 function newId(): string {
   return crypto.randomUUID().replace(/-/g, '').slice(0, 24);
-}
-
-function promisify(client: any, method: string, request: any): Promise<any> {
-  return new Promise((resolve, reject) => {
-    client[method](request, (err: any, response: any) => {
-      if (err) reject(err);
-      else resolve(response);
-    });
-  });
 }
 
 interface BenchResult {
@@ -69,7 +44,6 @@ interface BenchResult {
 async function runBenchmark(
   name: string,
   category: string,
-  client: any,
   setupFn: () => Promise<void>,
   beforeTaskFn: () => Promise<void>,
   taskFn: () => Promise<void>,
@@ -134,7 +108,7 @@ async function runBenchmark(
       p99: Math.round(pct(99) * 1000000) / 1000000,
     },
     timestamp: new Date().toISOString(),
-    system: { os: os.platform(), arch: os.arch(), cpus: os.cpus().length, driver: 'mongocore+typescript', mongocore_version: '0.6.0' },
+    system: { os: os.platform(), arch: os.arch(), cpus: os.cpus().length, driver: 'mongocore+typescript', mongocore_version: '0.6.0', transport: 'tcp' },
   };
 
   console.log(`  ${name}: ${opsPerSec.toFixed(0)} ops/s, ${mbPerSec.toFixed(2)} MB/s (${times.length} iterations)`);
@@ -144,7 +118,8 @@ async function runBenchmark(
 async function main() {
   console.log('=== MongoCore+TypeScript benchmarks ===');
 
-  const client = new MongoCore(ADDR, grpc.credentials.createInsecure());
+  const client = new MongoClient(ADDR);
+  await client.connect();
   const results: BenchResult[] = [];
 
   const smallDoc = JSON.parse(readFileSync(join(DATA_DIR, 'small_doc.json'), 'utf-8'));
@@ -154,21 +129,14 @@ async function main() {
   const tweetSize = Buffer.byteLength(JSON.stringify(tweetDoc));
   const largeSize = Buffer.byteLength(JSON.stringify(largeDoc));
 
-  // Helper: encode doc to BSON-like bytes for proto
-  const encodeDoc = (doc: any) => Buffer.from(BSON.serialize(doc));
-
   // Run Command (batch 10K)
   results.push(await runBenchmark(
-    'run_command', 'single_doc', client,
+    'run_command', 'single_doc',
     async () => {},
     async () => {},
     async () => {
       for (let i = 0; i < 10_000; i++) {
-        await promisify(client, 'runCommand', {
-          database: DB_NAME,
-          command: { data: encodeDoc({ hello: 1 }) },
-          allowAll: false,
-        });
+        await client.runCommand(DB_NAME, { hello: 1 });
       }
     },
     async () => {},
@@ -177,37 +145,37 @@ async function main() {
   ));
 
   // Find One by ID (batch 10K)
+  const findColl = client.db(DB_NAME).collection('bench_find_ts_mc');
   results.push(await runBenchmark(
-    'find_one_by_id', 'single_doc', client,
+    'find_one_by_id', 'single_doc',
     async () => {
-      await promisify(client, 'runCommand', { database: DB_NAME, command: { data: encodeDoc({ drop: 'bench_find_ts_mc' }) }, allowAll: false }).catch(() => {});
-      const doc = { ...tweetDoc, _id: 'bench_find_001' };
-      await promisify(client, 'insert', { database: DB_NAME, collection: 'bench_find_ts_mc', document: { data: encodeDoc(doc) } });
+      await client.runCommand(DB_NAME, { drop: 'bench_find_ts_mc' }).catch(() => {});
+      await findColl.insertOne({ ...tweetDoc, _id: 'bench_find_001' });
     },
     async () => {},
     async () => {
       for (let i = 0; i < 10_000; i++) {
-        await promisify(client, 'findOne', { database: DB_NAME, collection: 'bench_find_ts_mc', filter: { data: encodeDoc({ _id: 'bench_find_001' }) } });
+        await findColl.findOne({ _id: 'bench_find_001' });
       }
     },
     async () => {},
     async () => {
-      await promisify(client, 'runCommand', { database: DB_NAME, command: { data: encodeDoc({ drop: 'bench_find_ts_mc' }) }, allowAll: false }).catch(() => {});
+      await client.runCommand(DB_NAME, { drop: 'bench_find_ts_mc' }).catch(() => {});
     },
     10_000 * tweetSize, 10_000,
   ));
 
   // InsertOne Small (batch 10K)
+  const insertColl = client.db(DB_NAME).collection('bench_insert_ts_mc');
   results.push(await runBenchmark(
-    'insert_one_small', 'single_doc', client,
+    'insert_one_small', 'single_doc',
     async () => {},
     async () => {
-      await promisify(client, 'runCommand', { database: DB_NAME, command: { data: encodeDoc({ drop: 'bench_insert_ts_mc' }) }, allowAll: false }).catch(() => {});
+      await client.runCommand(DB_NAME, { drop: 'bench_insert_ts_mc' }).catch(() => {});
     },
     async () => {
       for (let i = 0; i < 10_000; i++) {
-        const doc = { ...smallDoc, _id: newId() };
-        await promisify(client, 'insert', { database: DB_NAME, collection: 'bench_insert_ts_mc', document: { data: encodeDoc(doc) } });
+        await insertColl.insertOne({ ...smallDoc, _id: newId() });
       }
     },
     async () => {},
@@ -216,16 +184,16 @@ async function main() {
   ));
 
   // InsertOne Large (batch 10)
+  const insertLargeColl = client.db(DB_NAME).collection('bench_insert_large_ts_mc');
   results.push(await runBenchmark(
-    'insert_one_large', 'single_doc', client,
+    'insert_one_large', 'single_doc',
     async () => {},
     async () => {
-      await promisify(client, 'runCommand', { database: DB_NAME, command: { data: encodeDoc({ drop: 'bench_insert_large_ts_mc' }) }, allowAll: false }).catch(() => {});
+      await client.runCommand(DB_NAME, { drop: 'bench_insert_large_ts_mc' }).catch(() => {});
     },
     async () => {
       for (let i = 0; i < 10; i++) {
-        const doc = { ...largeDoc, _id: newId() };
-        await promisify(client, 'insert', { database: DB_NAME, collection: 'bench_insert_large_ts_mc', document: { data: encodeDoc(doc) } });
+        await insertLargeColl.insertOne({ ...largeDoc, _id: newId() });
       }
     },
     async () => {},
@@ -234,32 +202,34 @@ async function main() {
   ));
 
   // Bulk Insert Small (10K per iteration)
+  const bulkColl = client.db(DB_NAME).collection('bench_bulk_ts_mc');
   results.push(await runBenchmark(
-    'bulk_insert_small', 'multi_doc', client,
+    'bulk_insert_small', 'multi_doc',
     async () => {},
     async () => {
-      await promisify(client, 'runCommand', { database: DB_NAME, command: { data: encodeDoc({ drop: 'bench_bulk_ts_mc' }) }, allowAll: false }).catch(() => {});
+      await client.runCommand(DB_NAME, { drop: 'bench_bulk_ts_mc' }).catch(() => {});
     },
     async () => {
-      const docs = Array.from({ length: 10_000 }, () => ({ data: encodeDoc({ ...smallDoc, _id: newId() }) }));
-      await promisify(client, 'insertMany', { database: DB_NAME, collection: 'bench_bulk_ts_mc', documents: docs });
+      const docs = Array.from({ length: 10_000 }, () => ({ ...smallDoc, _id: newId() }));
+      await bulkColl.insertMany(docs);
     },
     async () => {},
     async () => {},
     smallSize * 10_000, 10_000,
   ));
 
-  // Find Many (2K docs — gRPC 4MB limit)
+  // Find Many (2K docs)
+  const findManyColl = client.db(DB_NAME).collection('bench_find_many_ts_mc');
   results.push(await runBenchmark(
-    'find_many', 'multi_doc', client,
+    'find_many', 'multi_doc',
     async () => {
-      await promisify(client, 'runCommand', { database: DB_NAME, command: { data: encodeDoc({ drop: 'bench_find_many_ts_mc' }) }, allowAll: false }).catch(() => {});
-      const docs = Array.from({ length: 2_000 }, () => ({ data: encodeDoc({ ...smallDoc, _id: newId() }) }));
-      await promisify(client, 'insertMany', { database: DB_NAME, collection: 'bench_find_many_ts_mc', documents: docs });
+      await client.runCommand(DB_NAME, { drop: 'bench_find_many_ts_mc' }).catch(() => {});
+      const docs = Array.from({ length: 2_000 }, () => ({ ...smallDoc, _id: newId() }));
+      await findManyColl.insertMany(docs);
     },
     async () => {},
     async () => {
-      await promisify(client, 'find', { database: DB_NAME, collection: 'bench_find_many_ts_mc', filter: { data: encodeDoc({}) } });
+      await findManyColl.find({});
     },
     async () => {},
     async () => {},
@@ -274,7 +244,7 @@ async function main() {
   writeFileSync(outputPath, JSON.stringify(results, null, 2));
   console.log(`\nResults saved to ${outputPath}`);
 
-  client.close();
+  await client.close();
 }
 
 main().catch((err) => { console.error(err); process.exit(1); });

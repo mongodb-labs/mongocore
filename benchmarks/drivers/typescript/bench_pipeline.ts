@@ -1,28 +1,14 @@
 /**
  * Benchmark MongoCore pipeline batching at different batch sizes.
- * Uses raw gRPC proto (same approach as bench_mongocore.ts).
+ * Uses the @mongocore/client library.
  */
 
-import { BSON } from "bson";
-import * as grpc from '@grpc/grpc-js';
-import * as protoLoader from '@grpc/proto-loader';
 import { readFileSync, mkdirSync, writeFileSync } from 'fs';
-import { join, resolve } from 'path';
+import { join } from 'path';
 import { performance } from 'perf_hooks';
 import * as os from 'os';
 import * as crypto from 'crypto';
-
-const PROTO_PATH = resolve(__dirname, '..', '..', '..', 'proto', 'mongocore', 'v1', 'mongocore.proto');
-const packageDef = protoLoader.loadSync(PROTO_PATH, {
-  keepCase: false,
-  longs: Number,
-  enums: String,
-  defaults: true,
-  oneofs: true,
-  includeDirs: [resolve(__dirname, '..', '..', '..', 'proto')],
-});
-const proto = grpc.loadPackageDefinition(packageDef) as any;
-const MongoCore = proto.mongocore.v1.MongoCore;
+import { MongoClient, ops } from '../../../clients/typescript/src';
 
 const CONFIG = JSON.parse(readFileSync(join(__dirname, '..', 'common.json'), 'utf-8'));
 const DATA_DIR = join(__dirname, '..', '..', 'data');
@@ -43,17 +29,6 @@ function newId(): string {
   return crypto.randomUUID().replace(/-/g, '').slice(0, 24);
 }
 
-function promisify(client: any, method: string, request: any): Promise<any> {
-  return new Promise((resolve, reject) => {
-    client[method](request, (err: any, response: any) => {
-      if (err) reject(err);
-      else resolve(response);
-    });
-  });
-}
-
-const encodeDoc = (doc: any) => Buffer.from(BSON.serialize(doc));
-
 interface BenchResult {
   benchmark: string;
   category: string;
@@ -72,7 +47,6 @@ interface BenchResult {
 async function runBenchmark(
   name: string,
   category: string,
-  client: any,
   setupFn: () => Promise<void>,
   beforeTaskFn: () => Promise<void>,
   taskFn: () => Promise<void>,
@@ -136,7 +110,7 @@ async function runBenchmark(
       p99: Math.round(pct(99) * 1000000) / 1000000,
     },
     timestamp: new Date().toISOString(),
-    system: { os: os.platform(), arch: os.arch(), cpus: os.cpus().length, driver: 'mongocore+typescript', mongocore_version: '0.6.0' },
+    system: { os: os.platform(), arch: os.arch(), cpus: os.cpus().length, driver: 'mongocore+typescript', mongocore_version: '0.6.0', transport: 'tcp' },
   };
 
   console.log(`  ${name}: ${opsPerSec.toFixed(0)} ops/s, ${mbPerSec.toFixed(2)} MB/s (${times.length} iterations)`);
@@ -146,7 +120,8 @@ async function runBenchmark(
 async function main() {
   console.log('=== MongoCore+TypeScript Pipeline benchmarks ===');
 
-  const client = new MongoCore(ADDR, grpc.credentials.createInsecure());
+  const client = new MongoClient(ADDR);
+  await client.connect();
   const results: BenchResult[] = [];
 
   const smallDoc = JSON.parse(readFileSync(join(DATA_DIR, 'small_doc.json'), 'utf-8'));
@@ -159,19 +134,15 @@ async function main() {
 
     // --- pipeline_run_command ---
     results.push(await runBenchmark(
-      `pipeline_run_command_${batchSize}`, 'pipeline', client,
+      `pipeline_run_command_${batchSize}`, 'pipeline',
       async () => {},
       async () => {},
       async () => {
         for (let c = 0; c < callsPerIter; c++) {
-          const operations = Array.from({ length: batchSize }, () => ({
-            runCommand: {
-              database: DB_NAME,
-              command: { data: encodeDoc({ hello: 1 }) },
-              allowAll: false,
-            },
-          }));
-          await promisify(client, 'pipeline', { operations });
+          const pipelineOps = Array.from({ length: batchSize }, () =>
+            ops.runCommand(DB_NAME, { hello: 1 })
+          );
+          await client.pipeline(...pipelineOps);
         }
       },
       async () => {},
@@ -181,21 +152,17 @@ async function main() {
 
     // --- pipeline_insert_one_small ---
     results.push(await runBenchmark(
-      `pipeline_insert_one_small_${batchSize}`, 'pipeline', client,
+      `pipeline_insert_one_small_${batchSize}`, 'pipeline',
       async () => {},
       async () => {
-        await promisify(client, 'runCommand', { database: DB_NAME, command: { data: encodeDoc({ drop: 'bench_pipeline_insert_ts' }) }, allowAll: false }).catch(() => {});
+        await client.runCommand(DB_NAME, { drop: 'bench_pipeline_insert_ts' }).catch(() => {});
       },
       async () => {
         for (let c = 0; c < callsPerIter; c++) {
-          const operations = Array.from({ length: batchSize }, () => ({
-            insert: {
-              database: DB_NAME,
-              collection: 'bench_pipeline_insert_ts',
-              document: { data: encodeDoc({ ...smallDoc, _id: newId() }) },
-            },
-          }));
-          await promisify(client, 'pipeline', { operations });
+          const pipelineOps = Array.from({ length: batchSize }, () =>
+            ops.insert(DB_NAME, 'bench_pipeline_insert_ts', { ...smallDoc, _id: newId() })
+          );
+          await client.pipeline(...pipelineOps);
         }
       },
       async () => {},
@@ -204,38 +171,31 @@ async function main() {
     ));
 
     // --- pipeline_find_one_by_id ---
+    const pipelineFindColl = client.db(DB_NAME).collection('bench_pipeline_find_ts');
     results.push(await runBenchmark(
-      `pipeline_find_one_by_id_${batchSize}`, 'pipeline', client,
+      `pipeline_find_one_by_id_${batchSize}`, 'pipeline',
       async () => {
-        await promisify(client, 'runCommand', { database: DB_NAME, command: { data: encodeDoc({ drop: 'bench_pipeline_find_ts' }) }, allowAll: false }).catch(() => {});
-        await promisify(client, 'insert', {
-          database: DB_NAME,
-          collection: 'bench_pipeline_find_ts',
-          document: { data: encodeDoc({ ...tweetDoc, _id: 'bench_find_001' }) },
-        });
+        await client.runCommand(DB_NAME, { drop: 'bench_pipeline_find_ts' }).catch(() => {});
+        await pipelineFindColl.insertOne({ ...tweetDoc, _id: 'bench_find_001' });
       },
       async () => {},
       async () => {
         for (let c = 0; c < callsPerIter; c++) {
-          const operations = Array.from({ length: batchSize }, () => ({
-            findOne: {
-              database: DB_NAME,
-              collection: 'bench_pipeline_find_ts',
-              filter: { data: encodeDoc({ _id: 'bench_find_001' }) },
-            },
-          }));
-          await promisify(client, 'pipeline', { operations });
+          const pipelineOps = Array.from({ length: batchSize }, () =>
+            ops.findOne(DB_NAME, 'bench_pipeline_find_ts', { _id: 'bench_find_001' })
+          );
+          await client.pipeline(...pipelineOps);
         }
       },
       async () => {},
       async () => {
-        await promisify(client, 'runCommand', { database: DB_NAME, command: { data: encodeDoc({ drop: 'bench_pipeline_find_ts' }) }, allowAll: false }).catch(() => {});
+        await client.runCommand(DB_NAME, { drop: 'bench_pipeline_find_ts' }).catch(() => {});
       },
       TOTAL_OPS * tweetSize, TOTAL_OPS,
     ));
   }
 
-  client.close();
+  await client.close();
 
   const outputPath = join(RESULTS_DIR, 'typescript_pipeline.json');
   writeFileSync(outputPath, JSON.stringify(results, null, 2));

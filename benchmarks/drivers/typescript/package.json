@@ -2,7 +2,7 @@
   "name": "mongocore-benchmarks-typescript",
   "version": "0.1.0",
   "description": "TypeScript/Node.js benchmarks for MongoCore vs native MongoDB driver",
-  
+
   "scripts": {
     "bench:native": "node --loader ts-node/esm bench_native.ts",
     "bench:mongocore": "node --loader ts-node/esm bench_mongocore.ts"
@@ -10,6 +10,7 @@
   "dependencies": {
     "@grpc/grpc-js": "^1.11.3",
     "@grpc/proto-loader": "^0.7.13",
+    "bson": "^6.0.0",
     "mongodb": "^6.10.0"
   },
   "devDependencies": {

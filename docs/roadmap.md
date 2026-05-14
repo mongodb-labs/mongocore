@@ -80,8 +80,7 @@
 - **Rust criterion microbenchmarks** — Cache lookup, MQL validation, template matching (sidecar internals)
 - **Auto-generated results** — Jinja2 templates produce per-run README with throughput tables, latency percentiles, SVG charts
 - **Composable justfile** — `bench-setup`/`bench-teardown` lifecycle, per-language and per-variant tasks
-- **Regression detection** — `bench-check-regression` compares runs and exits non-zero on >10% slowdown
-- **Timestamped results** — Each run stored in `results/<timestamp>/` with `latest` symlink, history committed to git
+- **Incremental runs** — Benchmarks skip automatically when results exist; delete a file to rerun just that benchmark
 - **Honest caveats** — Documented limitations (uncontrolled environment, no tuning, localhost, gRPC limits, single client)
 
 ### MCP + Claude Integration

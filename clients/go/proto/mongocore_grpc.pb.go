@@ -19,38 +19,39 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MongoCore_Find_FullMethodName              = "/mongocore.v1.MongoCore/Find"
-	MongoCore_FindOne_FullMethodName           = "/mongocore.v1.MongoCore/FindOne"
-	MongoCore_Insert_FullMethodName            = "/mongocore.v1.MongoCore/Insert"
-	MongoCore_InsertMany_FullMethodName        = "/mongocore.v1.MongoCore/InsertMany"
-	MongoCore_Update_FullMethodName            = "/mongocore.v1.MongoCore/Update"
-	MongoCore_UpdateMany_FullMethodName        = "/mongocore.v1.MongoCore/UpdateMany"
-	MongoCore_Delete_FullMethodName            = "/mongocore.v1.MongoCore/Delete"
-	MongoCore_DeleteMany_FullMethodName        = "/mongocore.v1.MongoCore/DeleteMany"
-	MongoCore_FindAndModify_FullMethodName     = "/mongocore.v1.MongoCore/FindAndModify"
-	MongoCore_Aggregate_FullMethodName         = "/mongocore.v1.MongoCore/Aggregate"
-	MongoCore_BeginTransaction_FullMethodName  = "/mongocore.v1.MongoCore/BeginTransaction"
-	MongoCore_CommitTransaction_FullMethodName = "/mongocore.v1.MongoCore/CommitTransaction"
-	MongoCore_AbortTransaction_FullMethodName  = "/mongocore.v1.MongoCore/AbortTransaction"
-	MongoCore_CreateCollection_FullMethodName  = "/mongocore.v1.MongoCore/CreateCollection"
-	MongoCore_CreateIndex_FullMethodName       = "/mongocore.v1.MongoCore/CreateIndex"
-	MongoCore_ListDatabases_FullMethodName     = "/mongocore.v1.MongoCore/ListDatabases"
-	MongoCore_ListCollections_FullMethodName   = "/mongocore.v1.MongoCore/ListCollections"
-	MongoCore_Search_FullMethodName            = "/mongocore.v1.MongoCore/Search"
-	MongoCore_Watch_FullMethodName             = "/mongocore.v1.MongoCore/Watch"
-	MongoCore_FindStream_FullMethodName        = "/mongocore.v1.MongoCore/FindStream"
-	MongoCore_AggregateStream_FullMethodName   = "/mongocore.v1.MongoCore/AggregateStream"
-	MongoCore_InsertManyStream_FullMethodName  = "/mongocore.v1.MongoCore/InsertManyStream"
-	MongoCore_InsertManyBidi_FullMethodName    = "/mongocore.v1.MongoCore/InsertManyBidi"
-	MongoCore_RunCommand_FullMethodName        = "/mongocore.v1.MongoCore/RunCommand"
-	MongoCore_GetAnalytics_FullMethodName      = "/mongocore.v1.MongoCore/GetAnalytics"
-	MongoCore_Ingest_FullMethodName            = "/mongocore.v1.MongoCore/Ingest"
-	MongoCore_GetIngestStatus_FullMethodName   = "/mongocore.v1.MongoCore/GetIngestStatus"
-	MongoCore_ListIngestJobs_FullMethodName    = "/mongocore.v1.MongoCore/ListIngestJobs"
-	MongoCore_CancelIngest_FullMethodName      = "/mongocore.v1.MongoCore/CancelIngest"
-	MongoCore_WatchDirectory_FullMethodName    = "/mongocore.v1.MongoCore/WatchDirectory"
-	MongoCore_StopWatch_FullMethodName         = "/mongocore.v1.MongoCore/StopWatch"
-	MongoCore_Pipeline_FullMethodName          = "/mongocore.v1.MongoCore/Pipeline"
+	MongoCore_Find_FullMethodName                = "/mongocore.v1.MongoCore/Find"
+	MongoCore_FindOne_FullMethodName             = "/mongocore.v1.MongoCore/FindOne"
+	MongoCore_Insert_FullMethodName              = "/mongocore.v1.MongoCore/Insert"
+	MongoCore_InsertMany_FullMethodName          = "/mongocore.v1.MongoCore/InsertMany"
+	MongoCore_Update_FullMethodName              = "/mongocore.v1.MongoCore/Update"
+	MongoCore_UpdateMany_FullMethodName          = "/mongocore.v1.MongoCore/UpdateMany"
+	MongoCore_Delete_FullMethodName              = "/mongocore.v1.MongoCore/Delete"
+	MongoCore_DeleteMany_FullMethodName          = "/mongocore.v1.MongoCore/DeleteMany"
+	MongoCore_FindAndModify_FullMethodName       = "/mongocore.v1.MongoCore/FindAndModify"
+	MongoCore_Aggregate_FullMethodName           = "/mongocore.v1.MongoCore/Aggregate"
+	MongoCore_BeginTransaction_FullMethodName    = "/mongocore.v1.MongoCore/BeginTransaction"
+	MongoCore_CommitTransaction_FullMethodName   = "/mongocore.v1.MongoCore/CommitTransaction"
+	MongoCore_AbortTransaction_FullMethodName    = "/mongocore.v1.MongoCore/AbortTransaction"
+	MongoCore_CreateCollection_FullMethodName    = "/mongocore.v1.MongoCore/CreateCollection"
+	MongoCore_CreateIndex_FullMethodName         = "/mongocore.v1.MongoCore/CreateIndex"
+	MongoCore_ListDatabases_FullMethodName       = "/mongocore.v1.MongoCore/ListDatabases"
+	MongoCore_ListCollections_FullMethodName     = "/mongocore.v1.MongoCore/ListCollections"
+	MongoCore_Search_FullMethodName              = "/mongocore.v1.MongoCore/Search"
+	MongoCore_Watch_FullMethodName               = "/mongocore.v1.MongoCore/Watch"
+	MongoCore_FindStream_FullMethodName          = "/mongocore.v1.MongoCore/FindStream"
+	MongoCore_AggregateStream_FullMethodName     = "/mongocore.v1.MongoCore/AggregateStream"
+	MongoCore_InsertManyStream_FullMethodName    = "/mongocore.v1.MongoCore/InsertManyStream"
+	MongoCore_InsertManyBidi_FullMethodName      = "/mongocore.v1.MongoCore/InsertManyBidi"
+	MongoCore_RunCommand_FullMethodName          = "/mongocore.v1.MongoCore/RunCommand"
+	MongoCore_GetAnalytics_FullMethodName        = "/mongocore.v1.MongoCore/GetAnalytics"
+	MongoCore_Ingest_FullMethodName              = "/mongocore.v1.MongoCore/Ingest"
+	MongoCore_GetIngestStatus_FullMethodName     = "/mongocore.v1.MongoCore/GetIngestStatus"
+	MongoCore_ListIngestJobs_FullMethodName      = "/mongocore.v1.MongoCore/ListIngestJobs"
+	MongoCore_CancelIngest_FullMethodName        = "/mongocore.v1.MongoCore/CancelIngest"
+	MongoCore_WatchDirectory_FullMethodName      = "/mongocore.v1.MongoCore/WatchDirectory"
+	MongoCore_StopWatch_FullMethodName           = "/mongocore.v1.MongoCore/StopWatch"
+	MongoCore_Pipeline_FullMethodName            = "/mongocore.v1.MongoCore/Pipeline"
+	MongoCore_TransactionPipeline_FullMethodName = "/mongocore.v1.MongoCore/TransactionPipeline"
 )
 
 // MongoCoreClient is the client API for MongoCore service.
@@ -101,6 +102,8 @@ type MongoCoreClient interface {
 	StopWatch(ctx context.Context, in *StopWatchRequest, opts ...grpc.CallOption) (*StopWatchResponse, error)
 	// Pipeline
 	Pipeline(ctx context.Context, in *PipelineRequest, opts ...grpc.CallOption) (*PipelineResponse, error)
+	// Transaction Pipeline
+	TransactionPipeline(ctx context.Context, in *TransactionPipelineRequest, opts ...grpc.CallOption) (*TransactionPipelineResponse, error)
 }
 
 type mongoCoreClient struct {
@@ -464,6 +467,16 @@ func (c *mongoCoreClient) Pipeline(ctx context.Context, in *PipelineRequest, opt
 	return out, nil
 }
 
+func (c *mongoCoreClient) TransactionPipeline(ctx context.Context, in *TransactionPipelineRequest, opts ...grpc.CallOption) (*TransactionPipelineResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(TransactionPipelineResponse)
+	err := c.cc.Invoke(ctx, MongoCore_TransactionPipeline_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MongoCoreServer is the server API for MongoCore service.
 // All implementations must embed UnimplementedMongoCoreServer
 // for forward compatibility.
@@ -512,6 +525,8 @@ type MongoCoreServer interface {
 	StopWatch(context.Context, *StopWatchRequest) (*StopWatchResponse, error)
 	// Pipeline
 	Pipeline(context.Context, *PipelineRequest) (*PipelineResponse, error)
+	// Transaction Pipeline
+	TransactionPipeline(context.Context, *TransactionPipelineRequest) (*TransactionPipelineResponse, error)
 	mustEmbedUnimplementedMongoCoreServer()
 }
 
@@ -617,6 +632,9 @@ func (UnimplementedMongoCoreServer) StopWatch(context.Context, *StopWatchRequest
 }
 func (UnimplementedMongoCoreServer) Pipeline(context.Context, *PipelineRequest) (*PipelineResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method Pipeline not implemented")
+}
+func (UnimplementedMongoCoreServer) TransactionPipeline(context.Context, *TransactionPipelineRequest) (*TransactionPipelineResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method TransactionPipeline not implemented")
 }
 func (UnimplementedMongoCoreServer) mustEmbedUnimplementedMongoCoreServer() {}
 func (UnimplementedMongoCoreServer) testEmbeddedByValue()                   {}
@@ -1172,6 +1190,24 @@ func _MongoCore_Pipeline_Handler(srv interface{}, ctx context.Context, dec func(
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MongoCore_TransactionPipeline_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(TransactionPipelineRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MongoCoreServer).TransactionPipeline(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MongoCore_TransactionPipeline_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MongoCoreServer).TransactionPipeline(ctx, req.(*TransactionPipelineRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MongoCore_ServiceDesc is the grpc.ServiceDesc for MongoCore service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1286,6 +1322,10 @@ var MongoCore_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Pipeline",
 			Handler:    _MongoCore_Pipeline_Handler,
+		},
+		{
+			MethodName: "TransactionPipeline",
+			Handler:    _MongoCore_TransactionPipeline_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/rozza/mongocore/clients/go/mongocore"
+	"github.com/rozza/mongocore/clients/go/mongocore/ops"
 	pb "github.com/rozza/mongocore/clients/go/proto"
 	"go.mongodb.org/mongo-driver/v2/bson"
 )
@@ -163,14 +164,6 @@ func runBenchmark(
 	return result
 }
 
-func encodeBson(doc interface{}) []byte {
-	data, err := bson.Marshal(doc)
-	if err != nil {
-		panic(err)
-	}
-	return data
-}
-
 func main() {
 	fmt.Println("=== MongoCore+Go Pipeline benchmarks ===")
 
@@ -213,18 +206,15 @@ func main() {
 			func() error { return nil },
 			func() error {
 				for c := 0; c < callsPerIter; c++ {
-					ops := make([]*pb.PipelineOperation, bs)
-					for i := range ops {
-						ops[i] = &pb.PipelineOperation{
-							Operation: &pb.PipelineOperation_RunCommand{
-								RunCommand: &pb.RunCommandRequest{
-									Database: config.Database,
-									Command:  &pb.Document{Data: encodeBson(bson.D{{"hello", 1}})},
-								},
-							},
+					pipelineOps := make([]*pb.PipelineOperation, bs)
+					for i := range pipelineOps {
+						op, err := ops.RunCommand(config.Database, bson.D{{"hello", 1}}, false)
+						if err != nil {
+							return err
 						}
+						pipelineOps[i] = op
 					}
-					_, err := client.Pipeline(ctx, ops...)
+					_, err := client.Pipeline(ctx, pipelineOps...)
 					if err != nil {
 						return err
 					}
@@ -247,23 +237,19 @@ func main() {
 			},
 			func() error {
 				for c := 0; c < callsPerIter; c++ {
-					ops := make([]*pb.PipelineOperation, bs)
-					for i := range ops {
+					pipelineOps := make([]*pb.PipelineOperation, bs)
+					for i := range pipelineOps {
 						doc := bson.D{{"_id", bson.NewObjectID().Hex()}}
 						for k, v := range smallDoc {
 							doc = append(doc, bson.E{Key: k, Value: v})
 						}
-						ops[i] = &pb.PipelineOperation{
-							Operation: &pb.PipelineOperation_Insert{
-								Insert: &pb.InsertRequest{
-									Database:   config.Database,
-									Collection: collInsert,
-									Document:   &pb.Document{Data: encodeBson(doc)},
-								},
-							},
+						op, err := ops.Insert(config.Database, collInsert, doc)
+						if err != nil {
+							return err
 						}
+						pipelineOps[i] = op
 					}
-					_, err := client.Pipeline(ctx, ops...)
+					_, err := client.Pipeline(ctx, pipelineOps...)
 					if err != nil {
 						return err
 					}
@@ -292,19 +278,15 @@ func main() {
 			func() error { return nil },
 			func() error {
 				for c := 0; c < callsPerIter; c++ {
-					ops := make([]*pb.PipelineOperation, bs)
-					for i := range ops {
-						ops[i] = &pb.PipelineOperation{
-							Operation: &pb.PipelineOperation_FindOne{
-								FindOne: &pb.FindOneRequest{
-									Database:   config.Database,
-									Collection: collFind,
-									Filter:     &pb.Filter{Data: encodeBson(bson.D{{"_id", "bench_find_001"}})},
-								},
-							},
+					pipelineOps := make([]*pb.PipelineOperation, bs)
+					for i := range pipelineOps {
+						op, err := ops.FindOne(config.Database, collFind, bson.D{{"_id", "bench_find_001"}})
+						if err != nil {
+							return err
 						}
+						pipelineOps[i] = op
 					}
-					_, err := client.Pipeline(ctx, ops...)
+					_, err := client.Pipeline(ctx, pipelineOps...)
 					if err != nil {
 						return err
 					}

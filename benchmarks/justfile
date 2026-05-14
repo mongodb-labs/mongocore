@@ -23,7 +23,7 @@ bench-setup:
     else
         echo ">>> MongoDB already running on :27017"
     fi
-    # Wait for DB
+    # Wait for DB to accept connections
     echo ">>> Waiting for MongoDB to accept connections..."
     for i in $(seq 1 30); do
         if mongosh --quiet --eval "db.runCommand({ping:1})" mongodb://localhost:27017 > /dev/null 2>&1; then
@@ -36,8 +36,36 @@ bench-setup:
             exit 1
         fi
     done
-    # Wait for sample data
-    echo ">>> Waiting for sample data to load (this can take 30-60s on first start)..."
+    # Kill any existing sidecar
+    EXISTING_PID=$(lsof -ti :50051 -sTCP:LISTEN 2>/dev/null || true)
+    if [ -n "$EXISTING_PID" ]; then
+        echo ">>> Killing existing sidecar (PID $EXISTING_PID)..."
+        kill $EXISTING_PID 2>/dev/null || true
+        sleep 1
+    fi
+    # Build and start sidecar (sample data loads in parallel)
+    echo ">>> Building MongoCore sidecar..."
+    cd {{root}} && cargo build --release
+    ./target/release/mongocore --connection-uri "mongodb://localhost:27017" &
+    SIDECAR_PID=$!
+    echo $SIDECAR_PID > /tmp/mongocore-bench-sidecar.pid
+    cd {{justfile_directory()}}
+    for i in $(seq 1 30); do
+        if lsof -i :50051 -sTCP:LISTEN > /dev/null 2>&1; then
+            echo ">>> MongoCore sidecar ready (PID $SIDECAR_PID)"
+            break
+        fi
+        sleep 1
+        if [ "$i" -eq 30 ]; then
+            echo "ERROR: Sidecar failed to start within 30s"
+            exit 1
+        fi
+    done
+    # Generate benchmark data (while sample data continues loading)
+    echo ">>> Generating benchmark data..."
+    cd ingestion && python generate_data.py && cd ..
+    # Now wait for sample data (needed by compiled query benchmarks)
+    echo ">>> Waiting for sample data to load..."
     echo "    Atlas sample datasets are loaded async by the mongodb-atlas-local container."
     for i in $(seq 1 60); do
         COUNT=$(mongosh --quiet --eval "db.getSiblingDB('sample_restaurants').restaurants.countDocuments()" mongodb://localhost:27017 2>/dev/null || echo "0")
@@ -52,30 +80,6 @@ bench-setup:
         if [ "$i" -eq 60 ]; then
             echo "ERROR: Sample data not loaded after 120s."
             echo "       Make sure docker-compose is using mongodb/mongodb-atlas-local with MONGODB_LOAD_SAMPLE_DATA=true"
-            exit 1
-        fi
-    done
-    # Kill any existing sidecar
-    EXISTING_PID=$(lsof -ti :50051 -sTCP:LISTEN 2>/dev/null || true)
-    if [ -n "$EXISTING_PID" ]; then
-        echo ">>> Killing existing sidecar (PID $EXISTING_PID)..."
-        kill $EXISTING_PID 2>/dev/null || true
-        sleep 1
-    fi
-    # Build and start sidecar
-    echo ">>> Building MongoCore sidecar..."
-    cd {{root}} && cargo build --release
-    ./target/release/mongocore --connection-uri "mongodb://localhost:27017" &
-    SIDECAR_PID=$!
-    echo $SIDECAR_PID > /tmp/mongocore-bench-sidecar.pid
-    for i in $(seq 1 30); do
-        if lsof -i :50051 -sTCP:LISTEN > /dev/null 2>&1; then
-            echo ">>> MongoCore sidecar ready (PID $SIDECAR_PID)"
-            break
-        fi
-        sleep 1
-        if [ "$i" -eq 30 ]; then
-            echo "ERROR: Sidecar failed to start within 30s"
             exit 1
         fi
     done
@@ -113,52 +117,60 @@ require-setup:
 
 # --- Main benchmark recipes ---
 
-# Run all benchmarks (runs setup, all benchmarks, collects results, then teardown)
+# Run all benchmarks (runs setup, all benchmarks, then teardown)
+# Skips benchmarks that already have results — delete a result file to force rerun,
+# or use `just bench-clean` to wipe all results.
 bench-all:
     #!/usr/bin/env bash
     set -e
     cd {{justfile_directory()}}
     just bench-setup
-    trap "just bench-teardown" EXIT
     echo "==================================="
     echo "  MongoCore Benchmark Suite"
     echo "==================================="
     echo ""
-    echo ">>> Generating benchmark data..."
-    cd ingestion && python generate_data.py && cd ..
+    echo ">>> Running driver benchmarks..."
+    just _bench-python-native
+    just _bench-python-mongocore
+    just _bench-typescript-native
+    just _bench-typescript-mongocore
+    just _bench-go-native
+    just _bench-go-mongocore
+    just _bench-java-native
+    just _bench-java-mongocore
     echo ""
-    echo ">>> Running Python benchmarks..."
-    cd drivers/python && pip install -r requirements.txt -q && python bench_native.py && python bench_mongocore.py && cd ../..
-    echo ""
-    echo ">>> Running TypeScript benchmarks..."
-    cd drivers/typescript && npm install --silent && npx ts-node bench_native.ts && npx ts-node bench_mongocore.ts && cd ../..
-    echo ""
-    echo ">>> Running Go benchmarks..."
-    cd drivers/go && go run bench_native.go && go run bench_mongocore.go && cd ../..
-    echo ""
-    echo ">>> Running Java benchmarks..."
-    cd drivers/java && mvn -q compile exec:java -Dexec.mainClass="com.mongocore.bench.BenchNative" && mvn -q exec:java -Dexec.mainClass="com.mongocore.bench.BenchMongocore" && cd ../..
-    echo ""
-    echo ">>> Running Pipeline benchmarks..."
-    cd drivers/python && python bench_pipeline.py && cd ../..
-    cd drivers/typescript && npx ts-node bench_pipeline.ts && cd ../..
-    cd drivers/go && go run bench_pipeline.go && cd ../..
-    cd drivers/java && mvn -q compile exec:java -Dexec.mainClass="com.mongocore.bench.BenchPipeline" && cd ../..
+    echo ">>> Running pipeline benchmarks..."
+    just _bench-python-pipeline
+    just _bench-typescript-pipeline
+    just _bench-go-pipeline
+    just _bench-java-pipeline
     echo ""
     echo ">>> Running ingestion benchmarks..."
-    cd ingestion && python bench_ingest.py && cd ..
+    just _bench-ingestion
     echo ""
-    echo ">>> Collecting results..."
-    cd collector && pip install -r requirements.txt -q && python collect.py
+    echo ">>> Generating report..."
+    just bench-report
     echo ""
     echo "==================================="
     echo "  BENCHMARKS COMPLETE"
-    echo "  Results: benchmarks/results/latest/"
+    echo "  Results: benchmarks/results/"
+    echo "  Report:  benchmarks/RESULTS.md"
+    echo ""
+    echo "  Run 'just bench-teardown' to stop MongoDB + sidecar."
     echo "==================================="
 
 # Sidecar internal benchmarks (no MongoDB needed)
 bench-rust:
     cd rust && cargo bench
+
+# Remove all result files to force a full rerun
+bench-clean:
+    rm -f results/*.json
+    @echo "Results cleaned — next bench run will execute all benchmarks"
+
+# Generate RESULTS.md from current result files
+bench-report:
+    pip install -r requirements.txt -q && python generate_results.py
 
 # All driver benchmarks (native + MongoCore, all languages)
 bench-drivers: require-setup
@@ -346,72 +358,92 @@ bench-compiled: require-setup
 bench-generate-data:
     cd ingestion && python generate_data.py
 
-# Collect results into timestamped folder and generate README
-bench-collect:
-    cd collector && pip install -r requirements.txt -q && python collect.py
-
-# Compare latest results against previous run
-bench-compare:
-    cd collector && python compare.py
-
-# Check for performance regressions (exits non-zero if found)
-bench-check-regression:
-    cd collector && python check_regression.py
 
 # --- Private implementation recipes (just the benchmark, no infra) ---
+# Each recipe skips if its result file already exists.
+
+results_dir := justfile_directory() / "results"
 
 [private]
 _bench-python-native:
+    #!/usr/bin/env bash
+    if [ -f {{results_dir}}/python_native.json ]; then echo "  Skipping python-native (results exist)"; exit 0; fi
     cd drivers/python && pip install -r requirements.txt -q && python bench_native.py
 
 [private]
 _bench-python-mongocore:
+    #!/usr/bin/env bash
+    if [ -f {{results_dir}}/python_mongocore.json ]; then echo "  Skipping python-mongocore (results exist)"; exit 0; fi
     cd drivers/python && pip install -r requirements.txt -q && python bench_mongocore.py
 
 [private]
 _bench-typescript-native:
+    #!/usr/bin/env bash
+    if [ -f {{results_dir}}/typescript_native.json ]; then echo "  Skipping typescript-native (results exist)"; exit 0; fi
     cd drivers/typescript && npm install --silent && npx ts-node bench_native.ts
 
 [private]
 _bench-typescript-mongocore:
+    #!/usr/bin/env bash
+    if [ -f {{results_dir}}/typescript_mongocore.json ]; then echo "  Skipping typescript-mongocore (results exist)"; exit 0; fi
     cd drivers/typescript && npm install --silent && npx ts-node bench_mongocore.ts
 
 [private]
 _bench-go-native:
+    #!/usr/bin/env bash
+    if [ -f {{results_dir}}/go_native.json ]; then echo "  Skipping go-native (results exist)"; exit 0; fi
     cd drivers/go && go run bench_native.go
 
 [private]
 _bench-go-mongocore:
+    #!/usr/bin/env bash
+    if [ -f {{results_dir}}/go_mongocore.json ]; then echo "  Skipping go-mongocore (results exist)"; exit 0; fi
     cd drivers/go && go run bench_mongocore.go
 
 [private]
 _bench-java-native:
+    #!/usr/bin/env bash
+    if [ -f {{results_dir}}/java_native.json ]; then echo "  Skipping java-native (results exist)"; exit 0; fi
     cd drivers/java && mvn -q compile exec:java -Dexec.mainClass="com.mongocore.bench.BenchNative"
 
 [private]
 _bench-java-mongocore:
+    #!/usr/bin/env bash
+    if [ -f {{results_dir}}/java_mongocore.json ]; then echo "  Skipping java-mongocore (results exist)"; exit 0; fi
     cd drivers/java && mvn -q compile exec:java -Dexec.mainClass="com.mongocore.bench.BenchMongocore"
 
 [private]
 _bench-ingestion:
+    #!/usr/bin/env bash
+    if [ -f {{results_dir}}/ingestion.json ]; then echo "  Skipping ingestion (results exist)"; exit 0; fi
     cd ingestion && python generate_data.py && python bench_ingest.py
 
 [private]
 _bench-compiled:
+    #!/usr/bin/env bash
+    if [ -f {{results_dir}}/compiled_query.json ]; then echo "  Skipping compiled-query (results exist)"; exit 0; fi
     cd drivers/python && python bench_compiled.py
 
 [private]
 _bench-python-pipeline:
+    #!/usr/bin/env bash
+    if [ -f {{results_dir}}/python_pipeline.json ]; then echo "  Skipping python-pipeline (results exist)"; exit 0; fi
     cd drivers/python && pip install -r requirements.txt -q && python bench_pipeline.py
 
 [private]
 _bench-typescript-pipeline:
+    #!/usr/bin/env bash
+    if [ -f {{results_dir}}/typescript_pipeline.json ]; then echo "  Skipping typescript-pipeline (results exist)"; exit 0; fi
     cd drivers/typescript && npm install --silent && npx ts-node bench_pipeline.ts
 
 [private]
 _bench-go-pipeline:
+    #!/usr/bin/env bash
+    if [ -f {{results_dir}}/go_pipeline.json ]; then echo "  Skipping go-pipeline (results exist)"; exit 0; fi
     cd drivers/go && go run bench_pipeline.go
 
 [private]
 _bench-java-pipeline:
+    #!/usr/bin/env bash
+    if [ -f {{results_dir}}/java_pipeline.json ]; then echo "  Skipping java-pipeline (results exist)"; exit 0; fi
     cd drivers/java && mvn -q compile exec:java -Dexec.mainClass="com.mongocore.bench.BenchPipeline"

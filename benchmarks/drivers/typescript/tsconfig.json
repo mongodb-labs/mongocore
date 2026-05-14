@@ -8,5 +8,5 @@
     "skipLibCheck": true,
     "resolveJsonModule": true
   },
-  "include": ["*.ts"]
+  "include": ["*.ts", "../../../clients/typescript/src/**/*.ts"]
 }

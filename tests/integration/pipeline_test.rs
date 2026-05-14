@@ -245,8 +245,8 @@ async fn test_pipeline_exceeds_max_ops() {
     let mut client = start_test_server().await;
     let coll = unique_collection();
 
-    // Create 101 operations (exceeds default max of 100)
-    let operations: Vec<PipelineOperation> = (0..101)
+    // Create 10001 operations (exceeds default max of 10000)
+    let operations: Vec<PipelineOperation> = (0..10_001)
         .map(|_| PipelineOperation {
             operation: Some(Operation::Find(FindRequest {
                 database: TEST_DB.to_string(),
@@ -265,8 +265,8 @@ async fn test_pipeline_exceeds_max_ops() {
     let err = resp.unwrap_err();
     assert_eq!(err.code(), tonic::Code::InvalidArgument);
     assert!(
-        err.message().contains("100"),
-        "Error message should mention the limit of 100, got: {}",
+        err.message().contains("10000"),
+        "Error message should mention the limit of 10000, got: {}",
         err.message()
     );
 }

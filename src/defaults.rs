@@ -54,7 +54,7 @@ pub const DEFAULT_STREAM_BATCH_SIZE: u32 = 1000;
 pub const DEFAULT_STREAM_IDLE_TIMEOUT_SECS: u64 = 60;
 
 /// Default maximum operations in a pipeline.
-pub const DEFAULT_PIPELINE_MAX_OPS: usize = 100;
+pub const DEFAULT_PIPELINE_MAX_OPS: usize = 10_000;
 
 /// Default pipeline timeout in seconds.
 pub const DEFAULT_PIPELINE_TIMEOUT_SECS: u64 = 30;

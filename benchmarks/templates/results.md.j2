@@ -1,0 +1,74 @@
+# Benchmark Results
+
+Generated: {{ generated_at }}
+
+{% if overhead_chart %}
+![Native vs MongoCore Overhead]({{ overhead_chart }})
+
+{% endif %}
+## Single-Document Operations
+
+{% if single_doc %}
+| Benchmark | Language | Native (ops/s) | MongoCore (ops/s) | Overhead |
+|-----------|----------|---------------:|------------------:|---------:|
+{% for row in single_doc %}
+| {{ row.benchmark }} | {{ row.language }} | {{ row.native_ops }} | {{ row.mc_ops }} | {{ row.overhead }} |
+{% endfor %}
+{% else %}
+No single-document results available.
+{% endif %}
+
+## Multi-Document Operations
+
+{% if multi_doc %}
+| Benchmark | Language | Native (ops/s) | MongoCore (ops/s) | Overhead |
+|-----------|----------|---------------:|------------------:|---------:|
+{% for row in multi_doc %}
+| {{ row.benchmark }} | {{ row.language }} | {{ row.native_ops }} | {{ row.mc_ops }} | {{ row.overhead }} |
+{% endfor %}
+{% else %}
+No multi-document results available.
+{% endif %}
+
+## Pipeline Batching
+
+Pipeline sends multiple operations in a single gRPC call. Native column shows the equivalent single-call benchmark for comparison.
+
+{% if pipeline_chart %}
+![Pipeline Batching Performance]({{ pipeline_chart }})
+
+{% endif %}
+{% if pipeline %}
+| Operation | Batch Size | Python | TypeScript | Go | Java | Fastest Native | Speedup |
+|-----------|----------:|-------:|-----------:|---:|-----:|---------------:|--------:|
+{% for row in pipeline %}
+| {{ row.operation }} | {{ row.batch_size }} | {{ row.python }} | {{ row.typescript }} | {{ row.go }} | {{ row.java }} | {{ row.native }} | {{ row.speedup }} |
+{% endfor %}
+{% else %}
+No pipeline results available.
+{% endif %}
+
+## Ingestion
+
+{% if ingestion_chart %}
+![Ingestion Performance]({{ ingestion_chart }})
+
+{% endif %}
+{% if ingestion %}
+| Benchmark | Driver | Ops/s | MB/s | p50 (s) |
+|-----------|--------|------:|-----:|--------:|
+{% for row in ingestion %}
+| {{ row.benchmark }} | {{ row.driver }} | {{ row.ops }} | {{ row.mbps }} | {{ row.p50 }} |
+{% endfor %}
+{% else %}
+No ingestion results available.
+{% endif %}
+
+## Environment
+
+{% if system %}
+- **OS:** {{ system.os }} ({{ system.arch }})
+- **CPUs:** {{ system.cpus }}
+{% if system.ram_gb %}- **RAM:** {{ system.ram_gb }} GB
+{% endif %}- **MongoCore:** {{ system.mongocore_version }}
+{% endif %}

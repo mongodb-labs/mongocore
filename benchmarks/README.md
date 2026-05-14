@@ -2,11 +2,14 @@
 
 Cross-language performance benchmarks comparing native MongoDB drivers against MongoCore sidecar.
 
+**[View latest results](RESULTS.md)**
+
 ## Quick Start
 
 ```bash
-just bench-all        # Run all benchmarks
-just bench-collect    # Collect results into timestamped folder + generate README
+just bench-all        # Run all benchmarks (skips any with existing results)
+just bench-report     # Generate RESULTS.md from current results
+just bench-clean      # Delete all results to force a full rerun
 ```
 
 ## What's Measured
@@ -47,9 +50,7 @@ These benchmarks provide a directional comparison, not absolute performance numb
 
 ## Results
 
-Results are stored in timestamped folders under `results/`. A `latest` symlink points to the most recent run.
-
-**Latest results:** [results/latest/README.md](results/latest/README.md)
+Results are stored as flat JSON files in `results/` (one per benchmark). If a result file exists, that benchmark is skipped on the next run. Delete a specific file to force a rerun of just that benchmark, or use `just bench-clean` to wipe everything.
 
 ## Tasks
 
@@ -87,16 +88,17 @@ All commands run from `benchmarks/` via `just`:
 | `just bench-rust` | Sidecar internal criterion benchmarks (no MongoDB needed) |
 | `just bench-ingestion` | Polars ingestion vs native bulk insert |
 | `just bench-compiled` | Compiled query cache benchmarks (waits for sample data) |
-| `just bench-collect` | Collect results into timestamped folder + generate README |
-| `just bench-compare` | Compare latest results against previous run |
-| `just bench-check-regression` | Check for regressions (exits non-zero if found) |
+| `just bench-report` | Generate RESULTS.md from current result files |
+| `just bench-clean` | Delete all result files (forces full rerun) |
 | `just bench-generate-data` | Generate test data for ingestion benchmarks |
 | `just bench-setup` | Start benchmark infrastructure (Docker + sidecar) |
 | `just bench-teardown` | Stop all benchmark infrastructure (Docker + sidecar) |
 
-> **Note:** All benchmark commands are self-contained — they start Docker (MongoDB),
-> build/start the sidecar as needed, and clean up (stop sidecar + Docker) on exit.
-> The only exception is `bench-rust` which needs no external services.
+> **Note:** `bench-all` starts Docker (MongoDB) and the sidecar automatically, but does
+> NOT tear them down — run `just bench-teardown` when you're done. This lets you quickly
+> rerun failed benchmarks without waiting for Atlas sample data to reload. Individual
+> benchmarks (e.g. `bench-python`) require `bench-setup` first. `bench-rust` needs no
+> external services. Benchmarks with existing results are automatically skipped.
 
 ## Prerequisites
 
