@@ -56,7 +56,8 @@ from mongocore import MongoClient
 async with MongoClient() as client:
     users = client["myapp"]["users"]
     await users.insert_one({"name": "Alice", "age": 30})
-    docs = await users.find({"age": {"$gte": 25}})
+    async for doc in users.find({"age": {"$gte": 25}}):
+        print(doc["name"])
 ```
 
 ```bash
@@ -71,7 +72,9 @@ const client = new MongoClient();
 await client.connect();
 const users = client.db('myapp').collection('users');
 await users.insertOne({ name: 'Alice', age: 30 });
-const docs = await users.find({ age: { $gte: 25 } });
+for await (const doc of users.find({ age: { $gte: 25 } })) {
+  console.log(doc.name);
+}
 ```
 
 ```bash
@@ -80,11 +83,15 @@ go get github.com/rozza/mongocore/clients/go/mongocore
 ```
 
 ```go
-client := mongocore.NewClient("localhost:50051")
+client := mongocore.MongoClient()
 client.Connect(ctx)
 users := client.Database("myapp").Collection("users")
 users.InsertOne(ctx, bson.D{{Key: "name", Value: "Alice"}, {Key: "age", Value: 30}})
-docs, _ := users.Find(ctx, bson.D{{Key: "age", Value: bson.D{{Key: "$gte", Value: 25}}}}, nil)
+cursor := users.Find(ctx, bson.D{{Key: "age", Value: bson.D{{Key: "$gte", Value: 25}}}}, nil)
+defer cursor.Close()
+for cursor.Next(ctx) {
+    fmt.Println(cursor.Doc())
+}
 ```
 
 ```bash
@@ -95,7 +102,11 @@ docs, _ := users.Find(ctx, bson.D{{Key: "age", Value: bson.D{{Key: "$gte", Value
 try (MongoClient client = MongoClient.create()) {
     MongoCollection users = client.getDatabase("myapp").getCollection("users");
     users.insertOne(new Document("name", "Alice").append("age", 30));
-    List<Document> docs = users.find(new Document("age", new Document("$gte", 25)));
+    try (MongoCursor cursor = users.find(new Document("age", new Document("$gte", 25)))) {
+        for (Document doc : cursor) {
+            System.out.println(doc.getString("name"));
+        }
+    }
 }
 ```
 
