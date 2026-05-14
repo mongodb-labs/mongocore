@@ -4,33 +4,33 @@
   <line x1="70" y1="270.0" x2="570" y2="270.0" stroke="#e5e7eb" stroke-width="1"/>
   <text x="62" y="274.0" text-anchor="end" font-size="11" fill="#6b7280">0</text>
   <line x1="70" y1="224.0" x2="570" y2="224.0" stroke="#e5e7eb" stroke-width="1"/>
-  <text x="62" y="228.0" text-anchor="end" font-size="11" fill="#6b7280">6</text>
+  <text x="62" y="228.0" text-anchor="end" font-size="11" fill="#6b7280">4</text>
   <line x1="70" y1="178.0" x2="570" y2="178.0" stroke="#e5e7eb" stroke-width="1"/>
-  <text x="62" y="182.0" text-anchor="end" font-size="11" fill="#6b7280">13</text>
-  <line x1="70" y1="131.99999999999997" x2="570" y2="131.99999999999997" stroke="#e5e7eb" stroke-width="1"/>
-  <text x="62" y="135.99999999999997" text-anchor="end" font-size="11" fill="#6b7280">19</text>
+  <text x="62" y="182.0" text-anchor="end" font-size="11" fill="#6b7280">8</text>
+  <line x1="70" y1="132.0" x2="570" y2="132.0" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="62" y="136.0" text-anchor="end" font-size="11" fill="#6b7280">12</text>
   <line x1="70" y1="86.0" x2="570" y2="86.0" stroke="#e5e7eb" stroke-width="1"/>
-  <text x="62" y="90.0" text-anchor="end" font-size="11" fill="#6b7280">26</text>
+  <text x="62" y="90.0" text-anchor="end" font-size="11" fill="#6b7280">16</text>
   <line x1="70" y1="40.0" x2="570" y2="40.0" stroke="#e5e7eb" stroke-width="1"/>
-  <text x="62" y="44.0" text-anchor="end" font-size="11" fill="#6b7280">32</text>
+  <text x="62" y="44.0" text-anchor="end" font-size="11" fill="#6b7280">20</text>
   <text x="15" y="155.0" text-anchor="middle" font-size="11" fill="#6b7280" transform="rotate(-90 15 155.0)">MB/s</text>
-  <rect x="83.88888888888889" y="214.59619620861903" width="22.22222222222222" height="55.403803791380966" fill="#f97316" rx="2"/>
-  <rect x="111.66666666666666" y="144.0640997797152" width="22.22222222222222" height="125.93590022028481" fill="#3b82f6" rx="2"/>
+  <rect x="83.88888888888889" y="180.17357762777243" width="22.22222222222222" height="89.82642237222758" fill="#f97316" rx="2"/>
+  <rect x="111.66666666666666" y="128.36725371770797" width="22.22222222222222" height="141.63274628229203" fill="#3b82f6" rx="2"/>
   <text x="111.66666666666666" y="288" text-anchor="middle" font-size="11">1mb csv</text>
-  <rect x="167.2222222222222" y="208.20235177313765" width="22.22222222222222" height="61.797648226862336" fill="#f97316" rx="2"/>
-  <rect x="194.99999999999997" y="66.32465638670845" width="22.22222222222222" height="203.67534361329155" fill="#3b82f6" rx="2"/>
+  <rect x="167.2222222222222" y="167.93990762827997" width="22.22222222222222" height="102.06009237172005" fill="#f97316" rx="2"/>
+  <rect x="194.99999999999997" y="40.0" width="22.22222222222222" height="230.0" fill="#3b82f6" rx="2"/>
   <text x="194.99999999999997" y="288" text-anchor="middle" font-size="11">1mb ndjson</text>
-  <rect x="250.55555555555554" y="193.72343396109335" width="22.22222222222222" height="76.27656603890664" fill="#f97316" rx="2"/>
-  <rect x="278.3333333333333" y="131.44053861189536" width="22.22222222222222" height="138.55946138810464" fill="#3b82f6" rx="2"/>
+  <rect x="250.55555555555554" y="135.77983048266762" width="22.22222222222222" height="134.22016951733238" fill="#f97316" rx="2"/>
+  <rect x="278.3333333333333" y="113.50708014008018" width="22.22222222222222" height="156.49291985991982" fill="#3b82f6" rx="2"/>
   <text x="278.3333333333333" y="288" text-anchor="middle" font-size="11">10mb csv</text>
-  <rect x="333.8888888888889" y="152.57733238186842" width="22.22222222222222" height="117.4226676181316" fill="#f97316" rx="2"/>
-  <rect x="361.6666666666667" y="40.0" width="22.22222222222222" height="230.0" fill="#3b82f6" rx="2"/>
+  <rect x="333.8888888888889" y="78.55707252702635" width="22.22222222222222" height="191.44292747297365" fill="#f97316" rx="2"/>
+  <rect x="361.6666666666667" y="42.81327716591383" width="22.22222222222222" height="227.18672283408617" fill="#3b82f6" rx="2"/>
   <text x="361.6666666666667" y="288" text-anchor="middle" font-size="11">10mb ndjson</text>
-  <rect x="417.22222222222223" y="193.13114703236016" width="22.22222222222222" height="76.86885296763985" fill="#f97316" rx="2"/>
-  <rect x="445.0" y="126.7307871304024" width="22.22222222222222" height="143.2692128695976" fill="#3b82f6" rx="2"/>
+  <rect x="417.22222222222223" y="131.8809318377912" width="22.22222222222222" height="138.1190681622088" fill="#f97316" rx="2"/>
+  <rect x="445.0" y="129.55793533979596" width="22.22222222222222" height="140.44206466020404" fill="#3b82f6" rx="2"/>
   <text x="445.0" y="288" text-anchor="middle" font-size="11">100mb csv</text>
-  <rect x="500.55555555555554" y="146.98985448791535" width="22.22222222222222" height="123.01014551208463" fill="#f97316" rx="2"/>
-  <rect x="528.3333333333333" y="45.68738171325742" width="22.22222222222222" height="224.31261828674258" fill="#3b82f6" rx="2"/>
+  <rect x="500.55555555555554" y="69.56859361518548" width="22.22222222222222" height="200.43140638481452" fill="#f97316" rx="2"/>
+  <rect x="528.3333333333333" y="73.8527127848551" width="22.22222222222222" height="196.1472872151449" fill="#3b82f6" rx="2"/>
   <text x="528.3333333333333" y="288" text-anchor="middle" font-size="11">100mb ndjson</text>
   <rect x="80" y="315" width="12" height="12" fill="#f97316" rx="2"/>
   <text x="96" y="325" font-size="11" fill="#374151">MongoCore (Polars)</text>

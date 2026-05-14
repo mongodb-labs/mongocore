@@ -1,6 +1,6 @@
 # Benchmark Results
 
-Generated: 2026-05-14 16:49 UTC
+Generated: 2026-05-14 17:10 UTC
 
 ![Native vs MongoCore Overhead](results/charts/sidecar_overhead.svg)
 
@@ -43,12 +43,12 @@ Pipeline sends multiple operations in a single gRPC call. Native column shows th
 
 | Operation | Size | MongoCore (MB/s) | Native (MB/s) | p50 (s) |
 |-----------|-----:|-----------------:|--------------:|--------:|
-| csv | 1mb | 7.76 | 17.65 | 0.106 |
-| ndjson | 1mb | 8.66 | 28.54 | 0.109 |
-| csv | 10mb | 10.69 | 19.42 | 0.777 |
-| ndjson | 10mb | 16.45 | 32.23 | 0.579 |
-| csv | 100mb | 10.77 | 20.08 | 7.788 |
-| ndjson | 100mb | 17.24 | 31.43 | 5.563 |
+| csv | 1mb | 7.70 | 12.13 | 0.107 |
+| ndjson | 1mb | 8.74 | 19.70 | 0.108 |
+| csv | 10mb | 11.50 | 13.41 | 0.722 |
+| ndjson | 10mb | 16.40 | 19.46 | 0.581 |
+| csv | 100mb | 11.83 | 12.03 | 7.090 |
+| ndjson | 100mb | 17.17 | 16.80 | 5.585 |
 
 ## Environment
 
