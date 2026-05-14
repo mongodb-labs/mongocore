@@ -1,46 +1,26 @@
 # Benchmark Results
 
-Generated: 2026-05-14 16:34 UTC
+Generated: 2026-05-14 16:44 UTC
 
 ![Native vs MongoCore Overhead](results/charts/sidecar_overhead.svg)
 
 ## Single-Document Operations
 
-| Benchmark | Language | Native (ops/s) | MongoCore (ops/s) | Overhead |
-|-----------|----------|---------------:|------------------:|---------:|
-| find_one_by_id | Python | 4438 | 2418 | +46% |
-| find_one_by_id | Typescript | 4352 | 2682 | +38% |
-| find_one_by_id | Go | 5854 | 3390 | +42% |
-| find_one_by_id | Java | 5558 | 3430 | +38% |
-| insert_one_large | Python | 42 | 39 | +8% |
-| insert_one_large | Typescript | 45 | 38 | +16% |
-| insert_one_large | Go | 46 | 38 | +17% |
-| insert_one_large | Java | 31 | 31 | -0% |
-| insert_one_small | Python | 4288 | 1286 | +70% |
-| insert_one_small | Typescript | 1814 | 1440 | +21% |
-| insert_one_small | Go | 2226 | 1499 | +33% |
-| insert_one_small | Java | 2125 | 1400 | +34% |
-| run_command | Python | 5094 | 2628 | +48% |
-| run_command | Typescript | 4872 | 2933 | +40% |
-| run_command | Go | 6081 | 3607 | +41% |
-| run_command | Java | 6002 | 3849 | +36% |
+| Operation | Python | TypeScript | Go | Java | Fastest Native | Overhead |
+|-----------|-------:|-----------:|---:|-----:|---------------:|---------:|
+| find_one_by_id | 2418 | 2682 | 3390 | 3430 | 5854 | +49% |
+| insert_one_large | 39 | 38 | 38 | 31 | 46 | +21% |
+| insert_one_small | 1286 | 1440 | 1499 | 1400 | 4288 | +67% |
+| run_command | 2628 | 2933 | 3607 | 3849 | 6081 | +46% |
 
 ## Multi-Document Operations
 
-| Benchmark | Language | Native (ops/s) | MongoCore (ops/s) | Overhead |
-|-----------|----------|---------------:|------------------:|---------:|
-| bulk_insert_large | Python | 50 | 42 | +15% |
-| bulk_insert_large | Go | — | 42 | — |
-| bulk_insert_small | Python | 172.1K | 113.5K | +34% |
-| bulk_insert_small | Typescript | 215.9K | 137.0K | +37% |
-| bulk_insert_small | Go | 142.5K | 148.5K | -4% |
-| bulk_insert_small | Java | 187.1K | 147.5K | +21% |
-| find_many | Python | 421.8K | 245.0K | +42% |
-| find_many | Typescript | 347.6K | 249.7K | +28% |
-| find_many | Go | 248.5K | 182.7K | +26% |
-| find_many | Java | 522.4K | 227.7K | +56% |
-| find_many_large | Python | 57 | 48 | +15% |
-| find_many_large | Go | — | 45 | — |
+| Operation | Python | TypeScript | Go | Java | Fastest Native | Overhead |
+|-----------|-------:|-----------:|---:|-----:|---------------:|---------:|
+| bulk_insert_large | 42 | — | 42 | — | 50 | +15% |
+| bulk_insert_small | 113.5K | 137.0K | 148.5K | 147.5K | 215.9K | +37% |
+| find_many | 245.0K | 249.7K | 182.7K | 227.7K | 522.4K | +57% |
+| find_many_large | 48 | — | 45 | — | 57 | +18% |
 
 ## Pipeline Batching
 
@@ -64,20 +44,14 @@ Pipeline sends multiple operations in a single gRPC call. Native column shows th
 
 ![Ingestion Performance](results/charts/ingestion_performance.svg)
 
-| Benchmark | Driver | Ops/s | MB/s | p50 (s) |
-|-----------|--------|------:|-----:|--------:|
-| mongocore_ingest_100mb_csv | mongocore+polars | 0 | 10.77 | 7.788 |
-| mongocore_ingest_100mb_ndjson | mongocore+polars | 0 | 17.24 | 5.563 |
-| mongocore_ingest_10mb_csv | mongocore+polars | 1 | 10.69 | 0.777 |
-| mongocore_ingest_10mb_ndjson | mongocore+polars | 2 | 16.45 | 0.579 |
-| mongocore_ingest_1mb_csv | mongocore+polars | 9 | 7.76 | 0.106 |
-| mongocore_ingest_1mb_ndjson | mongocore+polars | 9 | 8.66 | 0.109 |
-| native_bulk_100mb_csv | pymongo_native | 199.4K | 20.08 | 4.178 |
-| native_bulk_100mb_ndjson | pymongo_native | 182.1K | 31.43 | 3.050 |
-| native_bulk_10mb_csv | pymongo_native | 194.8K | 19.42 | 0.428 |
-| native_bulk_10mb_ndjson | pymongo_native | 187.8K | 32.23 | 0.296 |
-| native_bulk_1mb_csv | pymongo_native | 178.8K | 17.65 | 0.047 |
-| native_bulk_1mb_ndjson | pymongo_native | 167.3K | 28.54 | 0.033 |
+| Operation | Size | MongoCore (MB/s) | Native (MB/s) | p50 (s) |
+|-----------|-----:|-----------------:|--------------:|--------:|
+| csv | 1mb | 7.76 | 17.65 | 0.106 |
+| ndjson | 1mb | 8.66 | 28.54 | 0.109 |
+| csv | 10mb | 10.69 | 19.42 | 0.777 |
+| ndjson | 10mb | 16.45 | 32.23 | 0.579 |
+| csv | 100mb | 10.77 | 20.08 | 7.788 |
+| ndjson | 100mb | 17.24 | 31.43 | 5.563 |
 
 ## Environment
 

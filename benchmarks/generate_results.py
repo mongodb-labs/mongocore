@@ -375,38 +375,45 @@ def generate_pipeline_chart(pipeline_results, single_doc_results):
 
 
 def build_comparison_rows(cat_results):
-    """Build native vs MongoCore comparison rows for a category."""
+    """Build one row per benchmark with all languages as columns."""
     rows = []
     benchmarks = sorted(set(r["benchmark"] for r in cat_results))
     languages = ["python", "typescript", "go", "java"]
 
     for bench in benchmarks:
+        lang_ops = {}
+        native_values = []
+
         for lang in languages:
-            native = next((r for r in cat_results if r["benchmark"] == bench and get_language(r["driver"]) == lang and is_native(r["driver"])), None)
             mc = next((r for r in cat_results if r["benchmark"] == bench and get_language(r["driver"]) == lang and not is_native(r["driver"])), None)
+            native = next((r for r in cat_results if r["benchmark"] == bench and get_language(r["driver"]) == lang and is_native(r["driver"])), None)
 
-            if not native and not mc:
-                continue
+            lang_ops[lang] = format_ops(mc["ops_per_sec"]) if mc else "—"
+            if native:
+                native_values.append(native["ops_per_sec"])
 
-            native_ops = native["ops_per_sec"] if native else None
-            mc_ops = mc["ops_per_sec"] if mc else None
+        fastest_native = max(native_values) if native_values else None
+        native_str = format_ops(fastest_native) if fastest_native else "—"
 
-            native_str = format_ops(native_ops) if native_ops else "—"
-            mc_str = format_ops(mc_ops) if mc_ops else "—"
+        # Overhead: average MongoCore vs fastest native
+        mc_values = [r["ops_per_sec"] for r in cat_results if r["benchmark"] == bench and not is_native(r["driver"])]
+        avg_mc = sum(mc_values) / len(mc_values) if mc_values else 0
 
-            if native_ops and mc_ops:
-                overhead = ((native_ops - mc_ops) / native_ops) * 100
-                overhead_str = f"+{overhead:.0f}%" if overhead > 0 else f"{overhead:.0f}%"
-            else:
-                overhead_str = "—"
+        if fastest_native and avg_mc:
+            overhead = ((fastest_native - avg_mc) / fastest_native) * 100
+            overhead_str = f"+{overhead:.0f}%" if overhead > 0 else f"{overhead:.0f}%"
+        else:
+            overhead_str = "—"
 
-            rows.append({
-                "benchmark": bench,
-                "language": lang.capitalize(),
-                "native_ops": native_str,
-                "mc_ops": mc_str,
-                "overhead": overhead_str,
-            })
+        rows.append({
+            "operation": bench,
+            "python": lang_ops["python"],
+            "typescript": lang_ops["typescript"],
+            "go": lang_ops["go"],
+            "java": lang_ops["java"],
+            "native": native_str,
+            "overhead": overhead_str,
+        })
     return rows
 
 
@@ -469,16 +476,26 @@ def build_pipeline_rows(pipeline_results, single_doc_results):
 
 
 def build_ingestion_rows(ingestion_results):
-    """Build ingestion table rows."""
+    """Build ingestion table rows: one row per operation+size, MC vs native side by side."""
+    mc_results = [r for r in ingestion_results if "mongocore" in r["driver"]]
+    native_results = [r for r in ingestion_results if "native" in r["driver"]]
+
+    sizes = ["1mb", "10mb", "100mb"]
+    formats = ["csv", "ndjson"]
+
     rows = []
-    for r in sorted(ingestion_results, key=lambda x: x["benchmark"]):
-        rows.append({
-            "benchmark": r["benchmark"],
-            "driver": driver_label(r["driver"]),
-            "ops": format_ops(r["ops_per_sec"]),
-            "mbps": f"{r['mb_per_sec']:.2f}",
-            "p50": f"{r['percentiles']['p50']:.3f}",
-        })
+    for size in sizes:
+        for fmt in formats:
+            mc = next((r for r in mc_results if size in r["benchmark"] and fmt in r["benchmark"]), None)
+            native = next((r for r in native_results if size in r["benchmark"] and fmt in r["benchmark"]), None)
+
+            rows.append({
+                "operation": fmt,
+                "size": size,
+                "mc_mbps": f"{mc['mb_per_sec']:.2f}" if mc else "—",
+                "native_mbps": f"{native['mb_per_sec']:.2f}" if native else "—",
+                "p50": f"{mc['percentiles']['p50']:.3f}" if mc else "—",
+            })
     return rows
 
 

@@ -9,10 +9,10 @@ Generated: {{ generated_at }}
 ## Single-Document Operations
 
 {% if single_doc %}
-| Benchmark | Language | Native (ops/s) | MongoCore (ops/s) | Overhead |
-|-----------|----------|---------------:|------------------:|---------:|
+| Operation | Python | TypeScript | Go | Java | Fastest Native | Overhead |
+|-----------|-------:|-----------:|---:|-----:|---------------:|---------:|
 {% for row in single_doc %}
-| {{ row.benchmark }} | {{ row.language }} | {{ row.native_ops }} | {{ row.mc_ops }} | {{ row.overhead }} |
+| {{ row.operation }} | {{ row.python }} | {{ row.typescript }} | {{ row.go }} | {{ row.java }} | {{ row.native }} | {{ row.overhead }} |
 {% endfor %}
 {% else %}
 No single-document results available.
@@ -21,10 +21,10 @@ No single-document results available.
 ## Multi-Document Operations
 
 {% if multi_doc %}
-| Benchmark | Language | Native (ops/s) | MongoCore (ops/s) | Overhead |
-|-----------|----------|---------------:|------------------:|---------:|
+| Operation | Python | TypeScript | Go | Java | Fastest Native | Overhead |
+|-----------|-------:|-----------:|---:|-----:|---------------:|---------:|
 {% for row in multi_doc %}
-| {{ row.benchmark }} | {{ row.language }} | {{ row.native_ops }} | {{ row.mc_ops }} | {{ row.overhead }} |
+| {{ row.operation }} | {{ row.python }} | {{ row.typescript }} | {{ row.go }} | {{ row.java }} | {{ row.native }} | {{ row.overhead }} |
 {% endfor %}
 {% else %}
 No multi-document results available.
@@ -55,10 +55,10 @@ No pipeline results available.
 
 {% endif %}
 {% if ingestion %}
-| Benchmark | Driver | Ops/s | MB/s | p50 (s) |
-|-----------|--------|------:|-----:|--------:|
+| Operation | Size | MongoCore (MB/s) | Native (MB/s) | p50 (s) |
+|-----------|-----:|-----------------:|--------------:|--------:|
 {% for row in ingestion %}
-| {{ row.benchmark }} | {{ row.driver }} | {{ row.ops }} | {{ row.mbps }} | {{ row.p50 }} |
+| {{ row.operation }} | {{ row.size }} | {{ row.mc_mbps }} | {{ row.native_mbps }} | {{ row.p50 }} |
 {% endfor %}
 {% else %}
 No ingestion results available.
