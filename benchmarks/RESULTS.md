@@ -1,14 +1,10 @@
 # Benchmark Results
 
-Generated: 2026-05-14 19:12 UTC
+Generated: 2026-05-14 19:15 UTC
 
 ![Native vs MongoCore Overhead](results/charts/sidecar_overhead.svg)
 
 ## Driver Operations
-
-MongoCore ops/s per language vs fastest native driver.
-
-**Methodology:** Each benchmark performs 10,000 operations per iteration (single-doc) or 10,000 documents per batch (multi-doc) using the language-specific client library. The native driver connects directly to MongoDB; MongoCore goes through the gRPC sidecar. Both use localhost connections, default connection pools, and `w:1` write concern. The overhead column shows how much slower MongoCore is vs the fastest native driver — this represents the pure sidecar cost (gRPC serialization + proxy hop) with no network latency to amortize it.
 
 | Operation | Python | TypeScript | Go | Java | Fastest Native | Overhead |
 |-----------|-------:|-----------:|---:|-----:|---------------:|---------:|
@@ -21,9 +17,11 @@ MongoCore ops/s per language vs fastest native driver.
 | find_many | 245.0K | 249.7K | 182.7K | 227.7K | 522.4K | +57% |
 | find_many_large | 48 | — | 45 | — | 57 | +18% |
 
-## Pipeline Batching
+**Native:** Each driver connects directly to MongoDB and executes 10,000 operations per iteration.
+**MongoCore:** Same operations routed through the gRPC sidecar using each language's client library.
+**What this shows:** The pure sidecar overhead (gRPC serialization + proxy hop) on localhost with no network latency to amortize it — this is the worst case for MongoCore.
 
-**Methodology:** Pipeline sends N operations in a single gRPC call, reducing round-trip overhead. Each iteration performs 10,000 total operations split into batches of the given size (e.g. batch 1000 = 10 pipeline calls of 1000 ops each). The "Fastest Native" column shows the equivalent operation executed one-at-a-time via the fastest native driver — the speedup demonstrates the benefit of batching multiple operations into fewer network calls.
+## Pipeline Batching
 
 ![Pipeline Batching Performance](results/charts/pipeline_performance.svg)
 
@@ -39,9 +37,11 @@ MongoCore ops/s per language vs fastest native driver.
 | run_command | 1000 | 17.9K | 16.8K | 18.8K | 19.6K | 6081 | 3.0x |
 | run_command | 10000 | 18.2K | 16.8K | 19.2K | 19.7K | 6081 | 3.0x |
 
-## Ingestion
+**Native:** Each operation is a separate round-trip to MongoDB (10,000 individual calls per iteration).
+**MongoCore:** N operations batched into a single gRPC call (e.g. batch 1000 = 10 calls of 1000 ops each).
+**What this shows:** The benefit of reducing round-trips — even with sidecar overhead, batching multiple operations into fewer network calls is significantly faster than individual calls.
 
-**Methodology:** End-to-end file-to-collection ingestion. Both sides perform the same work: read file from disk, parse CSV/NDJSON, optionally apply transforms (cast types, filter rows, rename columns, drop columns), then batch insert into MongoDB with 4 concurrent writers and batch size of 1,000 documents. The native benchmark uses Python's `csv`/`json` stdlib for parsing and `ThreadPoolExecutor(4)` for concurrent pymongo inserts. MongoCore uses Polars (Rust) for parsing and vectorized transforms, with 4 concurrent tokio tasks for writes — all triggered by a single gRPC call. The speedup comes from Polars' columnar processing and Rust-native I/O, especially at larger row counts where Python per-row overhead dominates.
+## Ingestion
 
 ![Ingestion Performance](results/charts/ingestion_performance.svg)
 
@@ -59,6 +59,10 @@ MongoCore ops/s per language vs fastest native driver.
 | ingest + transform | ndjson | 100k | 17.91 | 58.40 | 3.3x |
 | ingest + transform | csv | 500k | 12.68 | 41.98 | 3.3x |
 | ingest + transform | ndjson | 500k | 16.84 | 65.36 | 3.9x |
+
+**Native:** Read file from disk, parse with Python's csv/json stdlib, apply transforms in a per-row loop, batch insert with 4 concurrent threads (pymongo).
+**MongoCore:** Single gRPC call triggers Polars (Rust) to read, parse, and apply vectorized transforms, then write with 4 concurrent async tasks.
+**What this shows:** At scale, Polars' columnar processing and Rust-native I/O outperform Python's per-row parsing and transformation — the gap widens with row count.
 
 ## Environment
 
