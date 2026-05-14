@@ -16,6 +16,7 @@ MongoCore is an AI-native MongoDB driver implemented as a Rust sidecar. It provi
 - **Multi-Tenant** — Isolated caches, rate limiting, per-tenant connection pools
 - **OpenTelemetry** — Optional distributed tracing with driver and MongoCore-level spans
 - **Custom LLM Gateway** — Corporate AI gateway support with configurable auth
+- **Web UI Dashboard** — Built-in localhost diagnostic dashboard with real-time charts and analytics
 
 ## Documentation
 
@@ -37,6 +38,7 @@ MongoCore is an AI-native MongoDB driver implemented as a Rust sidecar. It provi
 | [Multi-Tenant](./multi-tenant.md) | Shared sidecar with per-tenant isolation |
 | [Ingestion](./ingestion.md) | Polars-powered data ingestion and ETL |
 | [OpenTelemetry](./opentelemetry.md) | Distributed tracing setup and configuration |
+| [Web UI Dashboard](./web-ui.md) | Built-in diagnostic dashboard configuration and usage |
 | [Testing](./testing.md) | Test configuration, running tests, Docker setup |
 | [Roadmap](./roadmap.md) | Version history and future roadmap |
 | [Design & Plans](./design/) | Architecture specs, implementation plans, and development log |

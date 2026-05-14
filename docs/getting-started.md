@@ -132,10 +132,6 @@ Open `http://127.0.0.1:27999` after starting MongoCore to view:
 - Recent errors
 - LLM usage, ingestion progress, and cache statistics (expandable)
 
-### Configuration Priority
-
-CLI args > Environment variables > TOML file > Defaults
-
 ## Next Steps
 
 - [CRUD Operations](./crud-operations.md) — Find, insert, update, delete
