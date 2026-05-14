@@ -69,7 +69,7 @@ def is_native(driver):
 
 
 def generate_overhead_chart(single_doc_results, multi_doc_results):
-    """Generate SVG bar chart showing native vs MongoCore overhead per benchmark."""
+    """Generate SVG horizontal bar chart showing % overhead per benchmark."""
     all_results = single_doc_results + multi_doc_results
     if not all_results:
         return None
@@ -77,10 +77,9 @@ def generate_overhead_chart(single_doc_results, multi_doc_results):
     CHARTS_DIR.mkdir(parents=True, exist_ok=True)
 
     languages = ["python", "typescript", "go", "java"]
-    lang_labels = {"python": "Python", "typescript": "TypeScript", "go": "Go", "java": "Java"}
     benchmarks = sorted(set(r["benchmark"] for r in all_results))
 
-    # Collect data: for each benchmark, avg native and avg MongoCore across languages
+    # Compute overhead % for each benchmark (avg across languages)
     chart_data = []
     for bench in benchmarks:
         native_ops = []
@@ -88,75 +87,67 @@ def generate_overhead_chart(single_doc_results, multi_doc_results):
         for lang in languages:
             n = next((r for r in all_results if r["benchmark"] == bench and get_language(r["driver"]) == lang and is_native(r["driver"])), None)
             m = next((r for r in all_results if r["benchmark"] == bench and get_language(r["driver"]) == lang and not is_native(r["driver"])), None)
-            if n:
+            if n and m:
                 native_ops.append(n["ops_per_sec"])
-            if m:
                 mc_ops.append(m["ops_per_sec"])
         if native_ops and mc_ops:
+            avg_native = sum(native_ops) / len(native_ops)
+            avg_mc = sum(mc_ops) / len(mc_ops)
+            overhead_pct = ((avg_native - avg_mc) / avg_native) * 100
             chart_data.append({
-                "benchmark": bench,
-                "native": sum(native_ops) / len(native_ops),
-                "mongocore": sum(mc_ops) / len(mc_ops),
+                "benchmark": bench.replace("_", " "),
+                "overhead": overhead_pct,
             })
 
     if not chart_data:
         return None
 
-    num_groups = len(chart_data)
-    chart_width = max(700, num_groups * 120)
-    chart_height = 400
-    margin_left = 80
-    margin_right = 30
+    # Sort by overhead descending
+    chart_data.sort(key=lambda d: d["overhead"], reverse=True)
+
+    num_bars = len(chart_data)
+    bar_height = 28
+    chart_width = 700
+    margin_left = 150
+    margin_right = 60
     margin_top = 40
-    margin_bottom = 100
+    margin_bottom = 20
     plot_width = chart_width - margin_left - margin_right
-    plot_height = chart_height - margin_top - margin_bottom
+    chart_height = margin_top + margin_bottom + num_bars * (bar_height + 8)
 
-    group_width = plot_width / num_groups
-    bar_width = group_width / 3
-    colors = ["#3b82f6", "#f97316"]  # blue = native, orange = MongoCore
-
-    max_val = max(max(d["native"], d["mongocore"]) for d in chart_data)
-    y_scale = plot_height / max_val
+    max_overhead = max(d["overhead"] for d in chart_data)
+    x_scale = plot_width / max(max_overhead, 1)
 
     svg = []
     svg.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {chart_width} {chart_height}" font-family="system-ui, sans-serif" font-size="12">')
     svg.append(f'  <rect width="{chart_width}" height="{chart_height}" fill="white"/>')
-    svg.append(f'  <text x="{chart_width/2}" y="20" text-anchor="middle" font-size="14" font-weight="bold">Native vs MongoCore: Avg ops/s Across Languages</text>')
+    svg.append(f'  <text x="{chart_width/2}" y="20" text-anchor="middle" font-size="14" font-weight="bold">Sidecar Overhead (% slower than native)</text>')
 
-    # Y-axis
-    num_ticks = 5
-    for i in range(num_ticks + 1):
-        y_val = max_val * i / num_ticks
-        y_pos = margin_top + plot_height - (y_val * y_scale)
-        svg.append(f'  <line x1="{margin_left}" y1="{y_pos}" x2="{chart_width - margin_right}" y2="{y_pos}" stroke="#e5e7eb" stroke-width="1"/>')
-        label = f"{y_val/1000:.0f}K" if y_val >= 1000 else f"{y_val:.0f}"
-        svg.append(f'  <text x="{margin_left - 8}" y="{y_pos + 4}" text-anchor="end" font-size="11" fill="#6b7280">{label}</text>')
+    # X-axis gridlines
+    for pct in range(0, int(max_overhead) + 20, 20):
+        x = margin_left + pct * x_scale
+        if x > chart_width - margin_right:
+            break
+        svg.append(f'  <line x1="{x}" y1="{margin_top}" x2="{x}" y2="{chart_height - margin_bottom}" stroke="#e5e7eb" stroke-width="1"/>')
+        svg.append(f'  <text x="{x}" y="{margin_top - 8}" text-anchor="middle" font-size="10" fill="#6b7280">{pct}%</text>')
 
     # Bars
-    for g_idx, d in enumerate(chart_data):
-        group_x = margin_left + g_idx * group_width
+    for i, d in enumerate(chart_data):
+        y = margin_top + i * (bar_height + 8)
+        bar_w = max(d["overhead"] * x_scale, 2)
 
-        for b_idx, (key, color) in enumerate(zip(["native", "mongocore"], colors)):
-            val = d[key]
-            x = group_x + (b_idx + 0.5) * bar_width
-            bar_h = val * y_scale
-            y = margin_top + plot_height - bar_h
-            svg.append(f'  <rect x="{x}" y="{y}" width="{bar_width * 0.8}" height="{bar_h}" fill="{color}" rx="2"/>')
+        if d["overhead"] <= 0:
+            color = "#10b981"
+        elif d["overhead"] < 30:
+            color = "#f59e0b"
+        elif d["overhead"] < 50:
+            color = "#f97316"
+        else:
+            color = "#ef4444"
 
-        # Label
-        label = d["benchmark"].replace("_", "\n")
-        short_label = d["benchmark"].replace("_", " ")
-        label_x = group_x + group_width / 2
-        svg.append(f'  <text x="{label_x}" y="{margin_top + plot_height + 16}" text-anchor="middle" font-size="10" fill="#374151">{short_label}</text>')
-
-    # Legend
-    legend_x = margin_left + 10
-    legend_y = margin_top + plot_height + 55
-    for i, (color, label) in enumerate(zip(colors, ["Native driver", "MongoCore sidecar"])):
-        x = legend_x + i * 170
-        svg.append(f'  <rect x="{x}" y="{legend_y}" width="12" height="12" fill="{color}" rx="2"/>')
-        svg.append(f'  <text x="{x + 16}" y="{legend_y + 10}" font-size="11" fill="#374151">{label}</text>')
+        svg.append(f'  <rect x="{margin_left}" y="{y}" width="{bar_w}" height="{bar_height}" fill="{color}" rx="3"/>')
+        svg.append(f'  <text x="{margin_left - 8}" y="{y + bar_height/2 + 4}" text-anchor="end" font-size="11" fill="#374151">{d["benchmark"]}</text>')
+        svg.append(f'  <text x="{margin_left + bar_w + 6}" y="{y + bar_height/2 + 4}" font-size="11" fill="#6b7280">{d["overhead"]:.0f}%</text>')
 
     svg.append('</svg>')
 

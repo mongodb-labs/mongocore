@@ -1,6 +1,6 @@
 # Benchmark Results
 
-Generated: 2026-05-14 16:46 UTC
+Generated: 2026-05-14 16:49 UTC
 
 ![Native vs MongoCore Overhead](results/charts/sidecar_overhead.svg)
 
