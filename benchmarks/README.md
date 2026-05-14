@@ -14,6 +14,8 @@ just bench-collect    # Collect results into timestamped folder + generate READM
 - **Single-doc ops:** run_command, find_one_by_id, insert_one_small, insert_one_large
 - **Multi-doc ops:** bulk_insert_small, bulk_insert_large, find_many, find_many_large
 - **Ingestion:** Polars pipeline vs native bulk insert (1MB, 10MB, 100MB)
+- **Pipeline batching:** pipeline_run_command, pipeline_insert_one_small, pipeline_find_one_by_id (at 100/1K/10K batch sizes)
+- **Compiled query:** cache hit latency
 
 ## Languages
 
@@ -75,6 +77,12 @@ All commands run from `benchmarks/` via `just`:
 | `just bench-java` | Java native + MongoCore |
 | `just bench-java-native` | Java MongoDB sync driver only |
 | `just bench-java-mongocore` | Java MongoCore gRPC client |
+| **Pipeline** | |
+| `just bench-drivers-pipeline` | Pipeline batching benchmarks (all languages) |
+| `just bench-python-pipeline` | Python pipeline batching |
+| `just bench-typescript-pipeline` | TypeScript pipeline batching |
+| `just bench-go-pipeline` | Go pipeline batching |
+| `just bench-java-pipeline` | Java pipeline batching |
 | **Other** | |
 | `just bench-rust` | Sidecar internal criterion benchmarks (no MongoDB needed) |
 | `just bench-ingestion` | Polars ingestion vs native bulk insert |

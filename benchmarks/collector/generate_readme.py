@@ -246,9 +246,159 @@ ALL_BENCHMARKS = [
     "bulk_insert_small", "bulk_insert_large", "find_many", "find_many_large",
 ]
 
+PIPELINE_OPERATIONS = ["run_command", "insert_one_small", "find_one_by_id"]
+PIPELINE_BATCH_SIZES = [100, 1000, 10000]
+
+
+def build_pipeline_context(results, languages_data):
+    """Build context for pipeline batching section."""
+    pipeline_results = [r for r in results if r.get("category") == "pipeline"]
+    if not pipeline_results:
+        return []
+
+    pipeline_by_lang = {}
+    for r in pipeline_results:
+        lang = get_language(r.get("driver", ""))
+        if lang == "unknown":
+            continue
+        if lang not in pipeline_by_lang:
+            pipeline_by_lang[lang] = {}
+        pipeline_by_lang[lang][r["benchmark"]] = r
+
+    lang_sections = []
+    for lang in sorted(pipeline_by_lang.keys()):
+        pl = pipeline_by_lang[lang]
+        native = languages_data.get(lang, {}).get("native", {})
+        mc = languages_data.get(lang, {}).get("mongocore", {})
+
+        rows = []
+        for op in PIPELINE_OPERATIONS:
+            native_result = native.get(op)
+            mc_result = mc.get(op)
+            native_ops = f"{native_result['ops_per_sec']:,.0f}" if native_result else "—"
+            mc_individual_ops = f"{mc_result['ops_per_sec']:,.0f}" if mc_result else "—"
+
+            pipeline_ops = {}
+            for bs in PIPELINE_BATCH_SIZES:
+                key = f"pipeline_{op}_{bs}"
+                pr = pl.get(key)
+                pipeline_ops[bs] = f"{pr['ops_per_sec']:,.0f}" if pr else "—"
+
+            best_speedup = "—"
+            if native_result and native_result["ops_per_sec"] > 0:
+                best_pipeline_ops = max(
+                    (pl.get(f"pipeline_{op}_{bs}", {}).get("ops_per_sec", 0) for bs in PIPELINE_BATCH_SIZES),
+                    default=0,
+                )
+                if best_pipeline_ops > 0:
+                    speedup = best_pipeline_ops / native_result["ops_per_sec"]
+                    best_speedup = f"{speedup:.1f}x"
+
+            rows.append({
+                "operation": op,
+                "native_ops": native_ops,
+                "mc_individual_ops": mc_individual_ops,
+                "p100": pipeline_ops[100],
+                "p1000": pipeline_ops[1000],
+                "p10000": pipeline_ops[10000],
+                "best_speedup": best_speedup,
+            })
+
+        lang_sections.append({"name": lang, "rows": rows})
+
+    return lang_sections
+
+
+def build_compiled_context(results):
+    """Build context for compiled query cache section."""
+    compiled_results = [r for r in results if r.get("category") == "compiled_query"]
+    if not compiled_results:
+        return []
+
+    rows = []
+    for r in compiled_results:
+        pct = r.get("percentiles", {})
+        p50_val = pct.get("p50", 0)
+        p99_val = pct.get("p99", 0)
+
+        def fmt_latency(v):
+            if v == 0:
+                return "—"
+            us = v * 1_000_000
+            if us < 1000:
+                return f"{us:.0f}us"
+            return f"{us / 1000:.2f}ms"
+
+        rows.append({
+            "benchmark": r["benchmark"],
+            "ops_per_sec": f"{r['ops_per_sec']:,.0f}",
+            "p50": fmt_latency(p50_val),
+            "p99": fmt_latency(p99_val),
+        })
+
+    return rows
+
+
+def generate_pipeline_charts(pipeline_data, languages_data, charts_dir, readme_path):
+    """Generate one line chart per language showing ops/s vs batch size for pipeline operations."""
+    if not pipeline_data:
+        return {}
+
+    chart_paths = {}
+    batch_sizes = [100, 1000, 10000]
+    colors = {"run_command": "#306998", "insert_one_small": "#ED8B00", "find_one_by_id": "#00ADD8"}
+
+    for lang_data in pipeline_data:
+        lang_name = lang_data["name"]
+        fig, ax = plt.subplots(figsize=(12, 7))
+
+        for row in lang_data["rows"]:
+            op = row["operation"]
+            ops_values = []
+            for bs in batch_sizes:
+                val_str = row[f"p{bs}"]
+                if val_str == "—":
+                    ops_values.append(0)
+                else:
+                    ops_values.append(float(val_str.replace(",", "")))
+
+            if any(v > 0 for v in ops_values):
+                ax.plot(batch_sizes, ops_values, 'o-', label=f'{op}',
+                        color=colors.get(op, '#666666'), linewidth=2, markersize=8)
+
+            native_str = row["native_ops"]
+            if native_str != "—":
+                native_val = float(native_str.replace(",", ""))
+                ax.axhline(y=native_val, linestyle='--', alpha=0.4,
+                           color=colors.get(op, '#666666'))
+
+            mc_str = row["mc_individual_ops"]
+            if mc_str != "—":
+                mc_val = float(mc_str.replace(",", ""))
+                ax.axhline(y=mc_val, linestyle=':', alpha=0.4,
+                           color=colors.get(op, '#666666'))
+
+        ax.set_xscale('log')
+        ax.set_xlabel('Batch Size (ops per pipeline call)', fontsize=11)
+        ax.set_ylabel('Operations/sec', fontsize=11)
+        ax.set_title(f'Pipeline Batching Scaling — {lang_name}', fontsize=13, fontweight='bold')
+        ax.set_xticks(batch_sizes)
+        ax.set_xticklabels(['100', '1K', '10K'])
+        ax.legend(loc='upper left', fontsize=10)
+        ax.grid(axis='y', alpha=0.3)
+
+        plt.tight_layout()
+        chart_filename = f"pipeline_scaling_{lang_name.lower()}.svg"
+        chart_path = charts_dir / chart_filename
+        plt.savefig(chart_path, format='svg', bbox_inches='tight')
+        plt.close()
+        chart_paths[lang_name] = str(chart_path.relative_to(readme_path.parent))
+
+    return chart_paths
+
 
 def build_context(results, charts_dir, readme_path):
-    ctx = {"environment": None, "languages": [], "overhead_chart_path": None, "overhead_summary_chart_path": None, "ingestion": None}
+    ctx = {"environment": None, "languages": [], "overhead_chart_path": None, "overhead_summary_chart_path": None, "ingestion": None, "pipeline_data": [], "compiled_data": []}
 
     if not results:
         return ctx
@@ -398,6 +548,16 @@ def build_context(results, charts_dir, readme_path):
                 "rows": ingest_rows,
                 "chart_path": str(ingest_chart) if ingest_chart else None,
             }
+
+    # Pipeline batching
+    pipeline_data = build_pipeline_context(results, languages_data)
+    ctx["pipeline_data"] = pipeline_data
+    pipeline_chart_paths = generate_pipeline_charts(pipeline_data, languages_data, charts_dir, readme_path)
+    for lang_section in pipeline_data:
+        lang_section["chart_path"] = pipeline_chart_paths.get(lang_section["name"])
+
+    # Compiled query
+    ctx["compiled_data"] = build_compiled_context(results)
 
     return ctx
 
