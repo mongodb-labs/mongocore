@@ -16,5 +16,9 @@ dist/
 # Rust
 rust/target/
 
+# Go compiled binaries
+drivers/go/bench_*
+!drivers/go/bench_*.go
+
 # Java
 drivers/java/target/
