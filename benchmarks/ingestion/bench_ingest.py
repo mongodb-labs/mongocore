@@ -1,6 +1,7 @@
 """Benchmark MongoCore Polars ingestion vs native pymongo bulk insert.
 
-Tests at 3 file sizes: 1MB, 10MB, 100MB in CSV and NDJSON formats.
+Tests at 3 row counts: 10K, 100K, 500K in CSV and NDJSON formats.
+Both use concurrent writes (4 threads) for fair comparison.
 """
 
 import asyncio
@@ -9,6 +10,7 @@ import os
 import sys
 import time
 import statistics
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -27,11 +29,23 @@ FILE_SIZES = ["10k", "100k", "500k"]
 FORMATS = ["csv", "ndjson"]
 
 
-def bench_native_bulk(label, format_ext):
-    """Benchmark native pymongo end-to-end: read file + parse + insert.
+WRITE_CONCURRENCY = 4
+BATCH_SIZE = 1000
 
-    Times the full pipeline that a developer would write: open file,
-    parse CSV/NDJSON into documents, batch insert into MongoDB.
+
+def _insert_batch(uri, db_name, coll_name, batch):
+    """Worker function for concurrent inserts."""
+    client = PyMongoClient(uri, w=1)
+    client[db_name][coll_name].insert_many(batch)
+    client.close()
+    return len(batch)
+
+
+def bench_native_bulk(label, format_ext):
+    """Benchmark native pymongo end-to-end: read file + parse + concurrent insert.
+
+    Times the full pipeline: open file, parse CSV/NDJSON into documents,
+    batch insert with concurrent threads (matching MongoCore's concurrency).
     """
     file_path = DATA_DIR / f"bench_{label}.{format_ext}"
     if not file_path.exists():
@@ -50,11 +64,10 @@ def bench_native_bulk(label, format_ext):
 
     for _ in range(iterations):
         db.drop_collection(coll_name)
-        coll = db[coll_name]
 
         start = time.perf_counter()
 
-        # Read and parse file (included in timing — this is real work)
+        # Read and parse file
         rows = []
         if format_ext == "csv":
             import csv as csv_mod
@@ -65,10 +78,12 @@ def bench_native_bulk(label, format_ext):
             with open(file_path) as f:
                 rows = [json.loads(line) for line in f]
 
-        # Batch insert
-        batch_size = 10_000
-        for i in range(0, len(rows), batch_size):
-            coll.insert_many(rows[i:i + batch_size])
+        # Concurrent batch insert (matching MongoCore's write concurrency)
+        batches = [rows[i:i + BATCH_SIZE] for i in range(0, len(rows), BATCH_SIZE)]
+        with ThreadPoolExecutor(max_workers=WRITE_CONCURRENCY) as executor:
+            futures = [executor.submit(_insert_batch, MONGODB_URI, DB_NAME, coll_name, batch) for batch in batches]
+            for f in as_completed(futures):
+                f.result()
 
         elapsed = time.perf_counter() - start
         times.append(elapsed)
@@ -92,7 +107,7 @@ def bench_native_bulk(label, format_ext):
         "mb_per_sec": round(mb_per_sec, 3),
         "percentiles": {"p50": round(median, 4)},
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "system": {"driver": "pymongo_native", "operation": "file_read+parse+insertMany", "file_size": label, "format": format_ext},
+        "system": {"driver": "pymongo_native", "operation": "file_read+parse+concurrent_insertMany", "file_size": label, "format": format_ext},
     }
 
     print(f"    native: {mb_per_sec:.1f} MB/s ({row_count:,} rows in {median:.1f}s)")
@@ -185,10 +200,11 @@ TRANSFORMS = [
 
 
 def bench_native_transform(label, format_ext):
-    """Benchmark native Python: read + parse + transform + insert.
+    """Benchmark native Python: read + parse + transform + concurrent insert.
 
-    Applies the same transformations as MongoCore: filter age>=21,
-    rename name→full_name, cast score to int, drop tags.
+    Applies the same transformations as MongoCore: cast age/score,
+    filter age>=21, rename name→full_name, drop tags.
+    Uses concurrent writes (4 threads) matching MongoCore's concurrency.
     """
     file_path = DATA_DIR / f"bench_{label}.{format_ext}"
     if not file_path.exists():
@@ -207,7 +223,6 @@ def bench_native_transform(label, format_ext):
 
     for _ in range(iterations):
         db.drop_collection(coll_name)
-        coll = db[coll_name]
 
         start = time.perf_counter()
 
@@ -239,10 +254,12 @@ def bench_native_transform(label, format_ext):
             }
             transformed.append(doc)
 
-        # Batch insert
-        batch_size = 10_000
-        for i in range(0, len(transformed), batch_size):
-            coll.insert_many(transformed[i:i + batch_size])
+        # Concurrent batch insert (matching MongoCore's write concurrency)
+        batches = [transformed[i:i + BATCH_SIZE] for i in range(0, len(transformed), BATCH_SIZE)]
+        with ThreadPoolExecutor(max_workers=WRITE_CONCURRENCY) as executor:
+            futures = [executor.submit(_insert_batch, MONGODB_URI, DB_NAME, coll_name, batch) for batch in batches]
+            for f in as_completed(futures):
+                f.result()
 
         elapsed = time.perf_counter() - start
         times.append(elapsed)
