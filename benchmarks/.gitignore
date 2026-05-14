@@ -3,7 +3,6 @@ ingestion/data/
 
 # Benchmark results (machine-specific, regenerate with `just bench-all`)
 results/*.json
-results/charts/
 
 # Python
 __pycache__/

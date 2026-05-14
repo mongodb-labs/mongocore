@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 400" font-family="system-ui, sans-serif" font-size="12">
+  <rect width="960" height="400" fill="white"/>
+  <text x="480.0" y="20" text-anchor="middle" font-size="14" font-weight="bold">Native vs MongoCore: Avg ops/s Across Languages</text>
+  <line x1="80" y1="300.0" x2="930" y2="300.0" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="72" y="304.0" text-anchor="end" font-size="11" fill="#6b7280">0</text>
+  <line x1="80" y1="248.0" x2="930" y2="248.0" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="72" y="252.0" text-anchor="end" font-size="11" fill="#6b7280">77K</text>
+  <line x1="80" y1="196.0" x2="930" y2="196.0" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="72" y="200.0" text-anchor="end" font-size="11" fill="#6b7280">154K</text>
+  <line x1="80" y1="144.0" x2="930" y2="144.0" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="72" y="148.0" text-anchor="end" font-size="11" fill="#6b7280">231K</text>
+  <line x1="80" y1="92.0" x2="930" y2="92.0" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="72" y="96.0" text-anchor="end" font-size="11" fill="#6b7280">308K</text>
+  <line x1="80" y1="40.0" x2="930" y2="40.0" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="72" y="44.0" text-anchor="end" font-size="11" fill="#6b7280">385K</text>
+  <rect x="97.70833333333333" y="299.9664452708917" width="28.333333333333332" height="0.033554729108273076" fill="#3b82f6" rx="2"/>
+  <rect x="133.125" y="299.97161013362165" width="28.333333333333332" height="0.028389866378327622" fill="#f97316" rx="2"/>
+  <text x="133.125" y="316" text-anchor="middle" font-size="10" fill="#374151">bulk insert large</text>
+  <rect x="203.95833333333334" y="178.8801881682317" width="28.333333333333332" height="121.1198118317683" fill="#3b82f6" rx="2"/>
+  <rect x="239.375" y="207.7754009195481" width="28.333333333333332" height="92.2245990804519" fill="#f97316" rx="2"/>
+  <text x="239.375" y="316" text-anchor="middle" font-size="10" fill="#374151">bulk insert small</text>
+  <rect x="310.2083333333333" y="40.0" width="28.333333333333332" height="260.0" fill="#3b82f6" rx="2"/>
+  <rect x="345.625" y="147.2161532704825" width="28.333333333333332" height="152.7838467295175" fill="#f97316" rx="2"/>
+  <text x="345.625" y="316" text-anchor="middle" font-size="10" fill="#374151">find many</text>
+  <rect x="416.4583333333333" y="299.96171925270744" width="28.333333333333332" height="0.038280747292536894" fill="#3b82f6" rx="2"/>
+  <rect x="451.875" y="299.96843694998364" width="28.333333333333332" height="0.031563050016333326" fill="#f97316" rx="2"/>
+  <text x="451.875" y="316" text-anchor="middle" font-size="10" fill="#374151">find many large</text>
+  <rect x="522.7083333333334" y="296.5902285159628" width="28.333333333333332" height="3.4097714840372246" fill="#3b82f6" rx="2"/>
+  <rect x="558.125" y="297.9881340589589" width="28.333333333333332" height="2.0118659410411053" fill="#f97316" rx="2"/>
+  <text x="558.125" y="316" text-anchor="middle" font-size="10" fill="#374151">find one by id</text>
+  <rect x="628.9583333333334" y="299.97235279362206" width="28.333333333333332" height="0.027647206377943306" fill="#3b82f6" rx="2"/>
+  <rect x="664.375" y="299.9754922199873" width="28.333333333333332" height="0.024507780012682345" fill="#f97316" rx="2"/>
+  <text x="664.375" y="316" text-anchor="middle" font-size="10" fill="#374151">insert one large</text>
+  <rect x="735.2083333333334" y="298.2357942904507" width="28.333333333333332" height="1.764205709549309" fill="#3b82f6" rx="2"/>
+  <rect x="770.625" y="299.05061046132687" width="28.333333333333332" height="0.9493895386731107" fill="#f97316" rx="2"/>
+  <text x="770.625" y="316" text-anchor="middle" font-size="10" fill="#374151">insert one small</text>
+  <rect x="841.4583333333334" y="296.278294437165" width="28.333333333333332" height="3.7217055628350084" fill="#3b82f6" rx="2"/>
+  <rect x="876.875" y="297.8029247820449" width="28.333333333333332" height="2.19707521795513" fill="#f97316" rx="2"/>
+  <text x="876.875" y="316" text-anchor="middle" font-size="10" fill="#374151">run command</text>
+  <rect x="90" y="355" width="12" height="12" fill="#3b82f6" rx="2"/>
+  <text x="106" y="365" font-size="11" fill="#374151">Native driver</text>
+  <rect x="260" y="355" width="12" height="12" fill="#f97316" rx="2"/>
+  <text x="276" y="365" font-size="11" fill="#374151">MongoCore sidecar</text>
+</svg>
