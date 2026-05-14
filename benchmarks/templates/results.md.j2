@@ -10,6 +10,8 @@ Generated: {{ generated_at }}
 
 MongoCore ops/s per language vs fastest native driver.
 
+**Methodology:** Each benchmark performs 10,000 operations per iteration (single-doc) or 10,000 documents per batch (multi-doc) using the language-specific client library. The native driver connects directly to MongoDB; MongoCore goes through the gRPC sidecar. Both use localhost connections, default connection pools, and `w:1` write concern. The overhead column shows how much slower MongoCore is vs the fastest native driver — this represents the pure sidecar cost (gRPC serialization + proxy hop) with no network latency to amortize it.
+
 {% if driver_ops %}
 | Operation | Python | TypeScript | Go | Java | Fastest Native | Overhead |
 |-----------|-------:|-----------:|---:|-----:|---------------:|---------:|
@@ -22,7 +24,7 @@ No driver operation results available.
 
 ## Pipeline Batching
 
-Pipeline sends multiple operations in a single gRPC call. Native column shows the equivalent single-call benchmark for comparison.
+**Methodology:** Pipeline sends N operations in a single gRPC call, reducing round-trip overhead. Each iteration performs 10,000 total operations split into batches of the given size (e.g. batch 1000 = 10 pipeline calls of 1000 ops each). The "Fastest Native" column shows the equivalent operation executed one-at-a-time via the fastest native driver — the speedup demonstrates the benefit of batching multiple operations into fewer network calls.
 
 {% if pipeline_chart %}
 ![Pipeline Batching Performance]({{ pipeline_chart }})
@@ -39,6 +41,8 @@ No pipeline results available.
 {% endif %}
 
 ## Ingestion
+
+**Methodology:** End-to-end file-to-collection ingestion. Both sides perform the same work: read file from disk, parse CSV/NDJSON, optionally apply transforms (cast types, filter rows, rename columns, drop columns), then batch insert into MongoDB with 4 concurrent writers and batch size of 1,000 documents. The native benchmark uses Python's `csv`/`json` stdlib for parsing and `ThreadPoolExecutor(4)` for concurrent pymongo inserts. MongoCore uses Polars (Rust) for parsing and vectorized transforms, with 4 concurrent tokio tasks for writes — all triggered by a single gRPC call. The speedup comes from Polars' columnar processing and Rust-native I/O, especially at larger row counts where Python per-row overhead dominates.
 
 {% if ingestion_chart %}
 ![Ingestion Performance]({{ ingestion_chart }})
