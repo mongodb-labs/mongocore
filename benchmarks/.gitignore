@@ -1,8 +1,6 @@
 # Generated benchmark data (1MB, 10MB, 100MB files — too large for git)
 ingestion/data/
 
-# Benchmark results (machine-specific, regenerate with `just bench-all`)
-results/*.json
 
 # Python
 __pycache__/

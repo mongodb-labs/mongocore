@@ -1,0 +1,263 @@
+[
+  {
+    "benchmark": "pipeline_run_command_100",
+    "category": "pipeline",
+    "driver": "mongocore+typescript",
+    "dataset_size_bytes": 1000000,
+    "batch_size": 10000,
+    "iterations": 95,
+    "total_time_secs": 60.591,
+    "ops_per_sec": 15680.8,
+    "mb_per_sec": 1.568,
+    "percentiles": {
+      "p10": 0.624585,
+      "p25": 0.628753,
+      "p50": 0.637723,
+      "p75": 0.644353,
+      "p90": 0.650253,
+      "p95": 0.655096,
+      "p99": 0.711681
+    },
+    "timestamp": "2026-05-14T15:39:18.117Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "driver": "mongocore+typescript",
+      "mongocore_version": "0.6.0",
+      "transport": "tcp"
+    }
+  },
+  {
+    "benchmark": "pipeline_insert_one_small_100",
+    "category": "pipeline",
+    "driver": "mongocore+typescript",
+    "dataset_size_bytes": 1670000,
+    "batch_size": 10000,
+    "iterations": 43,
+    "total_time_secs": 61.388,
+    "ops_per_sec": 7019.8,
+    "mb_per_sec": 1.172,
+    "percentiles": {
+      "p10": 1.395193,
+      "p25": 1.41004,
+      "p50": 1.424539,
+      "p75": 1.436291,
+      "p90": 1.453697,
+      "p95": 1.481843,
+      "p99": 1.558379
+    },
+    "timestamp": "2026-05-14T15:40:26.675Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "driver": "mongocore+typescript",
+      "mongocore_version": "0.6.0",
+      "transport": "tcp"
+    }
+  },
+  {
+    "benchmark": "pipeline_find_one_by_id_100",
+    "category": "pipeline",
+    "driver": "mongocore+typescript",
+    "dataset_size_bytes": 11640000,
+    "batch_size": 10000,
+    "iterations": 84,
+    "total_time_secs": 60.019,
+    "ops_per_sec": 14021.1,
+    "mb_per_sec": 16.321,
+    "percentiles": {
+      "p10": 0.703722,
+      "p25": 0.706303,
+      "p50": 0.713213,
+      "p75": 0.718982,
+      "p90": 0.727132,
+      "p95": 0.729711,
+      "p99": 0.786981
+    },
+    "timestamp": "2026-05-14T15:41:30.282Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "driver": "mongocore+typescript",
+      "mongocore_version": "0.6.0",
+      "transport": "tcp"
+    }
+  },
+  {
+    "benchmark": "pipeline_run_command_1000",
+    "category": "pipeline",
+    "driver": "mongocore+typescript",
+    "dataset_size_bytes": 1000000,
+    "batch_size": 10000,
+    "iterations": 100,
+    "total_time_secs": 59.702,
+    "ops_per_sec": 16820.4,
+    "mb_per_sec": 1.682,
+    "percentiles": {
+      "p10": 0.589213,
+      "p25": 0.591155,
+      "p50": 0.594517,
+      "p75": 0.602009,
+      "p90": 0.607833,
+      "p95": 0.611142,
+      "p99": 0.624528
+    },
+    "timestamp": "2026-05-14T15:42:32.972Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "driver": "mongocore+typescript",
+      "mongocore_version": "0.6.0",
+      "transport": "tcp"
+    }
+  },
+  {
+    "benchmark": "pipeline_insert_one_small_1000",
+    "category": "pipeline",
+    "driver": "mongocore+typescript",
+    "dataset_size_bytes": 1670000,
+    "batch_size": 10000,
+    "iterations": 45,
+    "total_time_secs": 60.187,
+    "ops_per_sec": 7476.5,
+    "mb_per_sec": 1.249,
+    "percentiles": {
+      "p10": 1.308898,
+      "p25": 1.321432,
+      "p50": 1.337515,
+      "p75": 1.352886,
+      "p90": 1.368314,
+      "p95": 1.373982,
+      "p99": 1.393506
+    },
+    "timestamp": "2026-05-14T15:43:39.997Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "driver": "mongocore+typescript",
+      "mongocore_version": "0.6.0",
+      "transport": "tcp"
+    }
+  },
+  {
+    "benchmark": "pipeline_find_one_by_id_1000",
+    "category": "pipeline",
+    "driver": "mongocore+typescript",
+    "dataset_size_bytes": 11640000,
+    "batch_size": 10000,
+    "iterations": 90,
+    "total_time_secs": 60.418,
+    "ops_per_sec": 14919.1,
+    "mb_per_sec": 17.366,
+    "percentiles": {
+      "p10": 0.663138,
+      "p25": 0.665732,
+      "p50": 0.670282,
+      "p75": 0.675397,
+      "p90": 0.679339,
+      "p95": 0.680675,
+      "p99": 0.733665
+    },
+    "timestamp": "2026-05-14T15:44:43.780Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "driver": "mongocore+typescript",
+      "mongocore_version": "0.6.0",
+      "transport": "tcp"
+    }
+  },
+  {
+    "benchmark": "pipeline_run_command_10000",
+    "category": "pipeline",
+    "driver": "mongocore+typescript",
+    "dataset_size_bytes": 1000000,
+    "batch_size": 10000,
+    "iterations": 100,
+    "total_time_secs": 59.393,
+    "ops_per_sec": 16846.8,
+    "mb_per_sec": 1.685,
+    "percentiles": {
+      "p10": 0.583679,
+      "p25": 0.587295,
+      "p50": 0.593584,
+      "p75": 0.59937,
+      "p90": 0.605291,
+      "p95": 0.609567,
+      "p99": 0.61836
+    },
+    "timestamp": "2026-05-14T15:45:46.178Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "driver": "mongocore+typescript",
+      "mongocore_version": "0.6.0",
+      "transport": "tcp"
+    }
+  },
+  {
+    "benchmark": "pipeline_insert_one_small_10000",
+    "category": "pipeline",
+    "driver": "mongocore+typescript",
+    "dataset_size_bytes": 1670000,
+    "batch_size": 10000,
+    "iterations": 46,
+    "total_time_secs": 60.152,
+    "ops_per_sec": 7656.5,
+    "mb_per_sec": 1.279,
+    "percentiles": {
+      "p10": 1.286085,
+      "p25": 1.289614,
+      "p50": 1.306087,
+      "p75": 1.32007,
+      "p90": 1.332329,
+      "p95": 1.346062,
+      "p99": 1.368598
+    },
+    "timestamp": "2026-05-14T15:46:52.937Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "driver": "mongocore+typescript",
+      "mongocore_version": "0.6.0",
+      "transport": "tcp"
+    }
+  },
+  {
+    "benchmark": "pipeline_find_one_by_id_10000",
+    "category": "pipeline",
+    "driver": "mongocore+typescript",
+    "dataset_size_bytes": 11640000,
+    "batch_size": 10000,
+    "iterations": 90,
+    "total_time_secs": 60.462,
+    "ops_per_sec": 14906.9,
+    "mb_per_sec": 17.352,
+    "percentiles": {
+      "p10": 0.657962,
+      "p25": 0.662569,
+      "p50": 0.670832,
+      "p75": 0.676155,
+      "p90": 0.68656,
+      "p95": 0.690835,
+      "p99": 0.724244
+    },
+    "timestamp": "2026-05-14T15:47:56.810Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "driver": "mongocore+typescript",
+      "mongocore_version": "0.6.0",
+      "transport": "tcp"
+    }
+  }
+]

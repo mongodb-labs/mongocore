@@ -1,0 +1,254 @@
+[
+  {
+    "benchmark": "native_bulk_1mb_csv",
+    "category": "ingestion",
+    "driver": "pymongo_native",
+    "dataset_size_bytes": 822271,
+    "batch_size": 8333,
+    "iterations": 5,
+    "total_time_secs": 0.245,
+    "ops_per_sec": 178847.7,
+    "mb_per_sec": 17.648,
+    "percentiles": {
+      "p50": 0.0466
+    },
+    "timestamp": "2026-05-13T13:03:09.519598+00:00",
+    "system": {
+      "driver": "pymongo_native",
+      "operation": "insertMany",
+      "file_size": "1mb",
+      "format": "csv"
+    }
+  },
+  {
+    "benchmark": "mongocore_ingest_1mb_csv",
+    "category": "ingestion",
+    "driver": "mongocore+polars",
+    "dataset_size_bytes": 822271,
+    "batch_size": 1,
+    "iterations": 5,
+    "total_time_secs": 0.538,
+    "ops_per_sec": 9.442,
+    "mb_per_sec": 7.764,
+    "percentiles": {
+      "p50": 0.1059
+    },
+    "timestamp": "2026-05-13T13:03:10.137466+00:00",
+    "system": {
+      "driver": "mongocore+polars",
+      "operation": "ingest",
+      "file_size": "1mb",
+      "format": "csv"
+    }
+  },
+  {
+    "benchmark": "native_bulk_1mb_ndjson",
+    "category": "ingestion",
+    "driver": "pymongo_native",
+    "dataset_size_bytes": 947636,
+    "batch_size": 5555,
+    "iterations": 5,
+    "total_time_secs": 0.171,
+    "ops_per_sec": 167309.8,
+    "mb_per_sec": 28.542,
+    "percentiles": {
+      "p50": 0.0332
+    },
+    "timestamp": "2026-05-13T13:03:10.328358+00:00",
+    "system": {
+      "driver": "pymongo_native",
+      "operation": "insertMany",
+      "file_size": "1mb",
+      "format": "ndjson"
+    }
+  },
+  {
+    "benchmark": "mongocore_ingest_1mb_ndjson",
+    "category": "ingestion",
+    "driver": "mongocore+polars",
+    "dataset_size_bytes": 947636,
+    "batch_size": 1,
+    "iterations": 5,
+    "total_time_secs": 0.546,
+    "ops_per_sec": 9.139,
+    "mb_per_sec": 8.66,
+    "percentiles": {
+      "p50": 0.1094
+    },
+    "timestamp": "2026-05-13T13:03:10.892869+00:00",
+    "system": {
+      "driver": "mongocore+polars",
+      "operation": "ingest",
+      "file_size": "1mb",
+      "format": "ndjson"
+    }
+  },
+  {
+    "benchmark": "native_bulk_10mb_csv",
+    "category": "ingestion",
+    "driver": "pymongo_native",
+    "dataset_size_bytes": 8305366,
+    "batch_size": 83333,
+    "iterations": 5,
+    "total_time_secs": 2.211,
+    "ops_per_sec": 194820.9,
+    "mb_per_sec": 19.417,
+    "percentiles": {
+      "p50": 0.4277
+    },
+    "timestamp": "2026-05-13T13:03:13.238204+00:00",
+    "system": {
+      "driver": "pymongo_native",
+      "operation": "insertMany",
+      "file_size": "10mb",
+      "format": "csv"
+    }
+  },
+  {
+    "benchmark": "mongocore_ingest_10mb_csv",
+    "category": "ingestion",
+    "driver": "mongocore+polars",
+    "dataset_size_bytes": 8305366,
+    "batch_size": 1,
+    "iterations": 5,
+    "total_time_secs": 4.035,
+    "ops_per_sec": 1.287,
+    "mb_per_sec": 10.689,
+    "percentiles": {
+      "p50": 0.777
+    },
+    "timestamp": "2026-05-13T13:03:17.301340+00:00",
+    "system": {
+      "driver": "mongocore+polars",
+      "operation": "ingest",
+      "file_size": "10mb",
+      "format": "csv"
+    }
+  },
+  {
+    "benchmark": "native_bulk_10mb_ndjson",
+    "category": "ingestion",
+    "driver": "pymongo_native",
+    "dataset_size_bytes": 9533272,
+    "batch_size": 55555,
+    "iterations": 5,
+    "total_time_secs": 1.531,
+    "ops_per_sec": 187825.4,
+    "mb_per_sec": 32.231,
+    "percentiles": {
+      "p50": 0.2958
+    },
+    "timestamp": "2026-05-13T13:03:18.968123+00:00",
+    "system": {
+      "driver": "pymongo_native",
+      "operation": "insertMany",
+      "file_size": "10mb",
+      "format": "ndjson"
+    }
+  },
+  {
+    "benchmark": "mongocore_ingest_10mb_ndjson",
+    "category": "ingestion",
+    "driver": "mongocore+polars",
+    "dataset_size_bytes": 9533272,
+    "batch_size": 1,
+    "iterations": 5,
+    "total_time_secs": 2.897,
+    "ops_per_sec": 1.726,
+    "mb_per_sec": 16.455,
+    "percentiles": {
+      "p50": 0.5793
+    },
+    "timestamp": "2026-05-13T13:03:21.895946+00:00",
+    "system": {
+      "driver": "mongocore+polars",
+      "operation": "ingest",
+      "file_size": "10mb",
+      "format": "ndjson"
+    }
+  },
+  {
+    "benchmark": "native_bulk_100mb_csv",
+    "category": "ingestion",
+    "driver": "pymongo_native",
+    "dataset_size_bytes": 83889486,
+    "batch_size": 833333,
+    "iterations": 3,
+    "total_time_secs": 14.228,
+    "ops_per_sec": 199439.8,
+    "mb_per_sec": 20.077,
+    "percentiles": {
+      "p50": 4.1784
+    },
+    "timestamp": "2026-05-13T13:03:37.296054+00:00",
+    "system": {
+      "driver": "pymongo_native",
+      "operation": "insertMany",
+      "file_size": "100mb",
+      "format": "csv"
+    }
+  },
+  {
+    "benchmark": "mongocore_ingest_100mb_csv",
+    "category": "ingestion",
+    "driver": "mongocore+polars",
+    "dataset_size_bytes": 83889486,
+    "batch_size": 1,
+    "iterations": 3,
+    "total_time_secs": 23.165,
+    "ops_per_sec": 0.128,
+    "mb_per_sec": 10.772,
+    "percentiles": {
+      "p50": 7.7877
+    },
+    "timestamp": "2026-05-13T13:04:00.583273+00:00",
+    "system": {
+      "driver": "mongocore+polars",
+      "operation": "ingest",
+      "file_size": "100mb",
+      "format": "csv"
+    }
+  },
+  {
+    "benchmark": "native_bulk_100mb_ndjson",
+    "category": "ingestion",
+    "driver": "pymongo_native",
+    "dataset_size_bytes": 95889263,
+    "batch_size": 555555,
+    "iterations": 3,
+    "total_time_secs": 9.974,
+    "ops_per_sec": 182121.4,
+    "mb_per_sec": 31.434,
+    "percentiles": {
+      "p50": 3.0505
+    },
+    "timestamp": "2026-05-13T13:04:12.489731+00:00",
+    "system": {
+      "driver": "pymongo_native",
+      "operation": "insertMany",
+      "file_size": "100mb",
+      "format": "ndjson"
+    }
+  },
+  {
+    "benchmark": "mongocore_ingest_100mb_ndjson",
+    "category": "ingestion",
+    "driver": "mongocore+polars",
+    "dataset_size_bytes": 95889263,
+    "batch_size": 1,
+    "iterations": 3,
+    "total_time_secs": 16.686,
+    "ops_per_sec": 0.18,
+    "mb_per_sec": 17.238,
+    "percentiles": {
+      "p50": 5.5626
+    },
+    "timestamp": "2026-05-13T13:04:29.284169+00:00",
+    "system": {
+      "driver": "mongocore+polars",
+      "operation": "ingest",
+      "file_size": "100mb",
+      "format": "ndjson"
+    }
+  }
+]

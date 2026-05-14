@@ -1,0 +1,170 @@
+[
+  {
+    "benchmark": "run_command",
+    "category": "single_doc",
+    "driver": "mongo-go-driver",
+    "dataset_size_bytes": 1000000,
+    "batch_size": 10000,
+    "iterations": 37,
+    "total_time_secs": 60.766,
+    "ops_per_sec": 6081.4,
+    "mb_per_sec": 0.608,
+    "percentiles": {
+      "p10": 1.607398,
+      "p25": 1.622728,
+      "p50": 1.644356,
+      "p75": 1.656747,
+      "p90": 1.670605,
+      "p95": 1.701337,
+      "p99": 1.701449
+    },
+    "timestamp": "2026-05-14T13:46:56Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "mongocore_version": "native",
+      "driver": "mongo-go-driver"
+    }
+  },
+  {
+    "benchmark": "find_one_by_id",
+    "category": "single_doc",
+    "driver": "mongo-go-driver",
+    "dataset_size_bytes": 12470000,
+    "batch_size": 10000,
+    "iterations": 35,
+    "total_time_secs": 60.573,
+    "ops_per_sec": 5854,
+    "mb_per_sec": 7.3,
+    "percentiles": {
+      "p10": 1.663748,
+      "p25": 1.68392,
+      "p50": 1.708223,
+      "p75": 1.790506,
+      "p90": 1.833131,
+      "p95": 1.844797,
+      "p99": 1.84823
+    },
+    "timestamp": "2026-05-14T13:48:02Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "mongocore_version": "native",
+      "driver": "mongo-go-driver"
+    }
+  },
+  {
+    "benchmark": "insert_one_small",
+    "category": "single_doc",
+    "driver": "mongo-go-driver",
+    "dataset_size_bytes": 1760000,
+    "batch_size": 10000,
+    "iterations": 14,
+    "total_time_secs": 63.222,
+    "ops_per_sec": 2225.8,
+    "mb_per_sec": 0.392,
+    "percentiles": {
+      "p10": 4.417925,
+      "p25": 4.444625,
+      "p50": 4.492791,
+      "p75": 4.571439,
+      "p90": 4.617359,
+      "p95": 4.77556,
+      "p99": 4.77556
+    },
+    "timestamp": "2026-05-14T13:49:19Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "mongocore_version": "native",
+      "driver": "mongo-go-driver"
+    }
+  },
+  {
+    "benchmark": "insert_one_large",
+    "category": "single_doc",
+    "driver": "mongo-go-driver",
+    "dataset_size_bytes": 27500380,
+    "batch_size": 10,
+    "iterations": 100,
+    "total_time_secs": 21.872,
+    "ops_per_sec": 45.8,
+    "mb_per_sec": 125.899,
+    "percentiles": {
+      "p10": 0.209278,
+      "p25": 0.212626,
+      "p50": 0.218432,
+      "p75": 0.224547,
+      "p90": 0.23042,
+      "p95": 0.23219,
+      "p99": 0.237489
+    },
+    "timestamp": "2026-05-14T13:49:41Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "mongocore_version": "native",
+      "driver": "mongo-go-driver"
+    }
+  },
+  {
+    "benchmark": "bulk_insert_small",
+    "category": "multi_doc",
+    "driver": "mongo-go-driver",
+    "dataset_size_bytes": 1760000,
+    "batch_size": 10000,
+    "iterations": 100,
+    "total_time_secs": 7.134,
+    "ops_per_sec": 142508.1,
+    "mb_per_sec": 25.081,
+    "percentiles": {
+      "p10": 0.066827,
+      "p25": 0.067847,
+      "p50": 0.070171,
+      "p75": 0.073207,
+      "p90": 0.075025,
+      "p95": 0.076829,
+      "p99": 0.080806
+    },
+    "timestamp": "2026-05-14T13:49:49Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "mongocore_version": "native",
+      "driver": "mongo-go-driver"
+    }
+  },
+  {
+    "benchmark": "find_many",
+    "category": "multi_doc",
+    "driver": "mongo-go-driver",
+    "dataset_size_bytes": 1760000,
+    "batch_size": 10000,
+    "iterations": 100,
+    "total_time_secs": 4.089,
+    "ops_per_sec": 248546.3,
+    "mb_per_sec": 43.744,
+    "percentiles": {
+      "p10": 0.038879,
+      "p25": 0.039412,
+      "p50": 0.040234,
+      "p75": 0.042296,
+      "p90": 0.044073,
+      "p95": 0.04424,
+      "p99": 0.045063
+    },
+    "timestamp": "2026-05-14T13:49:53Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "mongocore_version": "native",
+      "driver": "mongo-go-driver"
+    }
+  }
+]

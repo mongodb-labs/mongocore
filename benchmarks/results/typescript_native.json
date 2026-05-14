@@ -1,0 +1,176 @@
+[
+  {
+    "benchmark": "run_command",
+    "category": "single_doc",
+    "driver": "mongodb-node",
+    "dataset_size_bytes": 1000000,
+    "batch_size": 10000,
+    "iterations": 30,
+    "total_time_secs": 61.505,
+    "ops_per_sec": 4872.5,
+    "mb_per_sec": 0.487,
+    "percentiles": {
+      "p10": 1.999567,
+      "p25": 2.024982,
+      "p50": 2.052324,
+      "p75": 2.074476,
+      "p90": 2.10098,
+      "p95": 2.104711,
+      "p99": 2.110997
+    },
+    "timestamp": "2026-05-14T13:37:36.172Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "ram_gb": 32,
+      "mongocore_version": "native",
+      "driver": "mongodb-node"
+    }
+  },
+  {
+    "benchmark": "find_one_by_id",
+    "category": "single_doc",
+    "driver": "mongodb-node",
+    "dataset_size_bytes": 11640000,
+    "batch_size": 10000,
+    "iterations": 26,
+    "total_time_secs": 60.004,
+    "ops_per_sec": 4351.6,
+    "mb_per_sec": 5.065,
+    "percentiles": {
+      "p10": 2.217994,
+      "p25": 2.269416,
+      "p50": 2.298026,
+      "p75": 2.339219,
+      "p90": 2.366821,
+      "p95": 2.422271,
+      "p99": 2.48459
+    },
+    "timestamp": "2026-05-14T13:38:47.976Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "ram_gb": 32,
+      "mongocore_version": "native",
+      "driver": "mongodb-node"
+    }
+  },
+  {
+    "benchmark": "insert_one_small",
+    "category": "single_doc",
+    "driver": "mongodb-node",
+    "dataset_size_bytes": 1670000,
+    "batch_size": 10000,
+    "iterations": 11,
+    "total_time_secs": 61.017,
+    "ops_per_sec": 1813.7,
+    "mb_per_sec": 0.303,
+    "percentiles": {
+      "p10": 5.497763,
+      "p25": 5.502454,
+      "p50": 5.513669,
+      "p75": 5.595499,
+      "p90": 5.611179,
+      "p95": 5.695707,
+      "p99": 5.695707
+    },
+    "timestamp": "2026-05-14T13:40:16.637Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "ram_gb": 32,
+      "mongocore_version": "native",
+      "driver": "mongodb-node"
+    }
+  },
+  {
+    "benchmark": "insert_one_large",
+    "category": "single_doc",
+    "driver": "mongodb-node",
+    "dataset_size_bytes": 27500350,
+    "batch_size": 10,
+    "iterations": 100,
+    "total_time_secs": 22.323,
+    "ops_per_sec": 45,
+    "mb_per_sec": 123.768,
+    "percentiles": {
+      "p10": 0.213423,
+      "p25": 0.217634,
+      "p50": 0.222193,
+      "p75": 0.226725,
+      "p90": 0.232005,
+      "p95": 0.235547,
+      "p99": 0.258304
+    },
+    "timestamp": "2026-05-14T13:40:40.352Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "ram_gb": 32,
+      "mongocore_version": "native",
+      "driver": "mongodb-node"
+    }
+  },
+  {
+    "benchmark": "bulk_insert_small",
+    "category": "multi_doc",
+    "driver": "mongodb-node",
+    "dataset_size_bytes": 1670000,
+    "batch_size": 10000,
+    "iterations": 100,
+    "total_time_secs": 4.731,
+    "ops_per_sec": 215914.1,
+    "mb_per_sec": 36.058,
+    "percentiles": {
+      "p10": 0.044479,
+      "p25": 0.045051,
+      "p50": 0.046315,
+      "p75": 0.048577,
+      "p90": 0.050326,
+      "p95": 0.051161,
+      "p99": 0.063375
+    },
+    "timestamp": "2026-05-14T13:40:45.557Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "ram_gb": 32,
+      "mongocore_version": "native",
+      "driver": "mongodb-node"
+    }
+  },
+  {
+    "benchmark": "find_many",
+    "category": "multi_doc",
+    "driver": "mongodb-node",
+    "dataset_size_bytes": 1670000,
+    "batch_size": 10000,
+    "iterations": 100,
+    "total_time_secs": 2.917,
+    "ops_per_sec": 347621,
+    "mb_per_sec": 58.053,
+    "percentiles": {
+      "p10": 0.027162,
+      "p25": 0.02767,
+      "p50": 0.028767,
+      "p75": 0.030237,
+      "p90": 0.03174,
+      "p95": 0.032265,
+      "p99": 0.035533
+    },
+    "timestamp": "2026-05-14T13:40:48.685Z",
+    "system": {
+      "os": "darwin",
+      "arch": "arm64",
+      "cpus": 12,
+      "ram_gb": 32,
+      "mongocore_version": "native",
+      "driver": "mongodb-node"
+    }
+  }
+]
