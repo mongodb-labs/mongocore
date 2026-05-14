@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 350" font-family="system-ui, sans-serif" font-size="12">
+  <rect width="600" height="350" fill="white"/>
+  <text x="300.0" y="20" text-anchor="middle" font-size="14" font-weight="bold">Transactional Pipeline: Throughput (txns/s)</text>
+  <line x1="80" y1="270.0" x2="570" y2="270.0" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="72" y="274.0" text-anchor="end" font-size="11" fill="#6b7280">0</text>
+  <line x1="80" y1="224.0" x2="570" y2="224.0" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="72" y="228.0" text-anchor="end" font-size="11" fill="#6b7280">144</text>
+  <line x1="80" y1="178.0" x2="570" y2="178.0" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="72" y="182.0" text-anchor="end" font-size="11" fill="#6b7280">288</text>
+  <line x1="80" y1="132.0" x2="570" y2="132.0" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="72" y="136.0" text-anchor="end" font-size="11" fill="#6b7280">432</text>
+  <line x1="80" y1="85.99999999999997" x2="570" y2="85.99999999999997" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="72" y="89.99999999999997" text-anchor="end" font-size="11" fill="#6b7280">576</text>
+  <line x1="80" y1="40.0" x2="570" y2="40.0" stroke="#e5e7eb" stroke-width="1"/>
+  <text x="72" y="44.0" text-anchor="end" font-size="11" fill="#6b7280">720</text>
+  <rect x="107.22222222222223" y="40.0" width="43.555555555555564" height="230.0" fill="#6b7280" rx="2"/>
+  <text x="129.0" y="35.0" text-anchor="middle" font-size="10" fill="#374151">720</text>
+  <rect x="161.66666666666669" y="135.54829742876996" width="43.555555555555564" height="134.45170257123004" fill="#10b981" rx="2"/>
+  <text x="183.44444444444446" y="130.54829742876996" text-anchor="middle" font-size="10" fill="#374151">421</text>
+  <text x="161.66666666666669" y="290" text-anchor="middle" font-size="11">10 txns</text>
+  <text x="161.66666666666669" y="306" text-anchor="middle" font-size="10" fill="#059669" font-weight="bold">0.6x</text>
+  <rect x="270.55555555555554" y="43.036831132731066" width="43.555555555555564" height="226.96316886726893" fill="#6b7280" rx="2"/>
+  <text x="292.3333333333333" y="38.036831132731066" text-anchor="middle" font-size="10" fill="#374151">710</text>
+  <rect x="325.0" y="149.7734537873523" width="43.555555555555564" height="120.22654621264769" fill="#10b981" rx="2"/>
+  <text x="346.77777777777777" y="144.7734537873523" text-anchor="middle" font-size="10" fill="#374151">376</text>
+  <text x="325.0" y="290" text-anchor="middle" font-size="11">100 txns</text>
+  <text x="325.0" y="306" text-anchor="middle" font-size="10" fill="#059669" font-weight="bold">0.5x</text>
+  <rect x="433.8888888888889" y="52.33912439193884" width="43.555555555555564" height="217.66087560806116" fill="#6b7280" rx="2"/>
+  <text x="455.6666666666667" y="47.33912439193884" text-anchor="middle" font-size="10" fill="#374151">681</text>
+  <rect x="488.33333333333337" y="151.88325225851287" width="43.555555555555564" height="118.11674774148715" fill="#10b981" rx="2"/>
+  <text x="510.11111111111114" y="146.88325225851287" text-anchor="middle" font-size="10" fill="#374151">370</text>
+  <text x="488.33333333333337" y="290" text-anchor="middle" font-size="11">1,000 txns</text>
+  <text x="488.33333333333337" y="306" text-anchor="middle" font-size="10" fill="#059669" font-weight="bold">0.5x</text>
+  <rect x="90" y="325" width="12" height="12" fill="#6b7280" rx="2"/>
+  <text x="106" y="335" font-size="11" fill="#374151">Native (pymongo with_transaction)</text>
+  <rect x="370" y="325" width="12" height="12" fill="#10b981" rx="2"/>
+  <text x="386" y="335" font-size="11" fill="#374151">MongoCore (transaction_pipeline)</text>
+</svg>

@@ -145,6 +145,10 @@ bench-all:
     just _bench-go-pipeline
     just _bench-java-pipeline
     echo ""
+    echo ">>> Running transactional pipeline benchmarks..."
+    just _bench-python-native-txn
+    just _bench-python-txn-pipeline
+    echo ""
     echo ">>> Running ingestion benchmarks..."
     just _bench-ingestion
     echo ""
@@ -347,6 +351,14 @@ bench-ingestion: require-setup
     cd {{justfile_directory()}}
     just _bench-ingestion
 
+# Transactional pipeline benchmarks (native pymongo + MongoCore)
+bench-txn-pipeline: require-setup
+    #!/usr/bin/env bash
+    set -e
+    cd {{justfile_directory()}}
+    just _bench-python-native-txn
+    just _bench-python-txn-pipeline
+
 # Compiled query cache benchmarks
 bench-compiled: require-setup
     #!/usr/bin/env bash
@@ -447,3 +459,15 @@ _bench-java-pipeline:
     #!/usr/bin/env bash
     if [ -f {{results_dir}}/java_pipeline.json ]; then echo "  Skipping java-pipeline (results exist)"; exit 0; fi
     cd drivers/java && mvn -q compile exec:java -Dexec.mainClass="com.mongocore.bench.BenchPipeline"
+
+[private]
+_bench-python-native-txn:
+    #!/usr/bin/env bash
+    if [ -f {{results_dir}}/python_native_txn.json ]; then echo "  Skipping python-native-txn (results exist)"; exit 0; fi
+    cd drivers/python && pip install -r requirements.txt -q && python bench_native_txn.py
+
+[private]
+_bench-python-txn-pipeline:
+    #!/usr/bin/env bash
+    if [ -f {{results_dir}}/python_txn_pipeline.json ]; then echo "  Skipping python-txn-pipeline (results exist)"; exit 0; fi
+    cd drivers/python && pip install -r requirements.txt -q && python bench_txn_pipeline.py

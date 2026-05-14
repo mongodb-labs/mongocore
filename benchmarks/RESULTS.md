@@ -1,6 +1,6 @@
 # Benchmark Results
 
-Generated: 2026-05-14 19:17 UTC
+Generated: 2026-05-14 20:31 UTC
 
 ![Native vs MongoCore Overhead](results/charts/sidecar_overhead.svg)
 
@@ -40,6 +40,21 @@ Generated: 2026-05-14 19:17 UTC
 **Native:** Each operation is a separate round-trip to MongoDB (10,000 individual calls per iteration).<br>
 **MongoCore:** N operations batched into a single gRPC call (e.g. batch 1000 = 10 calls of 1000 ops each).<br>
 **What this shows:** The benefit of reducing round-trips — even with sidecar overhead, batching multiple operations into fewer network calls is significantly faster than individual calls.
+
+## Transactional Pipeline
+
+![Transactional Pipeline Performance](results/charts/txn_pipeline_performance.svg)
+
+| Batch Size | Native (txns/s) | MongoCore (txns/s) | Speedup |
+|-----------:|----------------:|-------------------:|--------:|
+| 10 | 720 | 421 | 0.6x |
+| 100 | 710 | 376 | 0.5x |
+| 1,000 | 681 | 370 | 0.5x |
+
+**Pattern:** 3-operation transfer (find_one + update debit + update credit) across 1,000 accounts.<br>
+**Native:** pymongo `session.with_transaction()` — 3 sequential round-trips per transaction plus session management.<br>
+**MongoCore:** Single `transaction_pipeline()` gRPC call per transaction with result forwarding (`{{lookup_source._id}}`) — server handles session lifecycle and executes all steps internally.<br>
+**What this shows:** On localhost, both drivers make the same 3 round-trips to MongoDB — but pymongo talks directly while MongoCore adds a gRPC hop plus reference resolution overhead. The transactional pipeline's advantage emerges over real networks where reducing client↔DB round-trips matters (e.g., cloud deployments with cross-AZ latency). On localhost this benchmark isolates the raw sidecar cost for atomic multi-step workflows.
 
 ## Ingestion
 

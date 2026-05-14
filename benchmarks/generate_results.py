@@ -463,6 +463,126 @@ def build_pipeline_rows(pipeline_results, single_doc_results):
     return rows
 
 
+def generate_txn_pipeline_chart(txn_results):
+    """Generate SVG bar chart comparing MongoCore txn pipeline vs native transactions."""
+    if not txn_results:
+        return None
+
+    CHARTS_DIR.mkdir(parents=True, exist_ok=True)
+
+    batch_sizes = sorted(set(int(r["benchmark"].rsplit("_", 1)[1]) for r in txn_results if r["benchmark"].rsplit("_", 1)[1].isdigit()))
+
+    chart_data = []
+    for bs in batch_sizes:
+        bench_name = f"txn_transfer_{bs}"
+        native = next((r for r in txn_results if r["benchmark"] == bench_name and is_native(r["driver"])), None)
+        mc = next((r for r in txn_results if r["benchmark"] == bench_name and not is_native(r["driver"])), None)
+        if native and mc:
+            chart_data.append({
+                "label": f"{bs:,} txns",
+                "native_ops": native["ops_per_sec"],
+                "mongocore_ops": mc["ops_per_sec"],
+            })
+
+    if not chart_data:
+        return None
+
+    num_groups = len(chart_data)
+    chart_width = max(600, num_groups * 160)
+    chart_height = 350
+    margin_left = 80
+    margin_right = 30
+    margin_top = 40
+    margin_bottom = 80
+    plot_width = chart_width - margin_left - margin_right
+    plot_height = chart_height - margin_top - margin_bottom
+
+    group_width = plot_width / num_groups
+    bar_width = group_width / 3
+    colors = ["#6b7280", "#10b981"]  # gray = native, green = MongoCore
+
+    max_val = max(max(d["native_ops"], d["mongocore_ops"]) for d in chart_data)
+    y_scale = plot_height / max_val
+
+    svg = []
+    svg.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {chart_width} {chart_height}" font-family="system-ui, sans-serif" font-size="12">')
+    svg.append(f'  <rect width="{chart_width}" height="{chart_height}" fill="white"/>')
+    svg.append(f'  <text x="{chart_width/2}" y="20" text-anchor="middle" font-size="14" font-weight="bold">Transactional Pipeline: Throughput (txns/s)</text>')
+
+    # Y-axis
+    num_ticks = 5
+    for i in range(num_ticks + 1):
+        y_val = max_val * i / num_ticks
+        y_pos = margin_top + plot_height - (y_val * y_scale)
+        svg.append(f'  <line x1="{margin_left}" y1="{y_pos}" x2="{chart_width - margin_right}" y2="{y_pos}" stroke="#e5e7eb" stroke-width="1"/>')
+        label = f"{y_val/1000:.0f}K" if y_val >= 1000 else f"{y_val:.0f}"
+        svg.append(f'  <text x="{margin_left - 8}" y="{y_pos + 4}" text-anchor="end" font-size="11" fill="#6b7280">{label}</text>')
+
+    # Bars
+    for g_idx, d in enumerate(chart_data):
+        group_x = margin_left + g_idx * group_width
+
+        for b_idx, (key, color) in enumerate(zip(["native_ops", "mongocore_ops"], colors)):
+            val = d[key]
+            x = group_x + (b_idx + 0.5) * bar_width
+            bar_h = val * y_scale
+            y = margin_top + plot_height - bar_h
+            svg.append(f'  <rect x="{x}" y="{y}" width="{bar_width * 0.8}" height="{bar_h}" fill="{color}" rx="2"/>')
+            val_label = f"{val/1000:.1f}K" if val >= 1000 else f"{val:.0f}"
+            svg.append(f'  <text x="{x + bar_width * 0.4}" y="{y - 5}" text-anchor="middle" font-size="10" fill="#374151">{val_label}</text>')
+
+        # Group label
+        label_x = group_x + group_width / 2
+        svg.append(f'  <text x="{label_x}" y="{margin_top + plot_height + 20}" text-anchor="middle" font-size="11">{d["label"]}</text>')
+
+        # Speedup annotation
+        if d["native_ops"] > 0:
+            speedup = d["mongocore_ops"] / d["native_ops"]
+            svg.append(f'  <text x="{label_x}" y="{margin_top + plot_height + 36}" text-anchor="middle" font-size="10" fill="#059669" font-weight="bold">{speedup:.1f}x</text>')
+
+    # Legend
+    legend_x = margin_left + 10
+    legend_y = margin_top + plot_height + 55
+    for i, (color, label) in enumerate(zip(colors, ["Native (pymongo with_transaction)", "MongoCore (transaction_pipeline)"])):
+        x = legend_x + i * 280
+        svg.append(f'  <rect x="{x}" y="{legend_y}" width="12" height="12" fill="{color}" rx="2"/>')
+        svg.append(f'  <text x="{x + 16}" y="{legend_y + 10}" font-size="11" fill="#374151">{label}</text>')
+
+    svg.append('</svg>')
+
+    chart_path = CHARTS_DIR / "txn_pipeline_performance.svg"
+    chart_path.write_text("\n".join(svg))
+    return chart_path
+
+
+def build_txn_pipeline_rows(txn_results):
+    """Build transaction pipeline table rows."""
+    rows = []
+    batch_sizes = sorted(set(int(r["benchmark"].rsplit("_", 1)[1]) for r in txn_results if r["benchmark"].rsplit("_", 1)[1].isdigit()))
+
+    for bs in batch_sizes:
+        bench_name = f"txn_transfer_{bs}"
+        native = next((r for r in txn_results if r["benchmark"] == bench_name and is_native(r["driver"])), None)
+        mc = next((r for r in txn_results if r["benchmark"] == bench_name and not is_native(r["driver"])), None)
+
+        native_ops = native["ops_per_sec"] if native else None
+        mc_ops = mc["ops_per_sec"] if mc else None
+
+        if native_ops and mc_ops:
+            speedup = mc_ops / native_ops
+            speedup_str = f"{speedup:.1f}x"
+        else:
+            speedup_str = "—"
+
+        rows.append({
+            "batch_size": f"{bs:,}",
+            "native_ops": format_ops(native_ops) if native_ops else "—",
+            "mongocore_ops": format_ops(mc_ops) if mc_ops else "—",
+            "speedup": speedup_str,
+        })
+    return rows
+
+
 def build_ingestion_rows(ingestion_results):
     """Build ingestion table rows: one row per scenario+size, MC vs native side by side."""
     sizes = ["10k", "100k", "500k"]
@@ -514,11 +634,13 @@ def generate():
     multi_doc_results = groups.get("multi_doc", [])
     pipeline_results = groups.get("pipeline", [])
     ingestion_results = groups.get("ingestion", [])
+    txn_pipeline_results = groups.get("txn_pipeline", [])
 
     # Generate charts
     overhead_chart = generate_overhead_chart(single_doc_results, multi_doc_results)
     pipeline_chart = generate_pipeline_chart(pipeline_results, single_doc_results)
     ingestion_chart = generate_ingestion_chart(ingestion_results)
+    txn_pipeline_chart = generate_txn_pipeline_chart(txn_pipeline_results)
 
     def rel(chart_path):
         return str(chart_path.relative_to(base_dir)) if chart_path else None
@@ -534,8 +656,10 @@ def generate():
         "overhead_chart": rel(overhead_chart),
         "pipeline_chart": rel(pipeline_chart),
         "ingestion_chart": rel(ingestion_chart),
+        "txn_pipeline_chart": rel(txn_pipeline_chart),
         "driver_ops": driver_ops,
         "pipeline": build_pipeline_rows(pipeline_results, single_doc_results),
+        "txn_pipeline": build_txn_pipeline_rows(txn_pipeline_results),
         "ingestion": build_ingestion_rows(ingestion_results),
         "system": system,
     }
