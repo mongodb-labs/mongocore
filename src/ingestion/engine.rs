@@ -72,8 +72,15 @@ impl IngestionEngine {
         // Read LazyFrame (no separate count_rows pass — we get total after collect)
         let lf = reader::read_lazy_from_source(source, format, &options.csv_options)?;
 
-        // Sample for schema inference
-        let sample_df = lf
+        // Apply transforms before schema inference (so schema reflects final shape)
+        let transformed_lf = if options.expressions.is_empty() {
+            lf
+        } else {
+            transform::apply_expressions(lf, &options.expressions)?
+        };
+
+        // Sample for schema inference (from transformed LazyFrame)
+        let sample_df = transformed_lf
             .clone()
             .limit(options.sample_size)
             .collect()
@@ -84,13 +91,6 @@ impl IngestionEngine {
         if !options.schema_overrides.is_empty() {
             schema::apply_overrides(&mut inferred_schema, &options.schema_overrides);
         }
-
-        // Apply transforms
-        let transformed_lf = if options.expressions.is_empty() {
-            lf
-        } else {
-            transform::apply_expressions(lf, &options.expressions)?
-        };
 
         // Create job record (total_rows updated after collect)
         let job = IngestJob {
