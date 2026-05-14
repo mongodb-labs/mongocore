@@ -16,7 +16,7 @@ just bench-clean      # Delete all results to force a full rerun
 
 - **Single-doc ops:** run_command, find_one_by_id, insert_one_small, insert_one_large
 - **Multi-doc ops:** bulk_insert_small, bulk_insert_large, find_many, find_many_large
-- **Ingestion:** Polars pipeline vs native bulk insert (1MB, 10MB, 100MB)
+- **Ingestion:** End-to-end file→collection: MongoCore (single RPC) vs native (file read + parse + batch insert) at 1MB, 10MB, 100MB
 - **Pipeline batching:** pipeline_run_command, pipeline_insert_one_small, pipeline_find_one_by_id (at 100/1K/10K batch sizes)
 - **Compiled query:** cache hit latency
 

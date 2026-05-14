@@ -28,7 +28,11 @@ FORMATS = ["csv", "ndjson"]
 
 
 def bench_native_bulk(label, format_ext):
-    """Benchmark native pymongo bulk insert from file."""
+    """Benchmark native pymongo end-to-end: read file + parse + insert.
+
+    Times the full pipeline that a developer would write: open file,
+    parse CSV/NDJSON into documents, batch insert into MongoDB.
+    """
     file_path = DATA_DIR / f"bench_{label}.{format_ext}"
     if not file_path.exists():
         print(f"    SKIPPED: {file_path.name} not found (run: just bench-generate-data)")
@@ -36,60 +40,62 @@ def bench_native_bulk(label, format_ext):
 
     file_size = file_path.stat().st_size
 
-    # Load data into memory
-    rows = []
-    if format_ext == "csv":
-        import csv as csv_mod
-        with open(file_path) as f:
-            reader = csv_mod.DictReader(f)
-            rows = list(reader)
-    elif format_ext == "ndjson":
-        with open(file_path) as f:
-            rows = [json.loads(line) for line in f]
-
-    if not rows:
-        return None
-
     client = PyMongoClient(MONGODB_URI, w=1)
     db = client[DB_NAME]
     coll_name = f"native_{label}_{format_ext}"
 
     iterations = 3 if file_size > 50_000_000 else 5
     times = []
+    row_count = 0
 
     for _ in range(iterations):
         db.drop_collection(coll_name)
         coll = db[coll_name]
 
         start = time.perf_counter()
+
+        # Read and parse file (included in timing — this is real work)
+        rows = []
+        if format_ext == "csv":
+            import csv as csv_mod
+            with open(file_path) as f:
+                reader = csv_mod.DictReader(f)
+                rows = list(reader)
+        elif format_ext == "ndjson":
+            with open(file_path) as f:
+                rows = [json.loads(line) for line in f]
+
+        # Batch insert
         batch_size = 10_000
         for i in range(0, len(rows), batch_size):
             coll.insert_many(rows[i:i + batch_size])
+
         elapsed = time.perf_counter() - start
         times.append(elapsed)
+        row_count = len(rows)
 
     client.close()
 
     median = statistics.median(times)
     mb_per_sec = file_size / median / 1_000_000
-    rows_per_sec = len(rows) / median
+    rows_per_sec = row_count / median
 
     result = {
         "benchmark": f"native_bulk_{label}_{format_ext}",
         "category": "ingestion",
         "driver": "pymongo_native",
         "dataset_size_bytes": file_size,
-        "batch_size": len(rows),
+        "batch_size": row_count,
         "iterations": len(times),
         "total_time_secs": round(sum(times), 3),
         "ops_per_sec": round(rows_per_sec, 1),
         "mb_per_sec": round(mb_per_sec, 3),
         "percentiles": {"p50": round(median, 4)},
         "timestamp": datetime.now(timezone.utc).isoformat(),
-        "system": {"driver": "pymongo_native", "operation": "insertMany", "file_size": label, "format": format_ext},
+        "system": {"driver": "pymongo_native", "operation": "file_read+parse+insertMany", "file_size": label, "format": format_ext},
     }
 
-    print(f"    native: {mb_per_sec:.1f} MB/s ({len(rows):,} rows in {median:.1f}s)")
+    print(f"    native: {mb_per_sec:.1f} MB/s ({row_count:,} rows in {median:.1f}s)")
     return result
 
 
