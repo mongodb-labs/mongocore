@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
+use futures::FutureExt;
 use mongodb::Client;
 use polars::prelude::*;
 use tokio::sync::{broadcast, RwLock};
@@ -133,7 +134,7 @@ impl IngestionEngine {
 
         tokio::spawn(async move {
             let mut cancel_rx = cancel_tx.subscribe();
-            let result = Self::run_ingestion(
+            let result = std::panic::AssertUnwindSafe(Self::run_ingestion(
                 transformed_lf,
                 &inferred_schema,
                 target_collection,
@@ -144,15 +145,26 @@ impl IngestionEngine {
                 dedup_key,
                 conflict_strategy,
                 &mut cancel_rx,
-            )
+            ))
+            .catch_unwind()
             .await;
 
             match result {
-                Ok(()) => {
+                Ok(Ok(())) => {
                     let _ = progress.complete_job(&job_id).await;
                 }
-                Err(e) => {
+                Ok(Err(e)) => {
                     let _ = progress.fail_job(&job_id, &e.to_string()).await;
+                }
+                Err(panic_err) => {
+                    let msg = if let Some(s) = panic_err.downcast_ref::<String>() {
+                        format!("Internal error (panic): {}", s)
+                    } else if let Some(s) = panic_err.downcast_ref::<&str>() {
+                        format!("Internal error (panic): {}", s)
+                    } else {
+                        "Internal error (panic): unknown".to_string()
+                    };
+                    let _ = progress.fail_job(&job_id, &msg).await;
                 }
             }
             cancel_channels.write().await.remove(&job_id);
