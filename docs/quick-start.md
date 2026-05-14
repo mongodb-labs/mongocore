@@ -34,6 +34,11 @@ await client.connect();
 const users = client.db('myapp').collection('users');
 await users.insertOne({ name: 'Alice', age: 30 });
 
+// Streaming cursor
+for await (const doc of users.find({ age: { $gte: 25 } })) {
+  console.log(doc.name);
+}
+
 // Change streams with auto-dispose
 await using stream = users.watch();
 for await (const event of stream) {
@@ -48,6 +53,13 @@ client := mongocore.MongoClient()  // auto-discovers UDS/TCP
 client.Connect(ctx)
 users := client.Database("myapp").Collection("users")
 users.InsertOne(ctx, bson.D{{Key: "name", Value: "Alice"}, {Key: "age", Value: 30}})
+
+// Streaming cursor
+cursor := users.Find(ctx, bson.D{{Key: "age", Value: bson.D{{Key: "$gte", Value: 25}}}}, nil)
+defer cursor.Close()
+for cursor.Next(ctx) {
+    fmt.Println(cursor.Doc())
+}
 
 // Change streams with io.Closer
 cs, _ := users.Watch(ctx, nil)
@@ -65,6 +77,13 @@ for {
 try (MongoClient client = MongoClient.create("localhost:50051")) {
     MongoCollection users = client.getDatabase("myapp").getCollection("users");
     users.insertOne(new Document("name", "Alice").append("age", 30));
+
+    // Streaming cursor
+    try (MongoCursor cursor = users.find(new Document("age", new Document("$gte", 25)))) {
+        for (Document doc : cursor) {
+            System.out.println(doc.getString("name"));
+        }
+    }
 
     // Change streams with AutoCloseable
     try (ChangeStream stream = users.watch()) {
