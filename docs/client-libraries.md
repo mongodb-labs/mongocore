@@ -89,7 +89,7 @@ await client.connect();
 ```go
 import "github.com/rozza/mongocore/clients/go/mongocore"
 
-client := mongocore.NewClient("localhost:50051")
+client := mongocore.MongoClientTCP("localhost:50051")
 if err := client.Connect(ctx); err != nil {
     log.Fatal(err)
 }
@@ -129,7 +129,7 @@ MongoClient client = MongoClient.create(); // localhost:50051
 | Delete many | `await coll.delete_many(filter)` | `await coll.deleteMany(filter)` | `coll.DeleteMany(ctx, filter)` | `coll.deleteMany(filter)` |
 | Aggregate | `await coll.aggregate(pipeline)` | `await coll.aggregate(pipeline)` | `coll.Aggregate(ctx, pipeline)` | `coll.aggregate(pipeline)` |
 | Search | `await coll.search(q, limit=N)` | `await coll.search(q, N)` | `coll.Search(ctx, q, N)` | `coll.search(q, N)` |
-| Watch | `async with coll.watch()` | `coll.watch()` | `coll.Watch(ctx, opts)` | `coll.watch()` |
+| Watch | `async with coll.watch()` | `coll.watch()` | `coll.Watch(ctx, pipeline)` | `coll.watch()` |
 
 ## Change Streams (Watch)
 
@@ -188,6 +188,7 @@ python -m grpc_tools.protoc \
   -I../../proto \
   --python_out=src/mongocore/generated \
   --grpc_python_out=src/mongocore/generated \
+  --pyi_out=src/mongocore/generated \
   ../../proto/mongocore/v1/*.proto
 ```
 
@@ -195,25 +196,21 @@ python -m grpc_tools.protoc \
 
 ```bash
 cd clients/typescript
-npm run generate
-# Uses grpc_tools_node_protoc under the hood
+bash generate_stubs.sh
 ```
 
 ### Go
 
 ```bash
 cd clients/go
-protoc --go_out=. --go-grpc_out=. \
-  -I../../proto \
-  ../../proto/mongocore/v1/*.proto
+bash generate_stubs.sh
 ```
 
 ### Java
 
 ```bash
 cd clients/java
-mvn generate-sources
-# Uses protobuf-maven-plugin
+bash generate_stubs.sh
 ```
 
 ## Project Structure
@@ -225,6 +222,8 @@ clients/
 │   │   ├── client.py          # MongoClient
 │   │   ├── database.py        # Database handle
 │   │   ├── collection.py      # Collection with CRUD + ChangeStream (async with)
+│   │   ├── ops.py             # Pipeline operation dataclasses
+│   │   ├── result.py          # PipelineResult wrapper
 │   │   ├── sidecar.py         # SidecarManager
 │   │   └── generated/         # gRPC stubs (generated)
 │   └── tests/
@@ -233,6 +232,7 @@ clients/
 │       ├── client.ts          # MongoClient
 │       ├── database.ts        # Database
 │       ├── collection.ts      # Collection with CRUD + ChangeStream (AsyncDisposable)
+│       ├── ops.ts             # Pipeline operation types
 │       ├── sidecar.ts         # SidecarManager
 │       └── types.ts           # TypeScript interfaces
 ├── go/
@@ -240,7 +240,9 @@ clients/
 │       ├── client.go          # Client
 │       ├── database.go        # Database
 │       ├── collection.go      # Collection + ChangeStream (io.Closer)
-│       └── sidecar.go         # SidecarManager
+│       ├── transaction_pipeline.go # Transaction pipeline support
+│       ├── sidecar.go         # SidecarManager
+│       └── ops/               # Pipeline operation helpers
 └── java/
     └── src/main/java/com/mongocore/
         ├── MongoClient.java       # Client (AutoCloseable)

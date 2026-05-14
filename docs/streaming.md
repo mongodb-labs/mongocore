@@ -136,7 +136,7 @@ Separate from change streams, MongoCore provides streaming RPCs for large result
 Server-streaming RPC for large query results. Instead of returning all documents in a single response (limited by message size), `FindStream` sends documents in batches:
 
 ```protobuf
-rpc FindStream(FindStreamRequest) returns (stream FindStreamResponse);
+rpc FindStream(FindStreamRequest) returns (stream DocumentBatch);
 ```
 
 Use when a `Find` would exceed the gRPC message limit or when you want to process results incrementally without loading everything into memory.
@@ -146,27 +146,27 @@ Use when a `Find` would exceed the gRPC message limit or when you want to proces
 Server-streaming RPC for aggregation pipelines that produce large result sets:
 
 ```protobuf
-rpc AggregateStream(AggregateStreamRequest) returns (stream AggregateStreamResponse);
+rpc AggregateStream(AggregateStreamRequest) returns (stream DocumentBatch);
 ```
 
 Same benefits as `FindStream` — results arrive in batches, no message size limit.
 
 ### InsertManyStream
 
-Server-streaming RPC for bulk inserts with progress reporting:
+Client-streaming RPC for bulk inserts. The client streams batches of documents and receives a summary response when complete:
 
 ```protobuf
-rpc InsertManyStream(InsertManyStreamRequest) returns (stream InsertManyStreamResponse);
+rpc InsertManyStream(stream InsertBatch) returns (InsertManyStreamResponse);
 ```
 
-Sends acknowledgments as batches are written, allowing clients to track progress on large inserts.
+Use for large bulk inserts where all documents can be streamed without per-batch confirmation.
 
 ### InsertManyBidi
 
 Bidirectional streaming for bulk inserts. The client streams document batches and the server acknowledges each batch:
 
 ```protobuf
-rpc InsertManyBidi(stream InsertManyBidiRequest) returns (stream InsertManyBidiResponse);
+rpc InsertManyBidi(stream InsertBatch) returns (stream InsertBatchAck);
 ```
 
 Use for continuous data loading where the client produces documents faster than a single request can hold, and wants per-batch confirmation.

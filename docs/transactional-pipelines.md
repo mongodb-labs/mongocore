@@ -9,7 +9,7 @@ Execute a sequence of dependent database operations atomically within a single t
 - **Cross-collection transactions** — operations spanning multiple collections that must be consistent
 - **Read-after-write patterns** — insert a document, then immediately query for related data
 
-If your operations are independent and can run concurrently, use [Request Pipelining](./request-pipelining.md) instead. If you need a simple transaction without result forwarding, use [Transactions](./transactions.md).
+If your operations are independent and can run concurrently, use the `Pipeline` RPC instead. If you need a simple transaction without result forwarding, use [Transactions](./transactions.md).
 
 ---
 

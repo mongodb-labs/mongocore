@@ -108,8 +108,20 @@ All config options can be set via environment variables:
 | `MONGOCORE_GRPC_COMPRESSION` | Compression algorithm | `none` |
 | `MONGOCORE_STREAM_BATCH_SIZE` | Streaming batch size | `1000` |
 | `MONGOCORE_STREAM_IDLE_TIMEOUT_SECS` | Stream idle timeout | `60` |
+| `MONGOCORE_SOCKET_PERMISSIONS` | UDS socket file permissions (octal) | `0600` |
+| `MONGOCORE_PIPELINE_TIMEOUT_SECS` | Pipeline timeout in seconds | `30` |
+| `MONGOCORE_PIPELINE_MAX_CONCURRENCY` | Pipeline max concurrent ops | `20` |
+| `MONGOCORE_OTEL_ENABLED` | Enable OpenTelemetry tracing | `false` |
+| `MONGOCORE_OTEL_ENDPOINT` | OTLP endpoint (gRPC) | `http://localhost:4317` |
+| `MONGOCORE_OTEL_SERVICE_NAME` | OTel service name | `mongocore` |
 | `MONGOCORE_WEB_UI` | Enable/disable Web UI | `true` |
 | `MONGOCORE_WEB_UI_PORT` | Web UI port | `27999` |
+| `LLM_BASE_URL` | Custom LLM gateway base URL | — |
+| `LLM_API_KEY` | API key for custom LLM gateway | — |
+| `LLM_AUTH_HEADER` | Auth header name for LLM gateway | `api-key` |
+| `LLM_MODEL` | Model name for LLM gateway | `claude-sonnet-4-6` |
+| `LLM_PROVIDER_TYPE` | Provider type (anthropic or openai) | `anthropic` |
+| `MONGOCORE_STDIO` | Run in MCP stdio mode | `false` |
 
 ### Configuration Priority
 

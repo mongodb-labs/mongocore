@@ -19,7 +19,7 @@ async def transfer_funds(client, from_account, to_account, amount):
     accounts = client["bank"]["accounts"]
 
     # Begin transaction
-    tx_id = await client.begin_transaction("bank")
+    tx_id = await client.begin_transaction()
 
     try:
         # Debit source
@@ -125,7 +125,7 @@ public void transferFunds(MongoClient client, String from, String to, long amoun
         throws Exception {
     MongoCollection accounts = client.getDatabase("bank").getCollection("accounts");
 
-    String txId = client.beginTransaction("bank");
+    String txId = client.beginTransaction();
 
     try {
         accounts.updateOne(

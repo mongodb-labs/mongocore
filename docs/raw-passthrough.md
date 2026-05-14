@@ -145,7 +145,8 @@ import (
 )
 
 client := mongocore.NewClient("localhost:50051")
-defer client.Disconnect(ctx)
+client.Connect(ctx)
+defer client.Close()
 
 // Ping command
 result, err := client.RunCommand(ctx, "myapp", bson.D{{Key: "ping", Value: 1}}, false)
@@ -159,7 +160,7 @@ stats, err := client.RunCommand(ctx, "myapp", bson.D{{Key: "dbStats", Value: 1}}
 if err != nil {
     panic(err)
 }
-fmt.Printf("Collections: %v\n", stats.Lookup("collections"))
+fmt.Printf("Stats: %v\n", stats)
 
 // Create a unique index
 indexCmd := bson.D{
@@ -181,7 +182,7 @@ if err != nil {
 ### Java
 
 ```java
-import com.rozza.mongocore.MongoClient;
+import com.mongocore.MongoClient;
 import org.bson.Document;
 
 try (MongoClient client = MongoClient.create("localhost:50051")) {

@@ -277,7 +277,7 @@ Atomically finds a document, modifies it, and returns either the original or mod
 result = await users.find_and_modify(
     filter={"name": "Alice"},
     update={"$inc": {"login_count": 1}},
-    return_document="after",
+    return_new=True,
     upsert=True
 )
 ```
@@ -285,12 +285,11 @@ result = await users.find_and_modify(
 ### TypeScript
 
 ```typescript
-const result = await users.findAndModify({
-  filter: { name: 'Alice' },
-  update: { $inc: { loginCount: 1 } },
-  returnDocument: 'after',
-  upsert: true,
-});
+const result = await users.findAndModify(
+  { name: 'Alice' },
+  { $inc: { loginCount: 1 } },
+  { returnDocument: 'after', upsert: true }
+);
 ```
 
 ## Wire Format

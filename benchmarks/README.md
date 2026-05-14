@@ -18,6 +18,7 @@ just bench-clean      # Delete all results to force a full rerun
 - **Multi-doc ops:** bulk_insert_small, bulk_insert_large, find_many, find_many_large
 - **Ingestion:** End-to-end file→collection: MongoCore (single RPC) vs native (file read + parse + batch insert) at 10K, 100K, 500K rows
 - **Pipeline batching:** pipeline_run_command, pipeline_insert_one_small, pipeline_find_one_by_id (at 100/1K/10K batch sizes)
+- **Transactional pipeline:** Multi-step atomic transactions (find + update + update) comparing native pymongo sessions vs MongoCore transaction_pipeline (at 10/100/1K batch sizes)
 - **Compiled query:** cache hit latency
 
 ## Languages
@@ -84,6 +85,8 @@ All commands run from `benchmarks/` via `just`:
 | `just bench-typescript-pipeline` | TypeScript pipeline batching |
 | `just bench-go-pipeline` | Go pipeline batching |
 | `just bench-java-pipeline` | Java pipeline batching |
+| **Transactional Pipeline** | |
+| `just bench-txn-pipeline` | Transactional pipeline benchmarks (native pymongo + MongoCore) |
 | **Other** | |
 | `just bench-rust` | Sidecar internal criterion benchmarks (no MongoDB needed) |
 | `just bench-ingestion` | Polars ingestion vs native bulk insert |

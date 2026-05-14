@@ -46,8 +46,9 @@ When any `.proto` file in `proto/mongocore/v1/` changes:
 
 ```bash
 # Python
-cd clients/python && python -m grpc_tools.protoc -I../../proto \
+cd clients/python && python3 -m grpc_tools.protoc -I../../proto \
   --python_out=src/mongocore/generated --grpc_python_out=src/mongocore/generated \
+  --pyi_out=src/mongocore/generated \
   ../../proto/mongocore/v1/mongocore.proto ../../proto/mongocore/v1/types.proto \
   ../../proto/mongocore/v1/ingestion.proto
 
@@ -74,10 +75,10 @@ cd clients/java && protoc --java_out=src/main/java --grpc-java_out=src/main/java
 
 | Command | What | Dependencies |
 |---------|------|-------------|
-| `cargo test --lib` | Unit tests (~94) | None |
-| `cargo test --test integration` | Integration tests (~53) | Docker MongoDB running |
-| `just test-clients` | Client integration tests (~40) | Docker MongoDB + running sidecar |
-| `just test-llm` | Compiled query LLM tests (7) | Docker MongoDB with sample data + LLM configured |
+| `cargo test --lib` | Unit tests (~319) | None |
+| `cargo test --test integration` | Integration tests (~105) | Docker MongoDB running |
+| `just test-clients` | Client integration tests (~137) | Docker MongoDB + running sidecar |
+| `just test-llm` | Compiled query LLM tests (~27) | Docker MongoDB with sample data + LLM configured |
 | `just test-all` | Everything | All of the above |
 
 **Starting MongoDB for tests:**
@@ -192,8 +193,10 @@ Use `just` commands where available:
 - `just test-unit` — fast unit tests (no dependencies)
 - `just test-integration` — needs Docker MongoDB running
 - `just test-clients` — needs Docker MongoDB + running sidecar
+- `just test-llm` — compiled query LLM tests (needs sample data + LLM configured)
 - `just test-all` — everything
 - `just docker-up` / `just docker-down` — manage test MongoDB container
+- `just proto-gen` — regenerate proto stubs for all languages
 - `just release-local` — build optimized binary
 
 ## Don'ts
@@ -227,7 +230,10 @@ src/
 ├── ingestion/           # Polars reader, schema, transforms, writer, dedup, DLQ, watch
 ├── grpc/                # tonic server, service implementation
 ├── mcp/                 # axum HTTP server, JSON-RPC handler, tools, safety, resources
+│   ├── codegen/         # Code generation (detect, query_gen, model_gen, index_gen, templates)
+│   └── skills/          # Skill definitions and registry
 ├── compiled/            # NL→MQL, cache hierarchy, LLM providers
+├── web_ui/              # Web dashboard UI (assets, handlers, server)
 ├── search/              # Vector, fulltext, fallback chain
 ├── analytics/           # Collector, ring buffer, aggregator, persistence
 ├── tenant/              # Context, registry, isolation, quota

@@ -324,12 +324,13 @@ Watched directories are polled at the configured interval (default 5 seconds). E
 
 | Tool | Description |
 |------|-------------|
-| `ingest_file` | Ingest a file into a collection |
-| `ingest_status` | Check ingestion job status |
+| `ingest` | Start a file ingestion job to load data into a collection |
+| `ingest_status` | Get the status of an ingestion job |
 | `list_ingest_jobs` | List all ingestion jobs |
 | `cancel_ingest` | Cancel a running ingestion job |
-| `watch_directory` | Watch a directory for new files |
+| `watch_directory` | Watch a directory for new files and auto-ingest them |
 | `stop_watch` | Stop watching a directory |
+| `ingest_and_embed` | Parse a file, embed a text field, and store with vectors |
 
 ## Error Handling
 

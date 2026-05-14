@@ -102,14 +102,15 @@ mongocore/
 │   ├── connection/          # Connection pool, capability detection
 │   ├── operations/          # CRUD, aggregation, transactions, admin, raw passthrough
 │   ├── ingestion/           # Polars-based data ingestion, transforms, dedup, DLQ, watch
-│   ├── grpc/                # gRPC server (tonic) — 25 RPCs
-│   ├── mcp/                 # MCP server (axum) — JSON-RPC tools & resources
+│   ├── grpc/                # gRPC server (tonic) — 33 RPCs
+│   ├── mcp/                 # MCP server (axum) — 36 JSON-RPC tools, codegen, skills & resources
+│   ├── web_ui/              # Web dashboard UI (assets, handlers)
 │   ├── compiled/            # NL→MQL translation, routing, template registry, 3-level cache
 │   ├── search/              # Vector search, full-text, fallback chain
 │   ├── analytics/           # Query analytics, ring buffer, aggregator, persistence
 │   ├── tenant/              # Multi-tenant context, registry, isolation, quota
 │   └── voyage/              # Voyage AI REST client, batch embeddings
-├── proto/                   # Protobuf service definitions (25 RPCs)
+├── proto/                   # Protobuf service definitions (33 RPCs)
 ├── clients/
 │   ├── python/              # Python async client (BSON-native, change streams)
 │   ├── typescript/          # TypeScript/Node.js client (AsyncDisposable streams)

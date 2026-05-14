@@ -83,7 +83,7 @@ go get github.com/rozza/mongocore/clients/go/mongocore
 ```
 
 ```go
-client := mongocore.NewClient("localhost:50051")
+client := mongocore.MongoClientTCP("localhost:50051")
 client.Connect(ctx)
 users := client.Database("myapp").Collection("users")
 users.InsertOne(ctx, bson.D{{Key: "name", Value: "Alice"}, {Key: "age", Value: 30}})

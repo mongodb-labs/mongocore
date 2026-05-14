@@ -4,7 +4,7 @@
 
 ### Core
 
-- **25 gRPC RPCs** — Full CRUD, aggregation, transactions, search, admin, watch, ingestion
+- **33 gRPC RPCs** — Full CRUD, aggregation, transactions, search, admin, watch, ingestion, streaming, pipeline
 - **Change streams (Watch)** — Server-streaming RPC with auto-close in all clients (Python `async with`, TypeScript `AsyncDisposable`, Go `io.Closer`, Java `AutoCloseable`)
 - **Search fallback chain** — Vector search → Atlas full-text → compiled query, with automatic fallthrough
 - **Atlas Vector Search** — `$vectorSearch` with Voyage AI embeddings, tested end-to-end against Atlas Local
@@ -45,7 +45,7 @@
 - **URL-based ingestion** — Ingest from HTTP/HTTPS, S3, GCS, Azure Blob URLs via Polars cloud feature (no download step)
 - **OpenTelemetry** — Optional distributed tracing (`--features otel`) with MongoCore-level and driver-level spans, OTLP export
 - **Client methods** — Added FindAndModify, CreateIndex, BeginTransaction, CommitTransaction, AbortTransaction, GetAnalytics to all 4 clients
-- **Full test coverage** — All 27 gRPC RPCs tested in every client library (Python, TypeScript, Go, Java)
+- **Full test coverage** — All 33 gRPC RPCs tested in every client library (Python, TypeScript, Go, Java)
 - **Standardized unit tests** — 5+ unit tests per client library (no server required)
 - **AGENTS.md / CLAUDE.md** — Universal AI agent development guide and Claude Code specialization
 - **Testing rules** — Enforced test parity across all clients, verbose output, proto regeneration workflow documented
@@ -97,7 +97,7 @@
 - **Skills system** — 13 guided workflows (MCP Prompts protocol + `list_skills`/`get_skill` tool fallback)
 - **Insights tools** — `suggest_indexes` and `slow_queries` analyzing analytics ring buffer
 - **Schema resource** — `mongocore://schema/{database}/{collection}` MCP resource
-- **35 MCP tools total** — up from 21 in v0.7
+- **36 MCP tools total** — up from 21 in v0.7
 
 ### Web UI & Diagnostics
 

@@ -36,7 +36,7 @@ export MONGOCORE_OTEL_SERVICE_NAME=mongocore
 
 ### MongoDB Driver Spans
 
-With `tracing-unstable` enabled on the MongoDB driver, you also get:
+MongoCore builds with `tracing-unstable` enabled on the MongoDB driver, so you also get:
 - Connection checkout/checkin
 - Command execution (command name, database, duration)
 - Server selection

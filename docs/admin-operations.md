@@ -124,7 +124,7 @@ users := client.Database("myapp").Collection("users")
 
 indexName, err := users.CreateIndex(ctx, bson.D{
     {Key: "email", Value: 1},
-}, &mongocore.IndexOptions{Unique: true})
+}, true)
 ```
 
 ### Java
@@ -135,7 +135,7 @@ MongoCollection users = client.getDatabase("myapp").getCollection("users");
 // Unique index
 String indexName = users.createIndex(
     new Document("email", 1),
-    new IndexOptions().unique(true)
+    true
 );
 ```
 

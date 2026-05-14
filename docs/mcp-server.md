@@ -23,7 +23,9 @@ The MCP server runs on port 3000 (configurable) and exposes MongoDB operations a
 
 ## Available Tools
 
-The MCP server exposes 21 tools:
+The MCP server exposes 36 tools:
+
+### CRUD & Query
 
 | Tool | Description |
 |------|-------------|
@@ -36,18 +38,81 @@ The MCP server exposes 21 tools:
 | `delete` | Delete the first matching document |
 | `delete_many` | Delete all matching documents |
 | `aggregate` | Run an aggregation pipeline |
+| `run_command` | Execute an arbitrary MongoDB command |
+
+### Database Administration
+
+| Tool | Description |
+|------|-------------|
 | `create_collection` | Create a new collection |
 | `create_index` | Create an index |
 | `list_databases` | List all databases |
 | `list_collections` | List collections in a database |
+| `collection_schema` | Sample documents and infer collection schema |
+
+### Ingestion
+
+| Tool | Description |
+|------|-------------|
+| `ingest` | Start a file ingestion job |
+| `ingest_status` | Check ingestion job status |
+| `list_ingest_jobs` | List all ingestion jobs |
+| `cancel_ingest` | Cancel a running ingestion job |
+| `watch_directory` | Watch a directory for new files and auto-ingest |
+| `stop_watch` | Stop watching a directory |
+| `ingest_and_embed` | Parse a file, embed a text field, and store with vectors |
+
+### Search & Embeddings
+
+| Tool | Description |
+|------|-------------|
+| `semantic_search` | Search for semantically similar documents using vector embeddings |
+| `embed_and_store` | Embed text fields and store documents with vector embeddings |
+
+### Natural Language Queries
+
+| Tool | Description |
+|------|-------------|
+| `ask` | Ask a natural language question about your data (NL to MQL) |
+| `explain_query` | Translate NL to MQL and show execution plan without running it |
+
+### Code Generation
+
+| Tool | Description |
+|------|-------------|
+| `generate_code` | Generate ready-to-run MongoCore client code for a query |
+| `generate_model` | Generate a typed data model from a collection's inferred schema |
+| `generate_index` | Analyze a query filter and generate index creation code |
+
+### Observability
+
+| Tool | Description |
+|------|-------------|
+| `get_analytics` | Get analytics summary (operation counts, error rates, latency percentiles) |
+| `suggest_indexes` | Analyze query patterns and recommend missing indexes |
+| `slow_queries` | Surface the slowest queries with optimization suggestions |
+
+### Orchestration
+
+| Tool | Description |
+|------|-------------|
+| `pipeline` | Execute multiple independent operations concurrently in a single round-trip |
+| `transaction_pipeline` | Execute multiple dependent operations atomically in a transaction |
+
+### Skills (Guided Workflows)
+
+| Tool | Description |
+|------|-------------|
+| `list_skills` | List available guided workflows |
+| `get_skill` | Get the full workflow guide for a specific skill |
 
 ## Safety Controls
 
 The MCP server includes safety controls for AI agents:
 
 - **Find limit cap**: Maximum 100 documents per `find` call (prevents runaway queries)
-- **Tool allowlist/blocklist**: Configure which tools AI agents can access
-- **Read-only mode**: Block all write operations for safe exploration
+- **Read-only mode**: Block all write operations (insert, update, delete, create_collection, create_index, run_command, transaction_pipeline) for safe exploration
+- **Pipeline validation**: All operations in a `pipeline` call are validated before execution — if any violates safety rules, the entire pipeline is rejected
 
 ## Protocol
 
@@ -136,6 +201,15 @@ Response:
 
 Resources provide read-only access to database metadata (schemas, indexes, etc.) without using tool calls.
 
+### Available Resources
+
+| URI | Description |
+|-----|-------------|
+| `mongocore://capabilities` | MongoDB server capabilities (version, Atlas features) |
+| `mongocore://databases` | List of all databases |
+| `mongocore://collections/{database}` | List of collections in a database |
+| `mongocore://schema/{database}/{collection}` | Inferred schema (field names, types, frequency) |
+
 ### Read a Resource
 
 ```json
@@ -143,7 +217,7 @@ Resources provide read-only access to database metadata (schemas, indexes, etc.)
   "jsonrpc": "2.0",
   "method": "resources/read",
   "params": {
-    "uri": "mongodb://myapp/users/schema"
+    "uri": "mongocore://schema/myapp/users"
   },
   "id": 5
 }
@@ -158,14 +232,14 @@ Add MongoCore as an MCP server in your Claude Desktop config (`~/Library/Applica
   "mcpServers": {
     "mongocore": {
       "command": "mongocore",
-      "args": ["--connection-uri", "mongodb://localhost:27017"],
+      "args": ["--stdio", "--connection-uri", "mongodb://localhost:27017"],
       "env": {}
     }
   }
 }
 ```
 
-Or connect to a running instance:
+Or connect to a running instance via HTTP:
 
 ```json
 {
@@ -186,7 +260,7 @@ Add to your project's `.mcp.json`:
   "mcpServers": {
     "mongocore": {
       "command": "mongocore",
-      "args": ["--connection-uri", "mongodb://localhost:27017"]
+      "args": ["--stdio", "--connection-uri", "mongodb://localhost:27017"]
     }
   }
 }

@@ -55,7 +55,7 @@ If the port is already in use, MongoCore logs a warning and continues without th
 
 **Ingestion** — Active ingestion job progress bars, records processed, and error counts.
 
-**LLM Usage** — Compiled query LLM call stats: total calls, success rate, average latency, token counts.
+**LLM Calls** — Compiled query LLM call stats: total calls, success rate, average latency, token counts.
 
 **Cache** — Compiled query cache performance: L1 (in-memory), L2 (disk), and L3 (MongoDB) hit rates, cache size, and eviction counts.
 

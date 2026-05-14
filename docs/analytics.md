@@ -78,7 +78,7 @@ Ranked list of operation types by frequency:
 **Operation types:**
 - `Find`, `FindOne`, `Insert`, `InsertMany`, `Update`, `UpdateMany`
 - `Delete`, `DeleteMany`, `FindAndModify`, `Aggregate`
-- `Search`, `Watch`, `RunCommand`
+- `Search`, `Watch`, `RunCommand`, `Pipeline`
 - `BeginTransaction`, `CommitTransaction`, `AbortTransaction`
 - `CreateCollection`, `CreateIndex`, `ListDatabases`, `ListCollections`
 

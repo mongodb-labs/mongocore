@@ -54,7 +54,7 @@ max_cache_entries = 1000
 **Notes:**
 - `tenant_id` must be unique across all tenants
 - If `connection_uri` is not specified, tenant uses the global connection URI
-- Rate limiting uses a token bucket algorithm with per-second refill
+- Rate limiting uses a sliding window counter with per-second reset
 - Cache isolation prevents tenants from seeing each other's compiled queries
 
 ## Tenant Identification
@@ -182,7 +182,7 @@ rate_limit_ops_per_sec = 100  # Beta limited to 100 ops/sec
 ```
 
 **How it works:**
-- Token bucket algorithm with per-second refill
+- Sliding window counter with per-second reset
 - Requests are rejected with `RESOURCE_EXHAUSTED` status when limit exceeded
 - Rate limit applies to all gRPC operations (Find, Insert, Update, etc.)
 
@@ -370,15 +370,15 @@ except ResourceExhausted as e:
 - HTTP status (MCP): `429 Too Many Requests`
 
 **Rate limit algorithm:**
-- Token bucket with per-second refill
-- Bucket size = `rate_limit_ops_per_sec`
-- Refill rate = `rate_limit_ops_per_sec` per second
-- Burst allowance = bucket size
+- Sliding window counter with per-second reset
+- Window size = 1 second
+- Max operations per window = `rate_limit_ops_per_sec`
+- Counter resets when a new second begins
 
 **Example:** `rate_limit_ops_per_sec = 100`
 - Tenant can do 100 operations per second sustained
-- Can burst up to 100 operations instantly (if bucket is full)
-- After burst, must wait for tokens to refill
+- Counter resets each second window
+- After hitting the limit, requests are rejected until the next window
 
 ## Monitoring & Analytics
 

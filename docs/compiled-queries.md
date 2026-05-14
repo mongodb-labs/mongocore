@@ -197,7 +197,7 @@ List<Document> results = restaurants.compiledQuery(
 
 | Level | Storage | Latency | Scope | Survives Restart |
 |-------|---------|---------|-------|-----------------|
-| L1 | In-memory (DashMap) | ~0ms | Single process | No |
+| L1 | In-memory (RwLock HashMap) | ~0ms | Single process | No |
 | L2 | Disk (JSON files) | ~1ms | Single machine | Yes |
 | L3 | Atlas collection | ~5-50ms | All instances | Yes |
 | Template | In-memory registry | ~0ms | Single process | No (rebuilt from L2/L3) |
