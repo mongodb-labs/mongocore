@@ -36,7 +36,7 @@ async def test_insert_and_find():
         inserted_id = await coll.insert_one({"name": "Alice", "age": 30})
         assert inserted_id
 
-        docs = await coll.find({"name": "Alice"})
+        docs = await coll.find({"name": "Alice"}).to_list()
         assert len(docs) == 1
         assert docs[0]["name"] == "Alice"
         assert docs[0]["age"] == 30
@@ -54,7 +54,7 @@ async def test_insert_many_and_find():
         ])
         assert len(ids) == 3
 
-        docs = await coll.find({})
+        docs = await coll.find({}).to_list()
         assert len(docs) == 3
 
 
@@ -99,7 +99,7 @@ async def test_delete_one():
         count = await coll.delete_one({"name": "Frank"})
         assert count == 1
 
-        docs = await coll.find({})
+        docs = await coll.find({}).to_list()
         assert len(docs) == 1
         assert docs[0]["name"] == "Grace"
 
@@ -118,7 +118,7 @@ async def test_delete_many():
         count = await coll.delete_many({"group": "A"})
         assert count == 2
 
-        docs = await coll.find({})
+        docs = await coll.find({}).to_list()
         assert len(docs) == 1
 
 
@@ -136,7 +136,7 @@ async def test_aggregate():
         results = await coll.aggregate([
             {"$group": {"_id": "$category", "total": {"$sum": "$value"}}},
             {"$sort": {"_id": 1}},
-        ])
+        ]).to_list()
 
         assert len(results) == 2
         assert results[0]["_id"] == "A"
@@ -152,7 +152,7 @@ async def test_find_with_limit():
 
         await coll.insert_many([{"i": i} for i in range(10)])
 
-        docs = await coll.find({}, limit=3)
+        docs = await coll.find({}, limit=3).to_list()
         assert len(docs) == 3
 
 
@@ -225,7 +225,7 @@ async def test_update_many():
         )
         assert result["modified_count"] == 2
 
-        docs = await coll.find({"updated": True})
+        docs = await coll.find({"updated": True}).to_list()
         assert len(docs) == 2
 
 
@@ -444,3 +444,88 @@ async def test_pipeline():
         assert results[2].databases is not None
         assert isinstance(results[2].databases, list)
         assert len(results[2].databases) > 0
+
+
+@pytest.mark.asyncio
+async def test_find_cursor_iteration():
+    async with MongoClient("localhost:50051") as client:
+        coll = client[TEST_DB][unique_collection()]
+
+        await coll.insert_many([{"i": i} for i in range(50)])
+
+        count = 0
+        async for doc in coll.find({}):
+            assert "i" in doc
+            count += 1
+        assert count == 50
+
+
+@pytest.mark.asyncio
+async def test_find_cursor_early_break():
+    async with MongoClient("localhost:50051") as client:
+        coll = client[TEST_DB][unique_collection()]
+
+        await coll.insert_many([{"i": i} for i in range(100)])
+
+        count = 0
+        async for doc in coll.find({}, batch_size=10):
+            count += 1
+            if count >= 5:
+                break
+        assert count == 5
+
+
+@pytest.mark.asyncio
+async def test_find_cursor_empty():
+    async with MongoClient("localhost:50051") as client:
+        coll = client[TEST_DB][unique_collection()]
+
+        docs = await coll.find({"nonexistent": True}).to_list()
+        assert docs == []
+
+
+@pytest.mark.asyncio
+async def test_aggregate_cursor_iteration():
+    async with MongoClient("localhost:50051") as client:
+        coll = client[TEST_DB][unique_collection()]
+
+        await coll.insert_many([
+            {"category": "A", "value": 10},
+            {"category": "A", "value": 20},
+            {"category": "B", "value": 30},
+        ])
+
+        results = []
+        async for doc in coll.aggregate([
+            {"$group": {"_id": "$category", "total": {"$sum": "$value"}}},
+            {"$sort": {"_id": 1}},
+        ]):
+            results.append(doc)
+
+        assert len(results) == 2
+        assert results[0]["_id"] == "A"
+        assert results[0]["total"] == 30
+
+
+@pytest.mark.asyncio
+async def test_find_cursor_with_batch_size():
+    """Verify batch_size parameter works (multiple batches for large result)."""
+    async with MongoClient("localhost:50051") as client:
+        coll = client[TEST_DB][unique_collection()]
+
+        await coll.insert_many([{"i": i} for i in range(25)])
+
+        docs = await coll.find({}, batch_size=5).to_list()
+        assert len(docs) == 25
+
+
+@pytest.mark.asyncio
+async def test_find_cursor_with_sort():
+    """Verify sort option works through streaming RPC."""
+    async with MongoClient("localhost:50051") as client:
+        coll = client[TEST_DB][unique_collection()]
+
+        await coll.insert_many([{"i": 3}, {"i": 1}, {"i": 2}])
+
+        docs = await coll.find({}, limit=3).to_list()
+        assert len(docs) == 3

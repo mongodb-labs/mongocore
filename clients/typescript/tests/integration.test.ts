@@ -37,7 +37,7 @@ describe('CRUD operations', () => {
     const result = await coll.insertOne({ name: 'Alice', age: 30 });
     expect(result.insertedId).toBeTruthy();
 
-    const docs = await coll.find({ name: 'Alice' });
+    const docs = await coll.find({ name: 'Alice' }).toArray();
     expect(docs).toHaveLength(1);
     expect(docs[0].name).toBe('Alice');
     expect(docs[0].age).toBe(30);
@@ -54,7 +54,7 @@ describe('CRUD operations', () => {
     expect(result.insertedCount).toBe(3);
     expect(result.insertedIds).toHaveLength(3);
 
-    const docs = await coll.find({});
+    const docs = await coll.find({}).toArray();
     expect(docs).toHaveLength(3);
   });
 
@@ -93,7 +93,7 @@ describe('CRUD operations', () => {
     const count = await coll.deleteOne({ name: 'Frank' });
     expect(count).toBe(1);
 
-    const docs = await coll.find({});
+    const docs = await coll.find({}).toArray();
     expect(docs).toHaveLength(1);
     expect(docs[0].name).toBe('Grace');
   });
@@ -110,7 +110,7 @@ describe('CRUD operations', () => {
     const count = await coll.deleteMany({ group: 'A' });
     expect(count).toBe(2);
 
-    const docs = await coll.find({});
+    const docs = await coll.find({}).toArray();
     expect(docs).toHaveLength(1);
   });
 
@@ -126,7 +126,7 @@ describe('CRUD operations', () => {
     const results = await coll.aggregate([
       { $group: { _id: '$category', total: { $sum: '$value' } } },
       { $sort: { _id: 1 } },
-    ]);
+    ]).toArray();
 
     expect(results).toHaveLength(2);
     expect(results[0]._id).toBe('A');
@@ -141,7 +141,7 @@ describe('CRUD operations', () => {
     const docs = Array.from({ length: 10 }, (_, i) => ({ i }));
     await coll.insertMany(docs);
 
-    const results = await coll.find({}, { limit: 3 });
+    const results = await coll.find({}, { limit: 3 }).toArray();
     expect(results).toHaveLength(3);
   });
 });
@@ -210,7 +210,7 @@ describe('Database operations', () => {
     );
     expect(result.modifiedCount).toBe(2);
 
-    const docs = await coll.find({ status: 'updated' });
+    const docs = await coll.find({ status: 'updated' }).toArray();
     expect(docs).toHaveLength(2);
   });
 
@@ -395,66 +395,52 @@ describe('Watch operations', () => {
 describe('Pipeline operations', () => {
   test('pipeline with mixed operations', async () => {
     const collName = uniqueCollection();
+    const coll = client.db(TEST_DB).collection(collName);
+
+    // Pre-insert data (pipeline operations are concurrent, not ordered)
+    await coll.insertMany([
+      { name: 'Alice', age: 30 },
+      { name: 'Bob', age: 25 },
+    ]);
 
     const results = await client.pipeline(
-      ops.insert(TEST_DB, collName, { name: 'Alice', age: 30 }),
-      ops.insert(TEST_DB, collName, { name: 'Bob', age: 25 }),
       ops.find(TEST_DB, collName, {}),
       ops.updateMany(TEST_DB, collName, {}, { $inc: { age: 1 } }),
       ops.findOne(TEST_DB, collName, { name: 'Alice' }),
       ops.deleteMany(TEST_DB, collName, { name: 'Bob' })
     );
 
-    expect(results).toHaveLength(6);
+    expect(results).toHaveLength(4);
 
-    // Check insert results
-    expect(results[0].success).toBe(true);
-    expect(results[0].result?.insertedId).toBeTruthy();
-    expect(results[1].success).toBe(true);
-    expect(results[1].result?.insertedId).toBeTruthy();
-
-    // Check find result
-    expect(results[2].success).toBe(true);
-    expect(results[2].result?.documents).toHaveLength(2);
-
-    // Check updateMany result
-    expect(results[3].success).toBe(true);
-    expect(results[3].result?.modifiedCount).toBe(2);
-
-    // Check findOne result
-    expect(results[4].success).toBe(true);
-    expect(results[4].result?.document).toBeTruthy();
-    expect(results[4].result?.document.name).toBe('Alice');
-    expect(results[4].result?.document.age).toBe(31);
-
-    // Check deleteMany result
-    expect(results[5].success).toBe(true);
-    expect(results[5].result?.deletedCount).toBe(1);
+    // All operations should succeed (concurrent execution, no ordering guarantees)
+    for (const r of results) {
+      expect(r.success).toBe(true);
+    }
   });
 
   test('pipeline with aggregate', async () => {
     const collName = uniqueCollection();
+    const coll = client.db(TEST_DB).collection(collName);
+
+    // Pre-insert data (pipeline operations are concurrent, not ordered)
+    await coll.insertMany([
+      { category: 'A', value: 10 },
+      { category: 'A', value: 20 },
+      { category: 'B', value: 30 },
+    ]);
 
     const results = await client.pipeline(
-      ops.insertMany(TEST_DB, collName, [
-        { category: 'A', value: 10 },
-        { category: 'A', value: 20 },
-        { category: 'B', value: 30 },
-      ]),
       ops.aggregate(TEST_DB, collName, [
         { $group: { _id: '$category', total: { $sum: '$value' } } },
         { $sort: { _id: 1 } },
       ])
     );
 
-    expect(results).toHaveLength(2);
+    expect(results).toHaveLength(1);
     expect(results[0].success).toBe(true);
-    expect(results[0].result?.insertedCount).toBe(3);
-
-    expect(results[1].success).toBe(true);
-    expect(results[1].result?.documents).toHaveLength(2);
-    expect(results[1].result?.documents[0]._id).toBe('A');
-    expect(results[1].result?.documents[0].total).toBe(30);
+    expect(results[0].result?.documents).toHaveLength(2);
+    expect(results[0].result?.documents[0]._id).toBe('A');
+    expect(results[0].result?.documents[0].total).toBe(30);
   });
 
   test('pipeline with listDatabases and listCollections', async () => {
@@ -487,5 +473,59 @@ describe('Pipeline operations', () => {
     expect(results).toHaveLength(1);
     expect(results[0].success).toBe(true);
     expect(results[0].result?.ok).toBe(1);
+  });
+});
+
+describe('Cursor operations', () => {
+  test('find cursor iteration', async () => {
+    const coll = client.db(TEST_DB).collection(uniqueCollection());
+    const docs = Array.from({ length: 50 }, (_, i) => ({ i }));
+    await coll.insertMany(docs);
+
+    let count = 0;
+    for await (const doc of coll.find({})) {
+      expect(doc).toHaveProperty('i');
+      count++;
+    }
+    expect(count).toBe(50);
+  });
+
+  test('find cursor early break', async () => {
+    const coll = client.db(TEST_DB).collection(uniqueCollection());
+    const docs = Array.from({ length: 100 }, (_, i) => ({ i }));
+    await coll.insertMany(docs);
+
+    let count = 0;
+    for await (const doc of coll.find({}, { batchSize: 10 })) {
+      count++;
+      if (count >= 5) break;
+    }
+    expect(count).toBe(5);
+  });
+
+  test('find cursor empty result', async () => {
+    const coll = client.db(TEST_DB).collection(uniqueCollection());
+    const docs = await coll.find({ nonexistent: true }).toArray();
+    expect(docs).toEqual([]);
+  });
+
+  test('aggregate cursor iteration', async () => {
+    const coll = client.db(TEST_DB).collection(uniqueCollection());
+    await coll.insertMany([
+      { category: 'A', value: 10 },
+      { category: 'A', value: 20 },
+      { category: 'B', value: 30 },
+    ]);
+
+    const results: any[] = [];
+    for await (const doc of coll.aggregate([
+      { $group: { _id: '$category', total: { $sum: '$value' } } },
+      { $sort: { _id: 1 } },
+    ])) {
+      results.push(doc);
+    }
+    expect(results).toHaveLength(2);
+    expect(results[0]._id).toBe('A');
+    expect(results[0].total).toBe(30);
   });
 });

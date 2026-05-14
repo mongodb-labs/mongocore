@@ -21,6 +21,12 @@ type FindOptions struct {
 	Skip       int64
 	Sort       bson.D
 	Projection bson.D
+	BatchSize  uint32
+}
+
+// AggregateOptions configures an aggregation operation.
+type AggregateOptions struct {
+	BatchSize uint32
 }
 
 // UpdateResult contains the result of an update operation.
@@ -47,60 +53,64 @@ func decodeBsonDoc(data []byte) (bson.D, error) {
 	return doc, err
 }
 
-// Find returns documents matching the filter.
-func (c *Collection) Find(ctx context.Context, filter bson.D, opts *FindOptions) ([]bson.D, error) {
-	filterBytes, err := encodeBson(filter)
-	if err != nil {
-		return nil, err
-	}
-
-	req := &pb.FindRequest{
-		Database:   c.database,
-		Collection: c.name,
-		Filter:     &pb.Filter{Data: filterBytes},
-	}
-
-	if opts != nil {
-		findOpts := &pb.FindOptions{}
-		if opts.Limit > 0 {
-			limit := opts.Limit
-			findOpts.Limit = &limit
-		}
-		if opts.Skip > 0 {
-			skip := opts.Skip
-			findOpts.Skip = &skip
-		}
-		if opts.Sort != nil {
-			sortBytes, err := encodeBson(opts.Sort)
+// Find returns a Cursor over documents matching the filter.
+// The ctx parameter is accepted for API compatibility; the context passed to
+// Next() or All() controls the stream lifetime and cancellation.
+// The caller must close the cursor when done.
+func (c *Collection) Find(ctx context.Context, filter bson.D, opts *FindOptions) *Cursor {
+	return &Cursor{
+		initFn: func(streamCtx context.Context) (batchStream, context.CancelFunc, error) {
+			filterBytes, err := encodeBson(filter)
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
-			findOpts.Sort = sortBytes
-		}
-		if opts.Projection != nil {
-			projBytes, err := encodeBson(opts.Projection)
+
+			req := &pb.FindStreamRequest{
+				Database:   c.database,
+				Collection: c.name,
+				Filter:     &pb.Filter{Data: filterBytes},
+				BatchSize:  1000,
+			}
+
+			if opts != nil {
+				findOpts := &pb.FindOptions{}
+				if opts.Limit > 0 {
+					limit := opts.Limit
+					findOpts.Limit = &limit
+				}
+				if opts.Skip > 0 {
+					skip := opts.Skip
+					findOpts.Skip = &skip
+				}
+				if opts.Sort != nil {
+					sortBytes, err := encodeBson(opts.Sort)
+					if err != nil {
+						return nil, nil, err
+					}
+					findOpts.Sort = sortBytes
+				}
+				if opts.Projection != nil {
+					projBytes, err := encodeBson(opts.Projection)
+					if err != nil {
+						return nil, nil, err
+					}
+					findOpts.Projection = projBytes
+				}
+				req.Options = findOpts
+				if opts.BatchSize > 0 {
+					req.BatchSize = opts.BatchSize
+				}
+			}
+
+			streamCtx, cancel := context.WithCancel(streamCtx)
+			stream, err := c.client.stub.FindStream(clientContext(streamCtx), req)
 			if err != nil {
-				return nil, err
+				cancel()
+				return nil, nil, err
 			}
-			findOpts.Projection = projBytes
-		}
-		req.Options = findOpts
+			return stream, cancel, nil
+		},
 	}
-
-	resp, err := c.client.stub.Find(clientContext(ctx), req)
-	if err != nil {
-		return nil, err
-	}
-
-	docs := make([]bson.D, 0, len(resp.Documents))
-	for _, d := range resp.Documents {
-		doc, err := decodeBsonDoc(d.Data)
-		if err != nil {
-			return nil, err
-		}
-		docs = append(docs, doc)
-	}
-	return docs, nil
 }
 
 // FindOne returns a single document matching the filter.
@@ -345,35 +355,43 @@ func (c *Collection) Watch(ctx context.Context, pipeline []bson.D) (*ChangeStrea
 // Ensure ChangeStream implements io.Closer.
 var _ io.Closer = (*ChangeStream)(nil)
 
-// Aggregate executes an aggregation pipeline.
-func (c *Collection) Aggregate(ctx context.Context, pipeline []bson.D) ([]bson.D, error) {
-	stages := make([][]byte, 0, len(pipeline))
-	for _, stage := range pipeline {
-		stageBytes, err := encodeBson(stage)
-		if err != nil {
-			return nil, err
-		}
-		stages = append(stages, stageBytes)
-	}
+// Aggregate returns a Cursor over pipeline results.
+// The ctx parameter is accepted for API compatibility; the context passed to
+// Next() or All() controls the stream lifetime and cancellation.
+// The caller must close the cursor when done.
+func (c *Collection) Aggregate(ctx context.Context, pipeline []bson.D, opts *AggregateOptions) *Cursor {
+	return &Cursor{
+		initFn: func(streamCtx context.Context) (batchStream, context.CancelFunc, error) {
+			stages := make([][]byte, 0, len(pipeline))
+			for _, stage := range pipeline {
+				stageBytes, err := encodeBson(stage)
+				if err != nil {
+					return nil, nil, err
+				}
+				stages = append(stages, stageBytes)
+			}
 
-	resp, err := c.client.stub.Aggregate(clientContext(ctx), &pb.AggregateRequest{
-		Database:   c.database,
-		Collection: c.name,
-		Pipeline:   &pb.Pipeline{Stages: stages},
-	})
-	if err != nil {
-		return nil, err
-	}
+			batchSize := uint32(1000)
+			if opts != nil && opts.BatchSize > 0 {
+				batchSize = opts.BatchSize
+			}
 
-	docs := make([]bson.D, 0, len(resp.Documents))
-	for _, d := range resp.Documents {
-		doc, err := decodeBsonDoc(d.Data)
-		if err != nil {
-			return nil, err
-		}
-		docs = append(docs, doc)
+			req := &pb.AggregateStreamRequest{
+				Database:   c.database,
+				Collection: c.name,
+				Pipeline:   &pb.Pipeline{Stages: stages},
+				BatchSize:  batchSize,
+			}
+
+			streamCtx, cancel := context.WithCancel(streamCtx)
+			stream, err := c.client.stub.AggregateStream(clientContext(streamCtx), req)
+			if err != nil {
+				cancel()
+				return nil, nil, err
+			}
+			return stream, cancel, nil
+		},
 	}
-	return docs, nil
 }
 
 // Search performs a unified search using the best available method (vector → fulltext → filter).

@@ -51,7 +51,8 @@ func TestInsertAndFind(t *testing.T) {
 		t.Fatal("Expected non-empty inserted ID")
 	}
 
-	docs, err := coll.Find(ctx, bson.D{{Key: "name", Value: "Alice"}}, nil)
+	cursor := coll.Find(ctx, bson.D{{Key: "name", Value: "Alice"}}, nil)
+	docs, err := cursor.All(ctx)
 	if err != nil {
 		t.Fatalf("Find failed: %v", err)
 	}
@@ -76,7 +77,8 @@ func TestInsertMany(t *testing.T) {
 		t.Fatalf("Expected 3 IDs, got %d", len(ids))
 	}
 
-	docs, err := coll.Find(ctx, bson.D{}, nil)
+	cursor := coll.Find(ctx, bson.D{}, nil)
+	docs, err := cursor.All(ctx)
 	if err != nil {
 		t.Fatalf("Find failed: %v", err)
 	}
@@ -157,7 +159,8 @@ func TestDeleteOne(t *testing.T) {
 		t.Fatalf("Expected 1 deleted, got %d", count)
 	}
 
-	docs, _ := coll.Find(ctx, bson.D{}, nil)
+	cursor := coll.Find(ctx, bson.D{}, nil)
+	docs, _ := cursor.All(ctx)
 	if len(docs) != 1 {
 		t.Fatalf("Expected 1 remaining, got %d", len(docs))
 	}
@@ -181,7 +184,8 @@ func TestDeleteMany(t *testing.T) {
 		t.Fatalf("Expected 2 deleted, got %d", count)
 	}
 
-	docs, _ := coll.Find(ctx, bson.D{}, nil)
+	cursor := coll.Find(ctx, bson.D{}, nil)
+	docs, _ := cursor.All(ctx)
 	if len(docs) != 1 {
 		t.Fatalf("Expected 1 remaining, got %d", len(docs))
 	}
@@ -197,7 +201,8 @@ func TestFindWithLimit(t *testing.T) {
 	}
 	coll.InsertMany(ctx, docs)
 
-	results, err := coll.Find(ctx, bson.D{}, &mongocore.FindOptions{Limit: 3})
+	cursor := coll.Find(ctx, bson.D{}, &mongocore.FindOptions{Limit: 3})
+	results, err := cursor.All(ctx)
 	if err != nil {
 		t.Fatalf("Find with limit failed: %v", err)
 	}
@@ -216,13 +221,14 @@ func TestAggregate(t *testing.T) {
 		{{Key: "category", Value: "B"}, {Key: "value", Value: 30}},
 	})
 
-	results, err := coll.Aggregate(ctx, []bson.D{
+	cursor := coll.Aggregate(ctx, []bson.D{
 		{{Key: "$group", Value: bson.D{
 			{Key: "_id", Value: "$category"},
 			{Key: "total", Value: bson.D{{Key: "$sum", Value: "$value"}}},
 		}}},
 		{{Key: "$sort", Value: bson.D{{Key: "_id", Value: 1}}}},
-	})
+	}, nil)
+	results, err := cursor.All(ctx)
 	if err != nil {
 		t.Fatalf("Aggregate failed: %v", err)
 	}
@@ -464,7 +470,8 @@ func TestGetAnalytics(t *testing.T) {
 
 	// Do some operations
 	coll.InsertOne(ctx, bson.D{{Key: "test", Value: 1}})
-	coll.Find(ctx, bson.D{}, nil)
+	cursor := coll.Find(ctx, bson.D{}, nil)
+	_, _ = cursor.All(ctx)
 
 	analytics, err := client.GetAnalytics(ctx)
 	if err != nil {
@@ -750,5 +757,98 @@ func TestPipeline(t *testing.T) {
 		}
 	} else {
 		t.Fatal("Expected ListDatabases result at index 2")
+	}
+}
+
+func TestFindCursorIteration(t *testing.T) {
+	ctx := context.Background()
+	client := mongocore.MongoClientTCP(getAddress())
+	if err := client.Connect(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+
+	coll := client.Database(testDB).Collection(uniqueCollection())
+
+	// Insert 50 docs
+	docs := make([]bson.D, 50)
+	for i := range docs {
+		docs[i] = bson.D{{Key: "i", Value: i}}
+	}
+	_, err := coll.InsertMany(ctx, docs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cursor := coll.Find(ctx, bson.D{}, nil)
+	defer cursor.Close()
+
+	count := 0
+	for cursor.Next(ctx) {
+		doc := cursor.Doc()
+		if doc == nil {
+			t.Fatal("expected non-nil document")
+		}
+		count++
+	}
+	if cursor.Err() != nil {
+		t.Fatal(cursor.Err())
+	}
+	if count != 50 {
+		t.Fatalf("expected 50 docs, got %d", count)
+	}
+}
+
+func TestFindCursorEarlyClose(t *testing.T) {
+	ctx := context.Background()
+	client := mongocore.MongoClientTCP(getAddress())
+	if err := client.Connect(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+
+	coll := client.Database(testDB).Collection(uniqueCollection())
+
+	docs := make([]bson.D, 100)
+	for i := range docs {
+		docs[i] = bson.D{{Key: "i", Value: i}}
+	}
+	_, err := coll.InsertMany(ctx, docs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cursor := coll.Find(ctx, bson.D{}, &mongocore.FindOptions{BatchSize: 10})
+	count := 0
+	for cursor.Next(ctx) {
+		_ = cursor.Doc()
+		count++
+		if count >= 5 {
+			break
+		}
+	}
+	cursor.Close()
+	if count != 5 {
+		t.Fatalf("expected 5 docs, got %d", count)
+	}
+}
+
+func TestFindCursorEmpty(t *testing.T) {
+	ctx := context.Background()
+	client := mongocore.MongoClientTCP(getAddress())
+	if err := client.Connect(ctx); err != nil {
+		t.Fatal(err)
+	}
+	defer client.Close()
+
+	coll := client.Database(testDB).Collection(uniqueCollection())
+
+	cursor := coll.Find(ctx, bson.D{{Key: "nonexistent", Value: true}}, nil)
+	docs, err := cursor.All(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(docs) != 0 {
+		t.Fatalf("expected 0 docs, got %d", len(docs))
 	}
 }

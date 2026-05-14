@@ -61,15 +61,16 @@ public class MongoCollection {
         return Types.Document.newBuilder().setData(encodeBson(doc)).build();
     }
 
-    public List<Document> find(Document filter) {
+    public MongoCursor find(Document filter) {
         return find(filter, null);
     }
 
-    public List<Document> find(Document filter, FindOptions options) {
-        Mongocore.FindRequest.Builder req = Mongocore.FindRequest.newBuilder()
+    public MongoCursor find(Document filter, FindOptions options) {
+        Mongocore.FindStreamRequest.Builder req = Mongocore.FindStreamRequest.newBuilder()
                 .setDatabase(database)
                 .setCollection(name)
-                .setFilter(makeFilter(filter));
+                .setFilter(makeFilter(filter))
+                .setBatchSize(1000);
 
         if (options != null) {
             Types.FindOptions.Builder opts = Types.FindOptions.newBuilder();
@@ -86,14 +87,13 @@ public class MongoCollection {
                 opts.setProjection(encodeBson(options.getProjection()));
             }
             req.setOptions(opts.build());
+            if (options.getBatchSize() != null) {
+                req.setBatchSize(options.getBatchSize());
+            }
         }
 
-        Mongocore.FindResponse resp = getStub().find(req.build());
-        List<Document> docs = new ArrayList<>(resp.getDocumentsCount());
-        for (Types.Document d : resp.getDocumentsList()) {
-            docs.add(decodeBson(d.getData()));
-        }
-        return docs;
+        Iterator<Types.DocumentBatch> stream = getStub().findStream(req.build());
+        return new MongoCursor(stream);
     }
 
     public Document findOne(Document filter) {
@@ -176,23 +176,24 @@ public class MongoCollection {
         return resp.getDeletedCount();
     }
 
-    public List<Document> aggregate(List<Document> pipeline) {
+    public MongoCursor aggregate(List<Document> pipeline) {
+        return aggregate(pipeline, 1000);
+    }
+
+    public MongoCursor aggregate(List<Document> pipeline, int batchSize) {
         List<ByteString> stages = pipeline.stream()
                 .map(this::encodeBson)
                 .collect(Collectors.toList());
 
-        Mongocore.AggregateResponse resp = getStub().aggregate(
-                Mongocore.AggregateRequest.newBuilder()
-                        .setDatabase(database)
-                        .setCollection(name)
-                        .setPipeline(Types.Pipeline.newBuilder().addAllStages(stages).build())
-                        .build());
+        Mongocore.AggregateStreamRequest req = Mongocore.AggregateStreamRequest.newBuilder()
+                .setDatabase(database)
+                .setCollection(name)
+                .setPipeline(Types.Pipeline.newBuilder().addAllStages(stages).build())
+                .setBatchSize(batchSize)
+                .build();
 
-        List<Document> docs = new ArrayList<>(resp.getDocumentsCount());
-        for (Types.Document d : resp.getDocumentsList()) {
-            docs.add(decodeBson(d.getData()));
-        }
-        return docs;
+        Iterator<Types.DocumentBatch> stream = getStub().aggregateStream(req);
+        return new MongoCursor(stream);
     }
 
     public SearchResult search(String query) {

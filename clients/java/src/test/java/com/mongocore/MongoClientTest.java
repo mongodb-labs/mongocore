@@ -12,14 +12,14 @@ public class MongoClientTest {
 
     @Test
     public void testDatabaseAccess() {
-        MongoClient client = MongoClient.create();
+        MongoClient client = MongoClient.create("localhost:50051");
         MongoDatabase db = client.getDatabase("testdb");
         assertEquals("testdb", db.getName());
     }
 
     @Test
     public void testCollectionAccess() {
-        MongoClient client = MongoClient.create();
+        MongoClient client = MongoClient.create("localhost:50051");
         MongoDatabase db = client.getDatabase("testdb");
         MongoCollection coll = db.getCollection("users");
         assertEquals("users", coll.getName());
@@ -37,7 +37,7 @@ public class MongoClientTest {
 
     @Test
     public void testDefaultAddress() {
-        MongoClient client = MongoClient.create();
+        MongoClient client = MongoClient.create("localhost:50051");
         assertNotNull(client);
     }
 

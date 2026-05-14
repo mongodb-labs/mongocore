@@ -11,7 +11,8 @@ from mongocore import MongoClient
 async with MongoClient() as client:
     users = client["myapp"]["users"]
     await users.insert_one({"name": "Alice", "age": 30})
-    docs = await users.find({"age": {"$gte": 25}})
+    async for doc in users.find({"age": {"$gte": 25}}):
+        print(doc["name"])
 
     # Change streams with auto-close
     async with users.watch() as stream:

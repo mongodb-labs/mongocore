@@ -76,3 +76,11 @@ export interface PipelineResult {
   error?: string;
   result?: any;
 }
+
+export interface FindStreamOptions extends FindOptions {
+  batchSize?: number;
+}
+
+export interface AggregateOptions {
+  batchSize?: number;
+}

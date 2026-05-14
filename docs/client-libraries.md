@@ -120,14 +120,14 @@ MongoClient client = MongoClient.create(); // localhost:50051
 |-----------|--------|------------|-----|------|
 | Get database | `client["db"]` | `client.db("db")` | `client.Database("db")` | `client.getDatabase("db")` |
 | Get collection | `db["coll"]` | `db.collection("coll")` | `db.Collection("coll")` | `db.getCollection("coll")` |
-| Find | `await coll.find(filter)` | `await coll.find(filter)` | `coll.Find(ctx, filter)` | `coll.find(filter)` |
+| Find | `coll.find(filter)` → Cursor | `coll.find(filter)` → Cursor | `coll.Find(ctx, filter, opts)` → Cursor | `coll.find(filter)` → MongoCursor |
 | Find one | `await coll.find_one(filter)` | `await coll.findOne(filter)` | `coll.FindOne(ctx, filter)` | `coll.findOne(filter)` |
 | Insert one | `await coll.insert_one(doc)` | `await coll.insertOne(doc)` | `coll.InsertOne(ctx, doc)` | `coll.insertOne(doc)` |
 | Insert many | `await coll.insert_many(docs)` | `await coll.insertMany(docs)` | `coll.InsertMany(ctx, docs)` | `coll.insertMany(docs)` |
 | Update one | `await coll.update_one(f, u)` | `await coll.updateOne(f, u)` | `coll.UpdateOne(ctx, f, u)` | `coll.updateOne(f, u)` |
 | Delete one | `await coll.delete_one(filter)` | `await coll.deleteOne(filter)` | `coll.DeleteOne(ctx, filter)` | `coll.deleteOne(filter)` |
 | Delete many | `await coll.delete_many(filter)` | `await coll.deleteMany(filter)` | `coll.DeleteMany(ctx, filter)` | `coll.deleteMany(filter)` |
-| Aggregate | `await coll.aggregate(pipeline)` | `await coll.aggregate(pipeline)` | `coll.Aggregate(ctx, pipeline)` | `coll.aggregate(pipeline)` |
+| Aggregate | `coll.aggregate(pipeline)` → Cursor | `coll.aggregate(pipeline)` → Cursor | `coll.Aggregate(ctx, pipeline, opts)` → Cursor | `coll.aggregate(pipeline)` → MongoCursor |
 | Search | `await coll.search(q, limit=N)` | `await coll.search(q, N)` | `coll.Search(ctx, q, N)` | `coll.search(q, N)` |
 | Watch | `async with coll.watch()` | `coll.watch()` | `coll.Watch(ctx, opts)` | `coll.watch()` |
 
@@ -141,6 +141,19 @@ All clients support real-time change streams with auto-close semantics. See the 
 | TypeScript | `await using stream = coll.watch()` | `ChangeStream` (AsyncDisposable) |
 | Go | `defer cs.Close()` | `*ChangeStream` (io.Closer) |
 | Java | `try (ChangeStream s = coll.watch())` | `ChangeStream` (AutoCloseable + Iterable) |
+
+## Streaming Cursors (Find / Aggregate)
+
+`find()` and `aggregate()` return streaming cursors backed by gRPC server-streaming RPCs. Documents are fetched in configurable batches (default 1000) with bounded memory usage.
+
+| Language | Iteration Pattern | Collect All | Type |
+|----------|------------------|-------------|------|
+| Python | `async for doc in coll.find(filter):` | `await coll.find(filter).to_list()` | `Cursor` (async iterator) |
+| TypeScript | `for await (const doc of coll.find(filter))` | `await coll.find(filter).toArray()` | `Cursor` (AsyncIterable) |
+| Go | `for cursor.Next(ctx) { doc := cursor.Doc() }` | `docs, err := cursor.All(ctx)` | `*Cursor` (io.Closer) |
+| Java | `for (Document doc : coll.find(filter))` | `coll.find(filter).toList()` | `MongoCursor` (AutoCloseable + Iterable) |
+
+Cursors are lazy — the gRPC stream is not opened until iteration begins. Breaking out of the loop early (or calling `close()`) cancels the underlying stream.
 
 ## BSON Encoding
 
@@ -225,6 +238,7 @@ clients/
 │   │   ├── client.py          # MongoClient
 │   │   ├── database.py        # Database handle
 │   │   ├── collection.py      # Collection with CRUD + ChangeStream (async with)
+│   │   ├── cursor.py          # Cursor (async iterator for find/aggregate)
 │   │   ├── sidecar.py         # SidecarManager
 │   │   └── generated/         # gRPC stubs (generated)
 │   └── tests/
@@ -233,6 +247,7 @@ clients/
 │       ├── client.ts          # MongoClient
 │       ├── database.ts        # Database
 │       ├── collection.ts      # Collection with CRUD + ChangeStream (AsyncDisposable)
+│       ├── cursor.ts          # Cursor (AsyncIterable for find/aggregate)
 │       ├── sidecar.ts         # SidecarManager
 │       └── types.ts           # TypeScript interfaces
 ├── go/
@@ -240,12 +255,14 @@ clients/
 │       ├── client.go          # Client
 │       ├── database.go        # Database
 │       ├── collection.go      # Collection + ChangeStream (io.Closer)
+│       ├── cursor.go          # Cursor (io.Closer for find/aggregate)
 │       └── sidecar.go         # SidecarManager
 └── java/
     └── src/main/java/com/mongocore/
         ├── MongoClient.java       # Client (AutoCloseable)
         ├── MongoDatabase.java     # Database handle
         ├── MongoCollection.java   # Collection with CRUD
+        ├── MongoCursor.java       # AutoCloseable + Iterable cursor
         ├── ChangeStream.java      # AutoCloseable change stream
         ├── ChangeEvent.java       # Change event POJO
         ├── FindOptions.java       # Builder-pattern options

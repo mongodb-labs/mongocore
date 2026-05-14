@@ -4,7 +4,6 @@ use std::sync::Mutex;
 use std::time::Duration;
 use std::collections::HashSet;
 
-use tokio::sync::Semaphore;
 
 use bson::Document;
 use dashmap::DashMap;
@@ -43,7 +42,6 @@ pub struct MongoCoreService {
     client: Option<mongodb::Client>,
     stream_idle_timeout: Duration,
     pipeline_timeout: Duration,
-    pipeline_semaphore: Arc<Semaphore>,
     appended_languages: Mutex<HashSet<String>>,
 }
 
@@ -71,7 +69,6 @@ impl MongoCoreService {
             client: None,
             stream_idle_timeout,
             pipeline_timeout: Duration::from_secs(crate::defaults::DEFAULT_PIPELINE_TIMEOUT_SECS),
-            pipeline_semaphore: Arc::new(Semaphore::new(crate::defaults::DEFAULT_PIPELINE_MAX_CONCURRENCY)),
             appended_languages: Mutex::new(HashSet::new()),
         }
     }
@@ -101,15 +98,13 @@ impl MongoCoreService {
             client: None,
             stream_idle_timeout,
             pipeline_timeout: Duration::from_secs(crate::defaults::DEFAULT_PIPELINE_TIMEOUT_SECS),
-            pipeline_semaphore: Arc::new(Semaphore::new(crate::defaults::DEFAULT_PIPELINE_MAX_CONCURRENCY)),
             appended_languages: Mutex::new(HashSet::new()),
         }
     }
 
-    /// Configure pipeline timeout and concurrency.
-    pub fn with_pipeline_config(mut self, timeout: Duration, max_concurrency: usize) -> Self {
+    /// Configure pipeline timeout.
+    pub fn with_pipeline_config(mut self, timeout: Duration, _max_concurrency: usize) -> Self {
         self.pipeline_timeout = timeout;
-        self.pipeline_semaphore = Arc::new(Semaphore::new(max_concurrency));
         self
     }
 
@@ -1442,7 +1437,9 @@ impl MongoCore for MongoCoreService {
             )));
         }
 
-        let semaphore = self.pipeline_semaphore.clone();
+        let semaphore = Arc::new(tokio::sync::Semaphore::new(
+            crate::defaults::DEFAULT_PIPELINE_MAX_CONCURRENCY,
+        ));
         let futures_vec: Vec<_> = req.operations.into_iter().enumerate().map(|(i, op)| {
             let sem = semaphore.clone();
             let svc = self;

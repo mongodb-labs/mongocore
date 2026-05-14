@@ -1,4 +1,5 @@
 from mongocore.v1 import types_pb2 as _types_pb2
+from mongocore.v1 import ingestion_pb2 as _ingestion_pb2
 from google.protobuf.internal import containers as _containers
 from google.protobuf.internal import enum_type_wrapper as _enum_type_wrapper
 from google.protobuf import descriptor as _descriptor
@@ -364,6 +365,36 @@ class WatchEvent(_message.Message):
     document_key: _types_pb2.Document
     def __init__(self, operation_type: _Optional[_Union[WatchEvent.OperationType, str]] = ..., database: _Optional[str] = ..., collection: _Optional[str] = ..., document: _Optional[_Union[_types_pb2.Document, _Mapping]] = ..., update_description: _Optional[_Union[_types_pb2.Document, _Mapping]] = ..., document_key: _Optional[_Union[_types_pb2.Document, _Mapping]] = ...) -> None: ...
 
+class FindStreamRequest(_message.Message):
+    __slots__ = ("database", "collection", "filter", "options", "transaction_id", "batch_size")
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    FILTER_FIELD_NUMBER: _ClassVar[int]
+    OPTIONS_FIELD_NUMBER: _ClassVar[int]
+    TRANSACTION_ID_FIELD_NUMBER: _ClassVar[int]
+    BATCH_SIZE_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    filter: _types_pb2.Filter
+    options: _types_pb2.FindOptions
+    transaction_id: str
+    batch_size: int
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., filter: _Optional[_Union[_types_pb2.Filter, _Mapping]] = ..., options: _Optional[_Union[_types_pb2.FindOptions, _Mapping]] = ..., transaction_id: _Optional[str] = ..., batch_size: _Optional[int] = ...) -> None: ...
+
+class AggregateStreamRequest(_message.Message):
+    __slots__ = ("database", "collection", "pipeline", "transaction_id", "batch_size")
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    PIPELINE_FIELD_NUMBER: _ClassVar[int]
+    TRANSACTION_ID_FIELD_NUMBER: _ClassVar[int]
+    BATCH_SIZE_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    pipeline: _types_pb2.Pipeline
+    transaction_id: str
+    batch_size: int
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., pipeline: _Optional[_Union[_types_pb2.Pipeline, _Mapping]] = ..., transaction_id: _Optional[str] = ..., batch_size: _Optional[int] = ...) -> None: ...
+
 class RunCommandRequest(_message.Message):
     __slots__ = ("database", "command", "allow_all")
     DATABASE_FIELD_NUMBER: _ClassVar[int]
@@ -421,3 +452,119 @@ class CollectionCount(_message.Message):
     collection: str
     count: int
     def __init__(self, collection: _Optional[str] = ..., count: _Optional[int] = ...) -> None: ...
+
+class PipelineRequest(_message.Message):
+    __slots__ = ("operations",)
+    OPERATIONS_FIELD_NUMBER: _ClassVar[int]
+    operations: _containers.RepeatedCompositeFieldContainer[PipelineOperation]
+    def __init__(self, operations: _Optional[_Iterable[_Union[PipelineOperation, _Mapping]]] = ...) -> None: ...
+
+class PipelineOperation(_message.Message):
+    __slots__ = ("find", "find_one", "insert", "insert_many", "update", "update_many", "delete", "delete_many", "aggregate", "find_and_modify", "run_command", "search", "create_collection", "create_index", "list_databases", "list_collections", "begin_transaction", "commit_transaction", "abort_transaction", "get_analytics")
+    FIND_FIELD_NUMBER: _ClassVar[int]
+    FIND_ONE_FIELD_NUMBER: _ClassVar[int]
+    INSERT_FIELD_NUMBER: _ClassVar[int]
+    INSERT_MANY_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_MANY_FIELD_NUMBER: _ClassVar[int]
+    DELETE_FIELD_NUMBER: _ClassVar[int]
+    DELETE_MANY_FIELD_NUMBER: _ClassVar[int]
+    AGGREGATE_FIELD_NUMBER: _ClassVar[int]
+    FIND_AND_MODIFY_FIELD_NUMBER: _ClassVar[int]
+    RUN_COMMAND_FIELD_NUMBER: _ClassVar[int]
+    SEARCH_FIELD_NUMBER: _ClassVar[int]
+    CREATE_COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    CREATE_INDEX_FIELD_NUMBER: _ClassVar[int]
+    LIST_DATABASES_FIELD_NUMBER: _ClassVar[int]
+    LIST_COLLECTIONS_FIELD_NUMBER: _ClassVar[int]
+    BEGIN_TRANSACTION_FIELD_NUMBER: _ClassVar[int]
+    COMMIT_TRANSACTION_FIELD_NUMBER: _ClassVar[int]
+    ABORT_TRANSACTION_FIELD_NUMBER: _ClassVar[int]
+    GET_ANALYTICS_FIELD_NUMBER: _ClassVar[int]
+    find: FindRequest
+    find_one: FindOneRequest
+    insert: InsertRequest
+    insert_many: InsertManyRequest
+    update: UpdateRequest
+    update_many: UpdateManyRequest
+    delete: DeleteRequest
+    delete_many: DeleteManyRequest
+    aggregate: AggregateRequest
+    find_and_modify: FindAndModifyRequest
+    run_command: RunCommandRequest
+    search: SearchRequest
+    create_collection: CreateCollectionRequest
+    create_index: CreateIndexRequest
+    list_databases: ListDatabasesRequest
+    list_collections: ListCollectionsRequest
+    begin_transaction: BeginTransactionRequest
+    commit_transaction: CommitTransactionRequest
+    abort_transaction: AbortTransactionRequest
+    get_analytics: GetAnalyticsRequest
+    def __init__(self, find: _Optional[_Union[FindRequest, _Mapping]] = ..., find_one: _Optional[_Union[FindOneRequest, _Mapping]] = ..., insert: _Optional[_Union[InsertRequest, _Mapping]] = ..., insert_many: _Optional[_Union[InsertManyRequest, _Mapping]] = ..., update: _Optional[_Union[UpdateRequest, _Mapping]] = ..., update_many: _Optional[_Union[UpdateManyRequest, _Mapping]] = ..., delete: _Optional[_Union[DeleteRequest, _Mapping]] = ..., delete_many: _Optional[_Union[DeleteManyRequest, _Mapping]] = ..., aggregate: _Optional[_Union[AggregateRequest, _Mapping]] = ..., find_and_modify: _Optional[_Union[FindAndModifyRequest, _Mapping]] = ..., run_command: _Optional[_Union[RunCommandRequest, _Mapping]] = ..., search: _Optional[_Union[SearchRequest, _Mapping]] = ..., create_collection: _Optional[_Union[CreateCollectionRequest, _Mapping]] = ..., create_index: _Optional[_Union[CreateIndexRequest, _Mapping]] = ..., list_databases: _Optional[_Union[ListDatabasesRequest, _Mapping]] = ..., list_collections: _Optional[_Union[ListCollectionsRequest, _Mapping]] = ..., begin_transaction: _Optional[_Union[BeginTransactionRequest, _Mapping]] = ..., commit_transaction: _Optional[_Union[CommitTransactionRequest, _Mapping]] = ..., abort_transaction: _Optional[_Union[AbortTransactionRequest, _Mapping]] = ..., get_analytics: _Optional[_Union[GetAnalyticsRequest, _Mapping]] = ...) -> None: ...
+
+class PipelineResponse(_message.Message):
+    __slots__ = ("results", "succeeded", "failed")
+    RESULTS_FIELD_NUMBER: _ClassVar[int]
+    SUCCEEDED_FIELD_NUMBER: _ClassVar[int]
+    FAILED_FIELD_NUMBER: _ClassVar[int]
+    results: _containers.RepeatedCompositeFieldContainer[PipelineResult]
+    succeeded: int
+    failed: int
+    def __init__(self, results: _Optional[_Iterable[_Union[PipelineResult, _Mapping]]] = ..., succeeded: _Optional[int] = ..., failed: _Optional[int] = ...) -> None: ...
+
+class PipelineResult(_message.Message):
+    __slots__ = ("index", "find", "find_one", "insert", "insert_many", "update", "update_many", "delete", "delete_many", "aggregate", "find_and_modify", "run_command", "search", "create_collection", "create_index", "list_databases", "list_collections", "begin_transaction", "commit_transaction", "abort_transaction", "get_analytics", "error")
+    INDEX_FIELD_NUMBER: _ClassVar[int]
+    FIND_FIELD_NUMBER: _ClassVar[int]
+    FIND_ONE_FIELD_NUMBER: _ClassVar[int]
+    INSERT_FIELD_NUMBER: _ClassVar[int]
+    INSERT_MANY_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_MANY_FIELD_NUMBER: _ClassVar[int]
+    DELETE_FIELD_NUMBER: _ClassVar[int]
+    DELETE_MANY_FIELD_NUMBER: _ClassVar[int]
+    AGGREGATE_FIELD_NUMBER: _ClassVar[int]
+    FIND_AND_MODIFY_FIELD_NUMBER: _ClassVar[int]
+    RUN_COMMAND_FIELD_NUMBER: _ClassVar[int]
+    SEARCH_FIELD_NUMBER: _ClassVar[int]
+    CREATE_COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    CREATE_INDEX_FIELD_NUMBER: _ClassVar[int]
+    LIST_DATABASES_FIELD_NUMBER: _ClassVar[int]
+    LIST_COLLECTIONS_FIELD_NUMBER: _ClassVar[int]
+    BEGIN_TRANSACTION_FIELD_NUMBER: _ClassVar[int]
+    COMMIT_TRANSACTION_FIELD_NUMBER: _ClassVar[int]
+    ABORT_TRANSACTION_FIELD_NUMBER: _ClassVar[int]
+    GET_ANALYTICS_FIELD_NUMBER: _ClassVar[int]
+    ERROR_FIELD_NUMBER: _ClassVar[int]
+    index: int
+    find: FindResponse
+    find_one: FindOneResponse
+    insert: InsertResponse
+    insert_many: InsertManyResponse
+    update: UpdateResponse
+    update_many: UpdateManyResponse
+    delete: DeleteResponse
+    delete_many: DeleteManyResponse
+    aggregate: AggregateResponse
+    find_and_modify: FindAndModifyResponse
+    run_command: RunCommandResponse
+    search: SearchResponse
+    create_collection: CreateCollectionResponse
+    create_index: CreateIndexResponse
+    list_databases: ListDatabasesResponse
+    list_collections: ListCollectionsResponse
+    begin_transaction: BeginTransactionResponse
+    commit_transaction: CommitTransactionResponse
+    abort_transaction: AbortTransactionResponse
+    get_analytics: GetAnalyticsResponse
+    error: PipelineError
+    def __init__(self, index: _Optional[int] = ..., find: _Optional[_Union[FindResponse, _Mapping]] = ..., find_one: _Optional[_Union[FindOneResponse, _Mapping]] = ..., insert: _Optional[_Union[InsertResponse, _Mapping]] = ..., insert_many: _Optional[_Union[InsertManyResponse, _Mapping]] = ..., update: _Optional[_Union[UpdateResponse, _Mapping]] = ..., update_many: _Optional[_Union[UpdateManyResponse, _Mapping]] = ..., delete: _Optional[_Union[DeleteResponse, _Mapping]] = ..., delete_many: _Optional[_Union[DeleteManyResponse, _Mapping]] = ..., aggregate: _Optional[_Union[AggregateResponse, _Mapping]] = ..., find_and_modify: _Optional[_Union[FindAndModifyResponse, _Mapping]] = ..., run_command: _Optional[_Union[RunCommandResponse, _Mapping]] = ..., search: _Optional[_Union[SearchResponse, _Mapping]] = ..., create_collection: _Optional[_Union[CreateCollectionResponse, _Mapping]] = ..., create_index: _Optional[_Union[CreateIndexResponse, _Mapping]] = ..., list_databases: _Optional[_Union[ListDatabasesResponse, _Mapping]] = ..., list_collections: _Optional[_Union[ListCollectionsResponse, _Mapping]] = ..., begin_transaction: _Optional[_Union[BeginTransactionResponse, _Mapping]] = ..., commit_transaction: _Optional[_Union[CommitTransactionResponse, _Mapping]] = ..., abort_transaction: _Optional[_Union[AbortTransactionResponse, _Mapping]] = ..., get_analytics: _Optional[_Union[GetAnalyticsResponse, _Mapping]] = ..., error: _Optional[_Union[PipelineError, _Mapping]] = ...) -> None: ...
+
+class PipelineError(_message.Message):
+    __slots__ = ("code", "message")
+    CODE_FIELD_NUMBER: _ClassVar[int]
+    MESSAGE_FIELD_NUMBER: _ClassVar[int]
+    code: int
+    message: str
+    def __init__(self, code: _Optional[int] = ..., message: _Optional[str] = ...) -> None: ...

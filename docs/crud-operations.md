@@ -43,10 +43,12 @@ async def main():
             {"name": "Charlie", "age": 35},
         ])
 
-        # Find
-        active_users = await users.find({"age": {"$gte": 25}}, limit=10)
-        for user in active_users:
+        # Find (streaming cursor)
+        async for user in users.find({"age": {"$gte": 25}}, limit=10):
             print(user["name"])
+
+        # Or collect all at once
+        all_users = await users.find({"age": {"$gte": 25}}).to_list()
 
         # Find one
         alice = await users.find_one({"name": "Alice"})
@@ -99,9 +101,13 @@ async function main() {
   ]);
   console.log(`Inserted ${bulk.insertedCount} documents`);
 
-  // Find
-  const docs = await users.find({ age: { $gte: 25 } }, { limit: 10 });
-  docs.forEach(doc => console.log(doc.name));
+  // Find (streaming cursor)
+  for await (const doc of users.find({ age: { $gte: 25 } }, { limit: 10 })) {
+    console.log(doc.name);
+  }
+
+  // Or collect all at once
+  const docs = await users.find({ age: { $gte: 25 } }).toArray();
 
   // Find one
   const alice = await users.findOne({ name: 'Alice' });
@@ -171,16 +177,20 @@ func main() {
         {{Key: "name", Value: "Charlie"}, {Key: "age", Value: 35}},
     })
 
-    // Find
-    docs, err := users.Find(ctx, bson.D{
+    // Find (streaming cursor)
+    cursor := users.Find(ctx, bson.D{
         {Key: "age", Value: bson.D{{Key: "$gte", Value: 25}}},
     }, &mongocore.FindOptions{Limit: 10})
-    if err != nil {
-        log.Fatal(err)
+    defer cursor.Close()
+    for cursor.Next(ctx) {
+        fmt.Println(cursor.Doc())
     }
-    for _, doc := range docs {
-        fmt.Println(doc)
+    if cursor.Err() != nil {
+        log.Fatal(cursor.Err())
     }
+
+    // Or collect all at once
+    docs, err := users.Find(ctx, bson.D{}, nil).All(ctx)
 
     // Find one
     alice, err := users.FindOne(ctx, bson.D{{Key: "name", Value: "Alice"}})
@@ -235,11 +245,17 @@ public class CrudExample {
             );
             users.insertMany(docs);
 
-            // Find
+            // Find (streaming cursor)
             Document filter = new Document("age",
                 new Document("$gte", 25));
-            List<Document> results = users.find(filter,
-                new FindOptions().limit(10));
+            try (MongoCursor cursor = users.find(filter, new FindOptions().limit(10))) {
+                for (Document doc : cursor) {
+                    System.out.println(doc);
+                }
+            }
+
+            // Or collect all at once
+            List<Document> results = users.find(filter).toList();
 
             // Find one
             Document alice = users.findOne(

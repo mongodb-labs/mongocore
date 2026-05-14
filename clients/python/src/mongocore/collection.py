@@ -35,10 +35,10 @@ class Collection:
         from .generated import types_pb2
         return types_pb2.Document(data=self._encode_doc(doc))
 
-    async def find(self, filter: Optional[dict] = None, *, limit: int = 0, skip: int = 0) -> list[dict]:
-        """Find documents matching the filter."""
-        from .generated import mongocore_pb2, types_pb2
-        stub = self._get_stub()
+    def find(self, filter: Optional[dict] = None, *, limit: int = 0, skip: int = 0, batch_size: int = 1000, transaction_id: Optional[str] = None) -> "Cursor":
+        """Find documents matching the filter. Returns an async cursor."""
+        from .generated.mongocore.v1 import mongocore_pb2, types_pb2
+        from .cursor import Cursor
 
         options = types_pb2.FindOptions()
         if limit:
@@ -46,13 +46,18 @@ class Collection:
         if skip:
             options.skip = skip
 
-        response = await stub.Find(mongocore_pb2.FindRequest(
+        request = mongocore_pb2.FindStreamRequest(
             database=self._database,
             collection=self._name,
             filter=self._make_filter(filter),
             options=options,
-        ), metadata=_CLIENT_METADATA)
-        return [self._decode_doc(doc.data) for doc in response.documents]
+            batch_size=batch_size,
+        )
+        if transaction_id:
+            request.transaction_id = transaction_id
+
+        stub = self._get_stub()
+        return Cursor(stub, request, "FindStream", self._decode_doc)
 
     async def find_one(self, filter: Optional[dict] = None) -> Optional[dict]:
         """Find a single document."""
@@ -135,19 +140,24 @@ class Collection:
         ), metadata=_CLIENT_METADATA)
         return response.deleted_count
 
-    async def aggregate(self, pipeline: list[dict]) -> list[dict]:
-        """Run an aggregation pipeline."""
-        from .generated import mongocore_pb2, types_pb2
-        stub = self._get_stub()
+    def aggregate(self, pipeline: list[dict], *, batch_size: int = 1000, transaction_id: Optional[str] = None) -> "Cursor":
+        """Run an aggregation pipeline. Returns an async cursor."""
+        from .generated.mongocore.v1 import mongocore_pb2, types_pb2
+        from .cursor import Cursor
 
         stages = [self._encode_doc(stage) for stage in pipeline]
 
-        response = await stub.Aggregate(mongocore_pb2.AggregateRequest(
+        request = mongocore_pb2.AggregateStreamRequest(
             database=self._database,
             collection=self._name,
             pipeline=types_pb2.Pipeline(stages=stages),
-        ), metadata=_CLIENT_METADATA)
-        return [self._decode_doc(doc.data) for doc in response.documents]
+            batch_size=batch_size,
+        )
+        if transaction_id:
+            request.transaction_id = transaction_id
+
+        stub = self._get_stub()
+        return Cursor(stub, request, "AggregateStream", self._decode_doc)
 
     async def search(self, query: str, *, limit: int = 10) -> dict:
         """Search documents using the best available method (vector → fulltext → filter)."""

@@ -5,6 +5,7 @@ import warnings
 
 from . import ingestion_pb2 as mongocore_dot_v1_dot_ingestion__pb2
 from . import mongocore_pb2 as mongocore_dot_v1_dot_mongocore__pb2
+from . import types_pb2 as mongocore_dot_v1_dot_types__pb2
 
 GRPC_GENERATED_VERSION = '1.80.0'
 GRPC_VERSION = grpc.__version__
@@ -130,6 +131,26 @@ class MongoCoreStub(object):
                 request_serializer=mongocore_dot_v1_dot_mongocore__pb2.WatchRequest.SerializeToString,
                 response_deserializer=mongocore_dot_v1_dot_mongocore__pb2.WatchEvent.FromString,
                 _registered_method=True)
+        self.FindStream = channel.unary_stream(
+                '/mongocore.v1.MongoCore/FindStream',
+                request_serializer=mongocore_dot_v1_dot_mongocore__pb2.FindStreamRequest.SerializeToString,
+                response_deserializer=mongocore_dot_v1_dot_types__pb2.DocumentBatch.FromString,
+                _registered_method=True)
+        self.AggregateStream = channel.unary_stream(
+                '/mongocore.v1.MongoCore/AggregateStream',
+                request_serializer=mongocore_dot_v1_dot_mongocore__pb2.AggregateStreamRequest.SerializeToString,
+                response_deserializer=mongocore_dot_v1_dot_types__pb2.DocumentBatch.FromString,
+                _registered_method=True)
+        self.InsertManyStream = channel.stream_unary(
+                '/mongocore.v1.MongoCore/InsertManyStream',
+                request_serializer=mongocore_dot_v1_dot_types__pb2.InsertBatch.SerializeToString,
+                response_deserializer=mongocore_dot_v1_dot_types__pb2.InsertManyStreamResponse.FromString,
+                _registered_method=True)
+        self.InsertManyBidi = channel.stream_stream(
+                '/mongocore.v1.MongoCore/InsertManyBidi',
+                request_serializer=mongocore_dot_v1_dot_types__pb2.InsertBatch.SerializeToString,
+                response_deserializer=mongocore_dot_v1_dot_types__pb2.InsertBatchAck.FromString,
+                _registered_method=True)
         self.RunCommand = channel.unary_unary(
                 '/mongocore.v1.MongoCore/RunCommand',
                 request_serializer=mongocore_dot_v1_dot_mongocore__pb2.RunCommandRequest.SerializeToString,
@@ -169,6 +190,11 @@ class MongoCoreStub(object):
                 '/mongocore.v1.MongoCore/StopWatch',
                 request_serializer=mongocore_dot_v1_dot_ingestion__pb2.StopWatchRequest.SerializeToString,
                 response_deserializer=mongocore_dot_v1_dot_ingestion__pb2.StopWatchResponse.FromString,
+                _registered_method=True)
+        self.Pipeline = channel.unary_unary(
+                '/mongocore.v1.MongoCore/Pipeline',
+                request_serializer=mongocore_dot_v1_dot_mongocore__pb2.PipelineRequest.SerializeToString,
+                response_deserializer=mongocore_dot_v1_dot_mongocore__pb2.PipelineResponse.FromString,
                 _registered_method=True)
 
 
@@ -296,6 +322,31 @@ class MongoCoreServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def FindStream(self, request, context):
+        """Streaming bulk operations
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def AggregateStream(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def InsertManyStream(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def InsertManyBidi(self, request_iterator, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def RunCommand(self, request, context):
         """Raw Passthrough
         """
@@ -343,6 +394,13 @@ class MongoCoreServicer(object):
 
     def StopWatch(self, request, context):
         """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Pipeline(self, request, context):
+        """Pipeline
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -445,6 +503,26 @@ def add_MongoCoreServicer_to_server(servicer, server):
                     request_deserializer=mongocore_dot_v1_dot_mongocore__pb2.WatchRequest.FromString,
                     response_serializer=mongocore_dot_v1_dot_mongocore__pb2.WatchEvent.SerializeToString,
             ),
+            'FindStream': grpc.unary_stream_rpc_method_handler(
+                    servicer.FindStream,
+                    request_deserializer=mongocore_dot_v1_dot_mongocore__pb2.FindStreamRequest.FromString,
+                    response_serializer=mongocore_dot_v1_dot_types__pb2.DocumentBatch.SerializeToString,
+            ),
+            'AggregateStream': grpc.unary_stream_rpc_method_handler(
+                    servicer.AggregateStream,
+                    request_deserializer=mongocore_dot_v1_dot_mongocore__pb2.AggregateStreamRequest.FromString,
+                    response_serializer=mongocore_dot_v1_dot_types__pb2.DocumentBatch.SerializeToString,
+            ),
+            'InsertManyStream': grpc.stream_unary_rpc_method_handler(
+                    servicer.InsertManyStream,
+                    request_deserializer=mongocore_dot_v1_dot_types__pb2.InsertBatch.FromString,
+                    response_serializer=mongocore_dot_v1_dot_types__pb2.InsertManyStreamResponse.SerializeToString,
+            ),
+            'InsertManyBidi': grpc.stream_stream_rpc_method_handler(
+                    servicer.InsertManyBidi,
+                    request_deserializer=mongocore_dot_v1_dot_types__pb2.InsertBatch.FromString,
+                    response_serializer=mongocore_dot_v1_dot_types__pb2.InsertBatchAck.SerializeToString,
+            ),
             'RunCommand': grpc.unary_unary_rpc_method_handler(
                     servicer.RunCommand,
                     request_deserializer=mongocore_dot_v1_dot_mongocore__pb2.RunCommandRequest.FromString,
@@ -484,6 +562,11 @@ def add_MongoCoreServicer_to_server(servicer, server):
                     servicer.StopWatch,
                     request_deserializer=mongocore_dot_v1_dot_ingestion__pb2.StopWatchRequest.FromString,
                     response_serializer=mongocore_dot_v1_dot_ingestion__pb2.StopWatchResponse.SerializeToString,
+            ),
+            'Pipeline': grpc.unary_unary_rpc_method_handler(
+                    servicer.Pipeline,
+                    request_deserializer=mongocore_dot_v1_dot_mongocore__pb2.PipelineRequest.FromString,
+                    response_serializer=mongocore_dot_v1_dot_mongocore__pb2.PipelineResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -1010,6 +1093,114 @@ class MongoCore(object):
             _registered_method=True)
 
     @staticmethod
+    def FindStream(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            '/mongocore.v1.MongoCore/FindStream',
+            mongocore_dot_v1_dot_mongocore__pb2.FindStreamRequest.SerializeToString,
+            mongocore_dot_v1_dot_types__pb2.DocumentBatch.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def AggregateStream(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            '/mongocore.v1.MongoCore/AggregateStream',
+            mongocore_dot_v1_dot_mongocore__pb2.AggregateStreamRequest.SerializeToString,
+            mongocore_dot_v1_dot_types__pb2.DocumentBatch.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def InsertManyStream(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_unary(
+            request_iterator,
+            target,
+            '/mongocore.v1.MongoCore/InsertManyStream',
+            mongocore_dot_v1_dot_types__pb2.InsertBatch.SerializeToString,
+            mongocore_dot_v1_dot_types__pb2.InsertManyStreamResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def InsertManyBidi(request_iterator,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.stream_stream(
+            request_iterator,
+            target,
+            '/mongocore.v1.MongoCore/InsertManyBidi',
+            mongocore_dot_v1_dot_types__pb2.InsertBatch.SerializeToString,
+            mongocore_dot_v1_dot_types__pb2.InsertBatchAck.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
     def RunCommand(request,
             target,
             options=(),
@@ -1215,6 +1406,33 @@ class MongoCore(object):
             '/mongocore.v1.MongoCore/StopWatch',
             mongocore_dot_v1_dot_ingestion__pb2.StopWatchRequest.SerializeToString,
             mongocore_dot_v1_dot_ingestion__pb2.StopWatchResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Pipeline(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mongocore.v1.MongoCore/Pipeline',
+            mongocore_dot_v1_dot_mongocore__pb2.PipelineRequest.SerializeToString,
+            mongocore_dot_v1_dot_mongocore__pb2.PipelineResponse.FromString,
             options,
             channel_credentials,
             insecure,
