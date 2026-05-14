@@ -122,6 +122,52 @@ docker-build:
 docker-run:
     docker run --rm -p 50051:50051 -p 3000:3000 mongocore:dev
 
+# Regenerate proto stubs for all client languages (requires protoc + language plugins)
+proto-gen:
+    #!/usr/bin/env bash
+    set -e
+    echo "=== Rust (via cargo build) ==="
+    cargo build
+    echo ""
+    echo "=== Python ==="
+    cd clients/python && python3 -m grpc_tools.protoc -I../../proto \
+      --python_out=src/mongocore/generated --grpc_python_out=src/mongocore/generated \
+      --pyi_out=src/mongocore/generated \
+      ../../proto/mongocore/v1/mongocore.proto ../../proto/mongocore/v1/types.proto \
+      ../../proto/mongocore/v1/ingestion.proto
+    cd src/mongocore/generated/mongocore/v1 && sed -i '' 's/from mongocore\.v1 import/from . import/g' *.py
+    echo "Python stubs generated (imports fixed)"
+    cd ../../../../..
+    echo ""
+    echo "=== TypeScript ==="
+    cd clients/typescript && bash generate_stubs.sh
+    cd ../..
+    echo ""
+    echo "=== Go ==="
+    cd clients/go && bash generate_stubs.sh
+    cd ../..
+    echo ""
+    echo "=== Java ==="
+    cd clients/java && bash generate_stubs.sh
+    cd ../..
+    echo ""
+    echo "All proto stubs regenerated."
+
+# Regenerate Python proto stubs only
+proto-gen-python:
+    #!/usr/bin/env bash
+    set -e
+    cd clients/python
+    python3 -m grpc_tools.protoc -I../../proto \
+      --python_out=src/mongocore/generated --grpc_python_out=src/mongocore/generated \
+      --pyi_out=src/mongocore/generated \
+      ../../proto/mongocore/v1/mongocore.proto ../../proto/mongocore/v1/types.proto \
+      ../../proto/mongocore/v1/ingestion.proto
+    # Fix absolute imports to relative (grpc_tools generates absolute but package needs relative)
+    cd src/mongocore/generated/mongocore/v1
+    sed -i '' 's/from mongocore\.v1 import/from . import/g' *.py
+    echo "Python stubs generated (imports fixed)"
+
 # Build release binary
 release-local:
     cargo build --release

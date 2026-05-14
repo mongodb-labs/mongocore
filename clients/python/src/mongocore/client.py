@@ -305,6 +305,98 @@ class MongoClient:
     async def __aexit__(self, *args):
         await self.close()
 
+    def _build_transaction_step(self, step, database, collection=None):
+        """Convert a TransactionStep to a proto TransactionStep."""
+        from bson import encode
+        from .generated import mongocore_pb2, types_pb2
+
+        coll = collection or step.collection or ""
+        op = step.operation
+        op_type = op.get("op", "")
+
+        proto_step = mongocore_pb2.TransactionStep(
+            name=step.name,
+            database=database,
+            collection=coll,
+        )
+
+        if op_type == "find_one":
+            filter_data = encode(op.get("filter", {})) if op.get("filter") else b""
+            proto_step.find_one.CopyFrom(mongocore_pb2.FindOneRequest(
+                database="", collection="",
+                filter=types_pb2.Filter(data=filter_data),
+            ))
+        elif op_type == "find":
+            filter_data = encode(op.get("filter", {})) if op.get("filter") else b""
+            options = types_pb2.FindOptions()
+            if op.get("limit"):
+                options.limit = op["limit"]
+            proto_step.find.CopyFrom(mongocore_pb2.FindRequest(
+                database="", collection="",
+                filter=types_pb2.Filter(data=filter_data),
+                options=options,
+            ))
+        elif op_type == "insert":
+            doc_data = encode(op["document"])
+            proto_step.insert.CopyFrom(mongocore_pb2.InsertRequest(
+                database="", collection="",
+                document=types_pb2.Document(data=doc_data),
+            ))
+        elif op_type == "insert_many":
+            docs = [types_pb2.Document(data=encode(d)) for d in op["documents"]]
+            proto_step.insert_many.CopyFrom(mongocore_pb2.InsertManyRequest(
+                database="", collection="",
+                documents=docs,
+            ))
+        elif op_type == "update":
+            filter_data = encode(op["filter"])
+            update_data = encode(op["update"])
+            proto_step.update.CopyFrom(mongocore_pb2.UpdateRequest(
+                database="", collection="",
+                filter=types_pb2.Filter(data=filter_data),
+                update=types_pb2.Document(data=update_data),
+            ))
+        elif op_type == "update_many":
+            filter_data = encode(op["filter"])
+            update_data = encode(op["update"])
+            proto_step.update_many.CopyFrom(mongocore_pb2.UpdateManyRequest(
+                database="", collection="",
+                filter=types_pb2.Filter(data=filter_data),
+                update=types_pb2.Document(data=update_data),
+            ))
+        elif op_type == "delete":
+            filter_data = encode(op["filter"])
+            proto_step.delete.CopyFrom(mongocore_pb2.DeleteRequest(
+                database="", collection="",
+                filter=types_pb2.Filter(data=filter_data),
+            ))
+        elif op_type == "delete_many":
+            filter_data = encode(op["filter"])
+            proto_step.delete_many.CopyFrom(mongocore_pb2.DeleteManyRequest(
+                database="", collection="",
+                filter=types_pb2.Filter(data=filter_data),
+            ))
+        elif op_type == "find_and_modify":
+            filter_data = encode(op["filter"])
+            update_data = encode(op["update"])
+            options = types_pb2.FindAndModifyOptions(
+                return_document=types_pb2.FindAndModifyOptions.AFTER if op.get("return_new", True) else types_pb2.FindAndModifyOptions.BEFORE,
+            )
+            proto_step.find_and_modify.CopyFrom(mongocore_pb2.FindAndModifyRequest(
+                database="", collection="",
+                filter=types_pb2.Filter(data=filter_data),
+                update=types_pb2.Document(data=update_data),
+                options=options,
+            ))
+        elif op_type == "aggregate":
+            stages = [encode(stage) for stage in op["pipeline"]]
+            proto_step.aggregate.CopyFrom(mongocore_pb2.AggregateRequest(
+                database="", collection="",
+                pipeline=types_pb2.Pipeline(stages=stages),
+            ))
+
+        return proto_step
+
     def _build_pipeline_op(self, op):
         """Convert an operation dataclass to a proto PipelineOperation."""
         from bson import encode

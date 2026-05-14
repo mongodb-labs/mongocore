@@ -33,6 +33,7 @@ impl SafetyConfig {
                 "create_collection",
                 "create_index",
                 "run_command",
+                "transaction_pipeline",
             ];
             if WRITE_TOOLS.contains(&tool_name) {
                 return Err(format!(

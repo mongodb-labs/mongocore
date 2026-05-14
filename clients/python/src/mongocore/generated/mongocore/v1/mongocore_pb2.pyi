@@ -568,3 +568,109 @@ class PipelineError(_message.Message):
     code: int
     message: str
     def __init__(self, code: _Optional[int] = ..., message: _Optional[str] = ...) -> None: ...
+
+class TransactionStep(_message.Message):
+    __slots__ = ("name", "database", "collection", "find_one", "find", "insert", "insert_many", "update", "update_many", "delete", "delete_many", "find_and_modify", "aggregate")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    FIND_ONE_FIELD_NUMBER: _ClassVar[int]
+    FIND_FIELD_NUMBER: _ClassVar[int]
+    INSERT_FIELD_NUMBER: _ClassVar[int]
+    INSERT_MANY_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_MANY_FIELD_NUMBER: _ClassVar[int]
+    DELETE_FIELD_NUMBER: _ClassVar[int]
+    DELETE_MANY_FIELD_NUMBER: _ClassVar[int]
+    FIND_AND_MODIFY_FIELD_NUMBER: _ClassVar[int]
+    AGGREGATE_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    database: str
+    collection: str
+    find_one: FindOneRequest
+    find: FindRequest
+    insert: InsertRequest
+    insert_many: InsertManyRequest
+    update: UpdateRequest
+    update_many: UpdateManyRequest
+    delete: DeleteRequest
+    delete_many: DeleteManyRequest
+    find_and_modify: FindAndModifyRequest
+    aggregate: AggregateRequest
+    def __init__(self, name: _Optional[str] = ..., database: _Optional[str] = ..., collection: _Optional[str] = ..., find_one: _Optional[_Union[FindOneRequest, _Mapping]] = ..., find: _Optional[_Union[FindRequest, _Mapping]] = ..., insert: _Optional[_Union[InsertRequest, _Mapping]] = ..., insert_many: _Optional[_Union[InsertManyRequest, _Mapping]] = ..., update: _Optional[_Union[UpdateRequest, _Mapping]] = ..., update_many: _Optional[_Union[UpdateManyRequest, _Mapping]] = ..., delete: _Optional[_Union[DeleteRequest, _Mapping]] = ..., delete_many: _Optional[_Union[DeleteManyRequest, _Mapping]] = ..., find_and_modify: _Optional[_Union[FindAndModifyRequest, _Mapping]] = ..., aggregate: _Optional[_Union[AggregateRequest, _Mapping]] = ...) -> None: ...
+
+class TransactionPipelineOptions(_message.Message):
+    __slots__ = ("read_concern", "write_concern", "max_time_ms")
+    READ_CONCERN_FIELD_NUMBER: _ClassVar[int]
+    WRITE_CONCERN_FIELD_NUMBER: _ClassVar[int]
+    MAX_TIME_MS_FIELD_NUMBER: _ClassVar[int]
+    read_concern: str
+    write_concern: str
+    max_time_ms: int
+    def __init__(self, read_concern: _Optional[str] = ..., write_concern: _Optional[str] = ..., max_time_ms: _Optional[int] = ...) -> None: ...
+
+class TransactionPipelineRequest(_message.Message):
+    __slots__ = ("steps", "options")
+    STEPS_FIELD_NUMBER: _ClassVar[int]
+    OPTIONS_FIELD_NUMBER: _ClassVar[int]
+    steps: _containers.RepeatedCompositeFieldContainer[TransactionStep]
+    options: TransactionPipelineOptions
+    def __init__(self, steps: _Optional[_Iterable[_Union[TransactionStep, _Mapping]]] = ..., options: _Optional[_Union[TransactionPipelineOptions, _Mapping]] = ...) -> None: ...
+
+class TransactionStepResult(_message.Message):
+    __slots__ = ("name", "success", "find_result", "find_one_result", "insert_result", "insert_many_result", "update_result", "delete_result", "delete_many_result", "aggregate_result", "find_and_modify_result")
+    NAME_FIELD_NUMBER: _ClassVar[int]
+    SUCCESS_FIELD_NUMBER: _ClassVar[int]
+    FIND_RESULT_FIELD_NUMBER: _ClassVar[int]
+    FIND_ONE_RESULT_FIELD_NUMBER: _ClassVar[int]
+    INSERT_RESULT_FIELD_NUMBER: _ClassVar[int]
+    INSERT_MANY_RESULT_FIELD_NUMBER: _ClassVar[int]
+    UPDATE_RESULT_FIELD_NUMBER: _ClassVar[int]
+    DELETE_RESULT_FIELD_NUMBER: _ClassVar[int]
+    DELETE_MANY_RESULT_FIELD_NUMBER: _ClassVar[int]
+    AGGREGATE_RESULT_FIELD_NUMBER: _ClassVar[int]
+    FIND_AND_MODIFY_RESULT_FIELD_NUMBER: _ClassVar[int]
+    name: str
+    success: bool
+    find_result: FindResponse
+    find_one_result: FindOneResponse
+    insert_result: InsertResponse
+    insert_many_result: InsertManyResponse
+    update_result: UpdateResponse
+    delete_result: DeleteResponse
+    delete_many_result: DeleteManyResponse
+    aggregate_result: AggregateResponse
+    find_and_modify_result: FindAndModifyResponse
+    def __init__(self, name: _Optional[str] = ..., success: bool = ..., find_result: _Optional[_Union[FindResponse, _Mapping]] = ..., find_one_result: _Optional[_Union[FindOneResponse, _Mapping]] = ..., insert_result: _Optional[_Union[InsertResponse, _Mapping]] = ..., insert_many_result: _Optional[_Union[InsertManyResponse, _Mapping]] = ..., update_result: _Optional[_Union[UpdateResponse, _Mapping]] = ..., delete_result: _Optional[_Union[DeleteResponse, _Mapping]] = ..., delete_many_result: _Optional[_Union[DeleteManyResponse, _Mapping]] = ..., aggregate_result: _Optional[_Union[AggregateResponse, _Mapping]] = ..., find_and_modify_result: _Optional[_Union[FindAndModifyResponse, _Mapping]] = ...) -> None: ...
+
+class TransactionPipelineSummary(_message.Message):
+    __slots__ = ("total_steps", "steps_completed", "elapsed_ms")
+    TOTAL_STEPS_FIELD_NUMBER: _ClassVar[int]
+    STEPS_COMPLETED_FIELD_NUMBER: _ClassVar[int]
+    ELAPSED_MS_FIELD_NUMBER: _ClassVar[int]
+    total_steps: int
+    steps_completed: int
+    elapsed_ms: int
+    def __init__(self, total_steps: _Optional[int] = ..., steps_completed: _Optional[int] = ..., elapsed_ms: _Optional[int] = ...) -> None: ...
+
+class TransactionPipelineResponse(_message.Message):
+    __slots__ = ("steps", "summary")
+    STEPS_FIELD_NUMBER: _ClassVar[int]
+    SUMMARY_FIELD_NUMBER: _ClassVar[int]
+    steps: _containers.RepeatedCompositeFieldContainer[TransactionStepResult]
+    summary: TransactionPipelineSummary
+    def __init__(self, steps: _Optional[_Iterable[_Union[TransactionStepResult, _Mapping]]] = ..., summary: _Optional[_Union[TransactionPipelineSummary, _Mapping]] = ...) -> None: ...
+
+class TransactionPipelineError(_message.Message):
+    __slots__ = ("failed_step", "step_index", "reason", "steps_completed", "rolled_back")
+    FAILED_STEP_FIELD_NUMBER: _ClassVar[int]
+    STEP_INDEX_FIELD_NUMBER: _ClassVar[int]
+    REASON_FIELD_NUMBER: _ClassVar[int]
+    STEPS_COMPLETED_FIELD_NUMBER: _ClassVar[int]
+    ROLLED_BACK_FIELD_NUMBER: _ClassVar[int]
+    failed_step: str
+    step_index: int
+    reason: str
+    steps_completed: _containers.RepeatedScalarFieldContainer[str]
+    rolled_back: bool
+    def __init__(self, failed_step: _Optional[str] = ..., step_index: _Optional[int] = ..., reason: _Optional[str] = ..., steps_completed: _Optional[_Iterable[str]] = ..., rolled_back: bool = ...) -> None: ...

@@ -7,7 +7,6 @@ public class FindOptions {
     private Integer skip;
     private Document sort;
     private Document projection;
-    private Integer batchSize;
 
     public FindOptions limit(int limit) {
         this.limit = limit;
@@ -29,14 +28,8 @@ public class FindOptions {
         return this;
     }
 
-    public FindOptions batchSize(int batchSize) {
-        this.batchSize = batchSize;
-        return this;
-    }
-
     public Integer getLimit() { return limit; }
     public Integer getSkip() { return skip; }
     public Document getSort() { return sort; }
     public Document getProjection() { return projection; }
-    public Integer getBatchSize() { return batchSize; }
 }

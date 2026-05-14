@@ -48,3 +48,6 @@ mod pipeline_test;
 
 #[path = "integration/mcp_stdio_test.rs"]
 mod mcp_stdio_test;
+
+#[path = "integration/transaction_pipeline_test.rs"]
+mod transaction_pipeline_test;

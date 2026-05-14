@@ -14,6 +14,7 @@
 | **v0.8** | MCP + Claude Integration: Intelligent Data Companion | **Complete** |
 | **v0.8.1** | Performance Tier 1 (transport, streaming, compression) | **Complete** |
 | **v0.9** | Request pipelining (Performance Tier 2) | **Complete** |
+| **v0.10** | Transactional pipelines (dependent operations with result forwarding) | **Complete** |
 
 ## v0.1 — Core
 
@@ -120,8 +121,7 @@
 - **Streaming bulk RPCs** — `FindStream`, `AggregateStream`, `InsertManyStream`, `InsertManyBidi` for unlimited result sizes
 - **gRPC compression** — Optional gzip/zstd compression via `--grpc-compression`
 - **Stream idle timeout** — Configurable server-side timeout for streaming cursors (default 60s)
-- **Client auto-discovery** — All 4 clients automatically find UDS socket, fall back to TCP
-- **Streaming cursors** — `find()` and `aggregate()` return async cursors backed by streaming RPCs (unlimited result sizes, bounded memory)
+- **Client auto-discovery** — Python and Go clients automatically find UDS socket, fall back to TCP
 - **Socket lifecycle** — Automatic cleanup on shutdown, stale file removal on startup, graceful fallback on bind failure
 
 ## v0.9 — Request Pipelining
@@ -134,27 +134,40 @@
 - **MCP pipeline tool** — All-or-nothing safety validation (rejects entire pipeline if any op violates read-only mode)
 - **Typed client builders** — `ops` modules in Python, TypeScript, Go, Java with typed result accessors
 
+## v0.10 — Transactional Pipelines
+
+- **TransactionPipeline RPC** — Execute sequential dependent operations atomically within a single MongoDB transaction
+- **Result forwarding** — `{{step_name.field}}` reference syntax resolves prior step results into subsequent operations
+- **Reference patterns** — Top-level, nested, array index, wildcard pluck, passthrough, and length accessors
+- **Type preservation** — Standalone references preserve original types (numbers, arrays, objects); inline references interpolate as strings
+- **Validation** — Step name uniqueness, no forward references, no nested transactions, max 50 steps, max 101 docs per find/aggregate
+- **Transient error retry** — Automatic retry (up to 3 attempts) on `TransientTransactionError`
+- **Transaction options** — Configurable read_concern, write_concern, max_time_ms
+- **Collection-scoped API** — Simpler form when all steps target the same collection
+- **MCP tool** — `transaction_pipeline` tool for AI agents with full safety validation
+- **All 4 client libraries** — Python, TypeScript, Go, Java with typed step builders
+
 ## Backlog
+
+Items ordered by recommended implementation sequence.
 
 | Area | Description |
 |------|-------------|
-| Pipeline Benchmarks | Add pipeline equivalents to the cross-language benchmark suite (Python, TypeScript, Go, Java) — compare N individual driver calls vs single pipeline RPC at various batch sizes |
-| Search RPC Integration | Wire compiled query translator into search handler as intelligent router |
-| Query Explanation | Show generated MQL, confidence scores, and alternative interpretations to users |
+| Streaming Client Wrappers | Expose FindStream, AggregateStream, InsertManyStream, InsertManyBidi in all 4 client libraries |
+| Search RPC Integration | Wire compiled query translator into search fallback chain as intelligent router |
 | Hybrid Search (RRF) | Vector + fulltext with reciprocal rank fusion scoring — industry standard for RAG |
+| MCP Code Quality | Extract schema helpers into `src/mcp/schema.rs`; split `tools.rs` into submodules; add document count limit to `embed_and_store`; complete `ingest_and_embed` pipeline |
+| BulkWrite Operations | Collection-level and client-level bulkWrite with mixed insert/update/delete |
+| Database/Collection Management | Drop database, drop collection, rename collection, list indexes, compact |
+| Query Explanation (Enhanced) | Add confidence scores, alternative interpretations, and cost estimates to `explain_query` |
+| Pipeline Benchmarks | Add pipeline equivalents to cross-language benchmark suite — compare N individual driver calls vs single pipeline RPC |
 | Window Functions | Moving averages, running totals, rankings via $setWindowFields |
 | Graph Queries | $graphLookup support with safety constraints for recursive hierarchy traversal |
 | Enterprise Compliance | Audit trail, multi-tenant auto-scoping, role-based field redaction, query governance |
 | Demo | Curated restaurant dataset, scripted demo flow |
-| MCP Code Quality | Extract shared schema inference helpers (FieldInfo, collect_fields) into `src/mcp/schema.rs`; split `tools.rs` into submodules; add document count limit to `embed_and_store`; implement full `ingest_and_embed` pipeline |
-| Packaging & Deployment | Pre-built binaries (GitHub Releases, Homebrew), Docker images (GHCR), Helm chart |
-| Performance Tier 1 | gRPC over Unix Domain Sockets + streaming bulk responses + raised message limits | **Complete (v0.8.1)** |
-| Performance Tier 2 | Request pipelining — batch N independent operations in a single round-trip | **Complete (v0.9)** |
-| Performance Tier 2b | Transactional pipeline — sequential ops with result forwarding between steps (dependent operations) |
-| Performance Tier 3 | Native embedding via FFI (PyO3, Neon, cgo) for zero-IPC overhead |
-| BulkWrite Operations | Collection-level and client-level bulkWrite with mixed insert/update/delete |
-| Database/Collection Management | Drop database, drop collection, rename collection, list indexes, compact |
-| Visualizations | Configurable web UI for analytics, query flow, and ingestion progress |
-| Migration & Ecosystem | Framework adapters (Mongoose, Spring Data, etc.), migration paths |
 | Self-Contained AI | Local NL→MQL model, no external LLM dependency required |
+| Native Embedding (FFI) | PyO3, Neon, cgo embedding for zero-IPC overhead |
+| Visualizations | Web UI for analytics, query flow, and ingestion progress |
+| Migration & Ecosystem | Framework adapters (Mongoose, Spring Data, etc.), migration paths |
 | WASM & Extensibility | Browser client, WASM compilation target, plugin system |
+| Packaging & Deployment | Pre-built binaries (GitHub Releases, Homebrew), Docker images (GHCR), Helm chart |

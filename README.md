@@ -70,8 +70,7 @@ from mongocore import MongoClient
 async with MongoClient("localhost:50051") as client:
     users = client["myapp"]["users"]
     await users.insert_one({"name": "Alice", "age": 30})
-    async for user in users.find({"age": {"$gte": 25}}):
-        print(user["name"])
+    results = await users.find({"age": {"$gte": 25}})
 ```
 
 See [Quick Start](./docs/quick-start.md) for all languages (Python, TypeScript, Go, Java) and configuration.
@@ -126,9 +125,7 @@ mongocore/
 
 ## Roadmap
 
-See [Roadmap & Version History](./docs/roadmap.md) for detailed feature sets per version and the full future roadmap.
-
-**Current version: v0.6** — Intelligent NL→MQL routing with LLM-provided templates
+See [Roadmap & Version History](./docs/roadmap.md) for detailed feature sets per version and the backlog.
 
 ## License
 

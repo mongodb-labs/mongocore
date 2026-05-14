@@ -4,6 +4,7 @@ use std::sync::Mutex;
 use std::time::Duration;
 use std::collections::HashSet;
 
+use tokio::sync::Semaphore;
 
 use bson::Document;
 use dashmap::DashMap;
@@ -20,6 +21,10 @@ use crate::operations::{
 };
 use crate::operations::raw::{run_command, RawCommandOptions};
 use crate::operations::raw_validator::ValidationMode;
+use crate::operations::transaction_pipeline::{
+    execute_transaction_pipeline, PipelineStepDef,
+    TransactionPipelineOptions as InternalTxnPipelineOptions,
+};
 use crate::search::SearchEngine;
 use crate::tenant::{TenantContext, TenantRegistry};
 use crate::tenant::quota::QuotaManager;
@@ -42,6 +47,7 @@ pub struct MongoCoreService {
     client: Option<mongodb::Client>,
     stream_idle_timeout: Duration,
     pipeline_timeout: Duration,
+    pipeline_semaphore: Arc<Semaphore>,
     appended_languages: Mutex<HashSet<String>>,
 }
 
@@ -69,6 +75,7 @@ impl MongoCoreService {
             client: None,
             stream_idle_timeout,
             pipeline_timeout: Duration::from_secs(crate::defaults::DEFAULT_PIPELINE_TIMEOUT_SECS),
+            pipeline_semaphore: Arc::new(Semaphore::new(crate::defaults::DEFAULT_PIPELINE_MAX_CONCURRENCY)),
             appended_languages: Mutex::new(HashSet::new()),
         }
     }
@@ -98,13 +105,15 @@ impl MongoCoreService {
             client: None,
             stream_idle_timeout,
             pipeline_timeout: Duration::from_secs(crate::defaults::DEFAULT_PIPELINE_TIMEOUT_SECS),
+            pipeline_semaphore: Arc::new(Semaphore::new(crate::defaults::DEFAULT_PIPELINE_MAX_CONCURRENCY)),
             appended_languages: Mutex::new(HashSet::new()),
         }
     }
 
-    /// Configure pipeline timeout.
-    pub fn with_pipeline_config(mut self, timeout: Duration, _max_concurrency: usize) -> Self {
+    /// Configure pipeline timeout and concurrency.
+    pub fn with_pipeline_config(mut self, timeout: Duration, max_concurrency: usize) -> Self {
         self.pipeline_timeout = timeout;
+        self.pipeline_semaphore = Arc::new(Semaphore::new(max_concurrency));
         self
     }
 
@@ -225,6 +234,7 @@ fn to_status(err: MongoCoreError) -> Status {
         MongoCoreError::ValidationError(_) => Status::invalid_argument(err.to_string()),
         MongoCoreError::TimeoutError(_) => Status::deadline_exceeded(err.to_string()),
         MongoCoreError::IngestionError(_) => Status::internal(err.to_string()),
+        MongoCoreError::TransactionPipelineError(_) => Status::aborted(err.to_string()),
     }
 }
 
@@ -1437,9 +1447,7 @@ impl MongoCore for MongoCoreService {
             )));
         }
 
-        let semaphore = Arc::new(tokio::sync::Semaphore::new(
-            crate::defaults::DEFAULT_PIPELINE_MAX_CONCURRENCY,
-        ));
+        let semaphore = self.pipeline_semaphore.clone();
         let futures_vec: Vec<_> = req.operations.into_iter().enumerate().map(|(i, op)| {
             let sem = semaphore.clone();
             let svc = self;
@@ -1477,6 +1485,73 @@ impl MongoCore for MongoCoreService {
             failed,
         }))
     }
+
+    #[tracing::instrument(skip(self, request), fields(txn_pipeline.steps = tracing::field::Empty, txn_pipeline.completed = tracing::field::Empty))]
+    async fn transaction_pipeline(
+        &self,
+        request: Request<proto::TransactionPipelineRequest>,
+    ) -> Result<Response<proto::TransactionPipelineResponse>, Status> {
+        self.append_client_language(request.metadata());
+        self.check_tenant_quota(request.metadata())?;
+        let start = std::time::Instant::now();
+        let req = request.into_inner();
+
+        // Convert proto steps to internal PipelineStepDefs
+        let steps = req.steps.iter().map(|s| convert_transaction_step(s)).collect::<Result<Vec<_>, _>>()?;
+
+        // Convert options
+        let options = match req.options {
+            Some(opts) => InternalTxnPipelineOptions {
+                read_concern: opts.read_concern,
+                write_concern: opts.write_concern,
+                max_time_ms: opts.max_time_ms.unwrap_or_else(|| InternalTxnPipelineOptions::default().max_time_ms),
+            },
+            None => InternalTxnPipelineOptions::default(),
+        };
+
+        // Execute the transactional pipeline
+        let result = execute_transaction_pipeline(&self.pool, steps, options).await;
+
+        match result {
+            Ok(exec_result) => {
+                let span = tracing::Span::current();
+                span.record("txn_pipeline.steps", exec_result.total_steps);
+                span.record("txn_pipeline.completed", exec_result.steps_completed);
+
+                self.record_analytics(OperationKind::Pipeline, "", "", start.elapsed(), true);
+
+                // Convert step results to proto
+                let proto_steps: Vec<proto::TransactionStepResult> = exec_result.steps.iter().map(|sr| {
+                    proto::TransactionStepResult {
+                        name: sr.name.clone(),
+                        success: sr.success,
+                        result: None, // TODO: map result_json back to typed proto results
+                    }
+                }).collect();
+
+                Ok(Response::new(proto::TransactionPipelineResponse {
+                    steps: proto_steps,
+                    summary: Some(proto::TransactionPipelineSummary {
+                        total_steps: exec_result.total_steps,
+                        steps_completed: exec_result.steps_completed,
+                        elapsed_ms: exec_result.elapsed_ms,
+                    }),
+                }))
+            }
+            Err(failure) => {
+                self.record_analytics(OperationKind::Pipeline, "", "", start.elapsed(), false);
+
+                let failure_json = serde_json::json!({
+                    "failed_step": failure.failed_step,
+                    "step_index": failure.step_index,
+                    "reason": failure.reason,
+                    "steps_completed": failure.steps_completed,
+                    "rolled_back": failure.rolled_back,
+                });
+                Err(Status::aborted(failure_json.to_string()))
+            }
+        }
+    }
 }
 
 // === Pipeline helpers ===
@@ -1484,6 +1559,108 @@ impl MongoCore for MongoCoreService {
 /// Check if a pipeline result is an error.
 fn pipeline_result_is_error(result: &proto::PipelineResult) -> bool {
     matches!(result.result, Some(proto::pipeline_result::Result::Error(_)))
+}
+
+// === Transaction Pipeline helpers ===
+
+/// Convert a proto TransactionStep into an internal PipelineStepDef.
+fn convert_transaction_step(step: &proto::TransactionStep) -> Result<PipelineStepDef, Status> {
+    let operation = step.operation.as_ref()
+        .ok_or_else(|| Status::invalid_argument(format!("Step '{}': missing operation", step.name)))?;
+
+    let (operation_type, operation_json, find_limit) = match operation {
+        proto::transaction_step::Operation::FindOne(req) => {
+            let filter = proto_filter_to_bson(&req.filter)?;
+            let json = serde_json::json!({ "filter": serde_json::to_value(&bson::Bson::Document(filter)).unwrap_or_default() });
+            ("find_one".to_string(), json, None)
+        }
+        proto::transaction_step::Operation::Find(req) => {
+            let filter = proto_filter_to_bson(&req.filter)?;
+            let limit = req.options.as_ref().and_then(|o| o.limit);
+            let json = serde_json::json!({ "filter": serde_json::to_value(&bson::Bson::Document(filter)).unwrap_or_default() });
+            ("find".to_string(), json, limit)
+        }
+        proto::transaction_step::Operation::Insert(req) => {
+            let doc = req.document.as_ref()
+                .map(|d| proto_doc_to_bson(d))
+                .transpose()?
+                .unwrap_or_default();
+            let json = serde_json::json!({ "document": serde_json::to_value(&bson::Bson::Document(doc)).unwrap_or_default() });
+            ("insert".to_string(), json, None)
+        }
+        proto::transaction_step::Operation::InsertMany(req) => {
+            let docs: Vec<serde_json::Value> = req.documents.iter()
+                .map(|d| proto_doc_to_bson(d).map(|bd| serde_json::to_value(&bson::Bson::Document(bd)).unwrap_or_default()))
+                .collect::<Result<Vec<_>, _>>()?;
+            let json = serde_json::json!({ "documents": docs });
+            ("insert_many".to_string(), json, None)
+        }
+        proto::transaction_step::Operation::Update(req) => {
+            let filter = proto_filter_to_bson(&req.filter)?;
+            let update = req.update.as_ref()
+                .map(|d| proto_doc_to_bson(d))
+                .transpose()?
+                .unwrap_or_default();
+            let json = serde_json::json!({
+                "filter": serde_json::to_value(&bson::Bson::Document(filter)).unwrap_or_default(),
+                "update": serde_json::to_value(&bson::Bson::Document(update)).unwrap_or_default()
+            });
+            ("update".to_string(), json, None)
+        }
+        proto::transaction_step::Operation::UpdateMany(req) => {
+            let filter = proto_filter_to_bson(&req.filter)?;
+            let update = req.update.as_ref()
+                .map(|d| proto_doc_to_bson(d))
+                .transpose()?
+                .unwrap_or_default();
+            let json = serde_json::json!({
+                "filter": serde_json::to_value(&bson::Bson::Document(filter)).unwrap_or_default(),
+                "update": serde_json::to_value(&bson::Bson::Document(update)).unwrap_or_default()
+            });
+            ("update_many".to_string(), json, None)
+        }
+        proto::transaction_step::Operation::Delete(req) => {
+            let filter = proto_filter_to_bson(&req.filter)?;
+            let json = serde_json::json!({ "filter": serde_json::to_value(&bson::Bson::Document(filter)).unwrap_or_default() });
+            ("delete".to_string(), json, None)
+        }
+        proto::transaction_step::Operation::DeleteMany(req) => {
+            let filter = proto_filter_to_bson(&req.filter)?;
+            let json = serde_json::json!({ "filter": serde_json::to_value(&bson::Bson::Document(filter)).unwrap_or_default() });
+            ("delete_many".to_string(), json, None)
+        }
+        proto::transaction_step::Operation::FindAndModify(req) => {
+            let filter = proto_filter_to_bson(&req.filter)?;
+            let update = req.update.as_ref()
+                .map(|d| proto_doc_to_bson(d))
+                .transpose()?
+                .unwrap_or_default();
+            let json = serde_json::json!({
+                "filter": serde_json::to_value(&bson::Bson::Document(filter)).unwrap_or_default(),
+                "update": serde_json::to_value(&bson::Bson::Document(update)).unwrap_or_default()
+            });
+            ("find_and_modify".to_string(), json, None)
+        }
+        proto::transaction_step::Operation::Aggregate(req) => {
+            let stages: Vec<serde_json::Value> = req.pipeline.as_ref()
+                .map(|p| p.stages.iter().map(|s| {
+                    let doc = decode_bson(s).unwrap_or_default();
+                    serde_json::to_value(&bson::Bson::Document(doc)).unwrap_or_default()
+                }).collect())
+                .unwrap_or_default();
+            let json = serde_json::json!({ "pipeline": stages });
+            ("aggregate".to_string(), json, None)
+        }
+    };
+
+    Ok(PipelineStepDef {
+        name: step.name.clone(),
+        database: step.database.clone(),
+        collection: step.collection.clone(),
+        operation_type,
+        operation_json,
+        find_limit,
+    })
 }
 
 impl MongoCoreService {

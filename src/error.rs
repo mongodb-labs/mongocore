@@ -20,6 +20,9 @@ pub enum MongoCoreError {
 
     #[error("Ingestion error: {0}")]
     IngestionError(String),
+
+    #[error("Transaction pipeline error: {0}")]
+    TransactionPipelineError(String),
 }
 
 impl From<mongodb::error::Error> for MongoCoreError {

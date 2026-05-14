@@ -90,7 +90,7 @@ async fn test_mcp_tools_list() {
     let resp = rpc_call(&client, &url, "tools/list", None).await;
     let tools = resp["result"]["tools"].as_array().unwrap();
 
-    assert_eq!(tools.len(), 35);
+    assert_eq!(tools.len(), 36);
 
     let names: Vec<&str> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
     let expected = [

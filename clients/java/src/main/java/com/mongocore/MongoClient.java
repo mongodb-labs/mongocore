@@ -238,6 +238,30 @@ public class MongoClient implements AutoCloseable {
         }
     }
 
+    // --- Transaction Pipeline Methods ---
+
+    public record TransactionPipelineOptions(String readConcern, String writeConcern, Long maxTimeMs) {
+        public TransactionPipelineOptions() {
+            this(null, null, null);
+        }
+    }
+
+    public record TransactionPipelineResult(List<TransactionStepResult> steps,
+                                            int totalSteps, int stepsCompleted, long elapsedMs) {}
+
+    public record TransactionStepResult(String name, boolean success,
+                                        PipelineResult result) {}
+
+    public TransactionPipelineResult transactionPipeline(TransactionPipelineStep... steps) {
+        return transactionPipeline(null, steps);
+    }
+
+    public TransactionPipelineResult transactionPipeline(TransactionPipelineOptions options,
+                                                         TransactionPipelineStep... steps) {
+        throw new UnsupportedOperationException(
+                "transactionPipeline requires regenerated gRPC stubs (Task 15)");
+    }
+
     // --- Pipeline Methods ---
 
     public List<PipelineResult> pipeline(Mongocore.PipelineOperation... operations) {

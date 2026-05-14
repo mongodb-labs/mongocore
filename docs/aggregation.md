@@ -12,7 +12,7 @@ async def main():
         orders = client["shop"]["orders"]
 
         # Group by status, calculate totals
-        async for doc in orders.aggregate([
+        results = await orders.aggregate([
             {"$match": {"year": 2024}},
             {"$group": {
                 "_id": "$status",
@@ -20,7 +20,9 @@ async def main():
                 "count": {"$sum": 1}
             }},
             {"$sort": {"total_revenue": -1}}
-        ]):
+        ])
+
+        for doc in results:
             print(f"{doc['_id']}: ${doc['total_revenue']} ({doc['count']} orders)")
 ```
 
@@ -34,7 +36,7 @@ await client.connect();
 
 const orders = client.db('shop').collection('orders');
 
-for await (const doc of orders.aggregate([
+const results = await orders.aggregate([
   { $match: { year: 2024 } },
   { $group: {
     _id: '$status',
@@ -42,9 +44,11 @@ for await (const doc of orders.aggregate([
     count: { $sum: 1 },
   }},
   { $sort: { totalRevenue: -1 } },
-])) {
-  console.log(`${doc._id}: $${doc.totalRevenue} (${doc.count} orders)`);
-}
+]);
+
+results.forEach(doc =>
+  console.log(`${doc._id}: $${doc.totalRevenue} (${doc.count} orders)`)
+);
 
 await client.close();
 ```
@@ -64,14 +68,7 @@ pipeline := []bson.D{
     {{Key: "$sort", Value: bson.D{{Key: "total_revenue", Value: -1}}}},
 }
 
-cursor := orders.Aggregate(ctx, pipeline, nil)
-defer cursor.Close()
-for cursor.Next(ctx) {
-    fmt.Println(cursor.Doc())
-}
-if cursor.Err() != nil {
-    log.Fatal(cursor.Err())
-}
+results, err := orders.Aggregate(ctx, pipeline)
 ```
 
 ## Java
@@ -87,11 +84,7 @@ List<Document> pipeline = Arrays.asList(
     new Document("$sort", new Document("total_revenue", -1))
 );
 
-try (MongoCursor cursor = orders.aggregate(pipeline)) {
-    for (Document doc : cursor) {
-        System.out.println(doc);
-    }
-}
+List<Document> results = orders.aggregate(pipeline);
 ```
 
 ## Common Patterns
@@ -99,7 +92,7 @@ try (MongoCursor cursor = orders.aggregate(pipeline)) {
 ### Lookup (Join)
 
 ```python
-async for doc in orders.aggregate([
+results = await orders.aggregate([
     {"$lookup": {
         "from": "customers",
         "localField": "customer_id",
@@ -112,14 +105,13 @@ async for doc in orders.aggregate([
         "amount": 1,
         "customer_name": "$customer.name"
     }}
-]):
-    print(doc)
+])
 ```
 
 ### Bucket
 
 ```python
-async for doc in products.aggregate([
+results = await products.aggregate([
     {"$bucket": {
         "groupBy": "$price",
         "boundaries": [0, 25, 50, 100, 500],
@@ -129,14 +121,13 @@ async for doc in products.aggregate([
             "avg_price": {"$avg": "$price"}
         }
     }}
-]):
-    print(doc)
+])
 ```
 
 ### Window Functions
 
 ```python
-async for doc in sales.aggregate([
+results = await sales.aggregate([
     {"$setWindowFields": {
         "partitionBy": "$region",
         "sortBy": {"date": 1},
@@ -147,8 +138,7 @@ async for doc in sales.aggregate([
             }
         }
     }}
-]):
-    print(doc)
+])
 ```
 
 ## Wire Format

@@ -253,3 +253,41 @@ export function listCollections(database: string): ListCollectionsOp {
     database,
   };
 }
+
+// --- Transaction Pipeline ---
+
+export interface TransactionStep {
+  name: string;
+  operation: StepOperation;
+  collection?: string;
+}
+
+export type StepOperation =
+  | { op: "find_one"; filter?: Document }
+  | { op: "find"; filter?: Document; limit?: number }
+  | { op: "insert"; document: Document }
+  | { op: "insert_many"; documents: Document[] }
+  | { op: "update"; filter: Document; update: Document }
+  | { op: "update_many"; filter: Document; update: Document }
+  | { op: "delete"; filter: Document }
+  | { op: "delete_many"; filter: Document }
+  | { op: "find_and_modify"; filter: Document; update: Document }
+  | { op: "aggregate"; pipeline: Document[] };
+
+export function step(name: string, operation: StepOperation): TransactionStep;
+export function step(name: string, collection: string, operation: StepOperation): TransactionStep;
+export function step(name: string, collectionOrOp: string | StepOperation, maybeOp?: StepOperation): TransactionStep {
+  if (typeof collectionOrOp === "string") {
+    return { name, collection: collectionOrOp, operation: maybeOp! };
+  }
+  return { name, operation: collectionOrOp };
+}
+
+export const stepFindOne = (filter?: Document): StepOperation => ({ op: "find_one", filter });
+export const stepFind = (filter?: Document, limit?: number): StepOperation => ({ op: "find", filter, limit });
+export const stepInsert = (document: Document): StepOperation => ({ op: "insert", document });
+export const stepInsertMany = (documents: Document[]): StepOperation => ({ op: "insert_many", documents });
+export const stepUpdate = (filter: Document, update: Document): StepOperation => ({ op: "update", filter, update });
+export const stepUpdateMany = (filter: Document, update: Document): StepOperation => ({ op: "update_many", filter, update });
+export const stepDelete = (filter: Document): StepOperation => ({ op: "delete", filter });
+export const stepDeleteMany = (filter: Document): StepOperation => ({ op: "delete_many", filter });

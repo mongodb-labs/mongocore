@@ -61,6 +61,9 @@ service MongoCore {
 
   // Pipeline
   rpc Pipeline(PipelineRequest) returns (PipelineResponse);
+
+  // Transaction Pipeline
+  rpc TransactionPipeline(TransactionPipelineRequest) returns (TransactionPipelineResponse);
 }
 
 // ==================== CRUD Requests/Responses ====================
@@ -415,4 +418,70 @@ message PipelineResult {
 message PipelineError {
   int32 code = 1;
   string message = 2;
+}
+
+// --- Transaction Pipeline ---
+
+message TransactionStep {
+  string name = 1;
+  string database = 2;
+  string collection = 3;
+  oneof operation {
+    FindOneRequest find_one = 10;
+    FindRequest find = 11;
+    InsertRequest insert = 12;
+    InsertManyRequest insert_many = 13;
+    UpdateRequest update = 14;
+    UpdateManyRequest update_many = 15;
+    DeleteRequest delete = 16;
+    DeleteManyRequest delete_many = 17;
+    FindAndModifyRequest find_and_modify = 18;
+    AggregateRequest aggregate = 19;
+  }
+}
+
+message TransactionPipelineOptions {
+  optional string read_concern = 1;
+  optional string write_concern = 2;
+  optional uint64 max_time_ms = 3;
+}
+
+message TransactionPipelineRequest {
+  repeated TransactionStep steps = 1;
+  optional TransactionPipelineOptions options = 2;
+}
+
+message TransactionStepResult {
+  string name = 1;
+  bool success = 2;
+  oneof result {
+    FindResponse find_result = 10;
+    FindOneResponse find_one_result = 11;
+    InsertResponse insert_result = 12;
+    InsertManyResponse insert_many_result = 13;
+    UpdateResponse update_result = 14;
+    DeleteResponse delete_result = 15;
+    DeleteManyResponse delete_many_result = 16;
+    AggregateResponse aggregate_result = 17;
+    FindAndModifyResponse find_and_modify_result = 18;
+  }
+}
+
+message TransactionPipelineSummary {
+  uint32 total_steps = 1;
+  uint32 steps_completed = 2;
+  uint64 elapsed_ms = 3;
+}
+
+message TransactionPipelineResponse {
+  repeated TransactionStepResult steps = 1;
+  TransactionPipelineSummary summary = 2;
+}
+
+message TransactionPipelineError {
+  string failed_step = 1;
+  uint32 step_index = 2;
+  string reason = 3;
+  repeated string steps_completed = 4;
+  bool rolled_back = 5;
 }

@@ -1,8 +1,8 @@
 import { BSON } from 'bson';
 import { MongoClient, CLIENT_METADATA } from './client';
 import { EventEmitter } from 'events';
-import { Cursor } from './cursor';
-import type { Document, FindOptions, FindStreamOptions, AggregateOptions, UpdateResult, InsertResult, InsertManyResult, SearchResult, ChangeEvent, FindAndModifyOptions, FindAndModifyResult, CreateIndexOptions, CreateIndexResult } from './types';
+import type { Document, FindOptions, UpdateResult, InsertResult, InsertManyResult, SearchResult, ChangeEvent, FindAndModifyOptions, FindAndModifyResult, CreateIndexOptions, CreateIndexResult, TransactionPipelineResult } from './types';
+import type { TransactionStep } from './ops';
 
 export class Collection {
   private client: MongoClient;
@@ -31,25 +31,25 @@ export class Collection {
     return BSON.deserialize(Buffer.from(data)) as Document;
   }
 
-  find(filter?: Document, options?: FindStreamOptions & { transactionId?: string }): Cursor {
-    const request: any = {
-      database: this.database,
-      collection: this.name,
-      filter: { data: this.encodeBson(filter || {}) },
-      batchSize: options?.batchSize || 1000,
-    };
-    if (options) {
-      request.options = {
-        limit: options.limit,
-        skip: options.skip,
-        sort: options.sort ? this.encodeBson(options.sort as Document) : undefined,
-        projection: options.projection ? this.encodeBson(options.projection as Document) : undefined,
+  async find(filter?: Document, options?: FindOptions): Promise<Document[]> {
+    return new Promise((resolve, reject) => {
+      const request: any = {
+        database: this.database,
+        collection: this.name,
+        filter: { data: this.encodeBson(filter || {}) },
+        options: options ? {
+          limit: options.limit,
+          skip: options.skip,
+          sort: options.sort ? this.encodeBson(options.sort as Document) : undefined,
+          projection: options.projection ? this.encodeBson(options.projection as Document) : undefined,
+        } : undefined,
       };
-      if (options.transactionId) {
-        request.transactionId = options.transactionId;
-      }
-    }
-    return new Cursor(this.client.getGrpcClient(), request, 'findStream');
+      this.client.getGrpcClient().find(request, CLIENT_METADATA, (err: any, response: any) => {
+        if (err) return reject(err);
+        const docs = (response.documents || []).map((d: any) => this.decodeBson(d.data));
+        resolve(docs);
+      });
+    });
   }
 
   async findOne(filter?: Document): Promise<Document | null> {
@@ -169,19 +169,21 @@ export class Collection {
     });
   }
 
-  aggregate(pipeline: Document[], options?: AggregateOptions & { transactionId?: string }): Cursor {
-    const request: any = {
-      database: this.database,
-      collection: this.name,
-      pipeline: {
-        stages: pipeline.map(stage => this.encodeBson(stage)),
-      },
-      batchSize: options?.batchSize || 1000,
-    };
-    if (options?.transactionId) {
-      request.transactionId = options.transactionId;
-    }
-    return new Cursor(this.client.getGrpcClient(), request, 'aggregateStream');
+  async aggregate(pipeline: Document[]): Promise<Document[]> {
+    return new Promise((resolve, reject) => {
+      const request = {
+        database: this.database,
+        collection: this.name,
+        pipeline: {
+          stages: pipeline.map(stage => this.encodeBson(stage)),
+        },
+      };
+      this.client.getGrpcClient().aggregate(request, CLIENT_METADATA, (err: any, response: any) => {
+        if (err) return reject(err);
+        const docs = (response.documents || []).map((d: any) => this.decodeBson(d.data));
+        resolve(docs);
+      });
+    });
   }
 
   async search(query: string, limit: number = 10): Promise<SearchResult> {
@@ -244,6 +246,17 @@ export class Collection {
         resolve({ indexName: response.indexName || response.index_name });
       });
     });
+  }
+
+  async transactionPipeline(steps: TransactionStep[]): Promise<TransactionPipelineResult> {
+    // Scope all steps to this collection by default
+    const scopedSteps = steps.map(s => ({
+      ...s,
+      collection: s.collection || this.name,
+    }));
+    const db = (await import('./database')).Database;
+    const database = new db(this.client, this.database);
+    return database.transactionPipeline(scopedSteps);
   }
 
   watch(pipeline?: Document[]): ChangeStream {

@@ -35,10 +35,10 @@ class Collection:
         from .generated import types_pb2
         return types_pb2.Document(data=self._encode_doc(doc))
 
-    def find(self, filter: Optional[dict] = None, *, limit: int = 0, skip: int = 0, batch_size: int = 1000, transaction_id: Optional[str] = None) -> "Cursor":
-        """Find documents matching the filter. Returns an async cursor."""
-        from .generated.mongocore.v1 import mongocore_pb2, types_pb2
-        from .cursor import Cursor
+    async def find(self, filter: Optional[dict] = None, *, limit: int = 0, skip: int = 0) -> list[dict]:
+        """Find documents matching the filter."""
+        from .generated import mongocore_pb2, types_pb2
+        stub = self._get_stub()
 
         options = types_pb2.FindOptions()
         if limit:
@@ -46,18 +46,13 @@ class Collection:
         if skip:
             options.skip = skip
 
-        request = mongocore_pb2.FindStreamRequest(
+        response = await stub.Find(mongocore_pb2.FindRequest(
             database=self._database,
             collection=self._name,
             filter=self._make_filter(filter),
             options=options,
-            batch_size=batch_size,
-        )
-        if transaction_id:
-            request.transaction_id = transaction_id
-
-        stub = self._get_stub()
-        return Cursor(stub, request, "FindStream", self._decode_doc)
+        ), metadata=_CLIENT_METADATA)
+        return [self._decode_doc(doc.data) for doc in response.documents]
 
     async def find_one(self, filter: Optional[dict] = None) -> Optional[dict]:
         """Find a single document."""
@@ -140,24 +135,19 @@ class Collection:
         ), metadata=_CLIENT_METADATA)
         return response.deleted_count
 
-    def aggregate(self, pipeline: list[dict], *, batch_size: int = 1000, transaction_id: Optional[str] = None) -> "Cursor":
-        """Run an aggregation pipeline. Returns an async cursor."""
-        from .generated.mongocore.v1 import mongocore_pb2, types_pb2
-        from .cursor import Cursor
+    async def aggregate(self, pipeline: list[dict]) -> list[dict]:
+        """Run an aggregation pipeline."""
+        from .generated import mongocore_pb2, types_pb2
+        stub = self._get_stub()
 
         stages = [self._encode_doc(stage) for stage in pipeline]
 
-        request = mongocore_pb2.AggregateStreamRequest(
+        response = await stub.Aggregate(mongocore_pb2.AggregateRequest(
             database=self._database,
             collection=self._name,
             pipeline=types_pb2.Pipeline(stages=stages),
-            batch_size=batch_size,
-        )
-        if transaction_id:
-            request.transaction_id = transaction_id
-
-        stub = self._get_stub()
-        return Cursor(stub, request, "AggregateStream", self._decode_doc)
+        ), metadata=_CLIENT_METADATA)
+        return [self._decode_doc(doc.data) for doc in response.documents]
 
     async def search(self, query: str, *, limit: int = 10) -> dict:
         """Search documents using the best available method (vector → fulltext → filter)."""
@@ -210,6 +200,31 @@ class Collection:
         )
         response = await stub.CreateIndex(request, metadata=_CLIENT_METADATA)
         return response.index_name
+
+    async def transaction_pipeline(self, steps: list, *, options: dict = None):
+        """Execute a transactional pipeline within this collection.
+
+        Each step is a TransactionStep(name, operation) — collection is auto-set.
+        """
+        from .generated import mongocore_pb2, mongocore_pb2_grpc
+        stub = self._get_stub()
+
+        proto_steps = [
+            self._client._build_transaction_step(s, self._database, self._name)
+            for s in steps
+        ]
+
+        request = mongocore_pb2.TransactionPipelineRequest(steps=proto_steps)
+        if options:
+            request.options.CopyFrom(mongocore_pb2.TransactionPipelineOptions(
+                read_concern=options.get("read_concern", ""),
+                write_concern=options.get("write_concern", ""),
+                max_time_ms=options.get("max_time_ms", 0),
+            ))
+
+        response = await stub.TransactionPipeline(request, metadata=_CLIENT_METADATA)
+        from .database import _parse_pipeline_response
+        return _parse_pipeline_response(response)
 
     def watch(self, pipeline: Optional[list[dict]] = None) -> "ChangeStream":
         """Open a change stream on this collection. Returns an async context manager."""

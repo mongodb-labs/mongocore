@@ -530,6 +530,40 @@ pub fn tool_definitions() -> Vec<McpToolDefinition> {
                 "required": []
             }),
         },
+        McpToolDefinition {
+            name: "transaction_pipeline".to_string(),
+            description: "Execute multiple dependent operations atomically in a transaction. Steps run sequentially and can reference results from prior steps using {{step_name.field}} syntax.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "steps": {
+                        "type": "array",
+                        "description": "Ordered list of operations to execute in a transaction",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": { "type": "string", "description": "Unique step name (used in {{name.field}} references)" },
+                                "database": { "type": "string", "description": "Database name" },
+                                "collection": { "type": "string", "description": "Collection name" },
+                                "operation": { "type": "string", "enum": ["find_one", "find", "insert", "insert_many", "update", "update_many", "delete", "delete_many", "find_and_modify", "aggregate"], "description": "Operation type" },
+                                "params": { "type": "object", "description": "Operation parameters (filter, document, update, pipeline)" }
+                            },
+                            "required": ["name", "database", "collection", "operation", "params"]
+                        }
+                    },
+                    "options": {
+                        "type": "object",
+                        "description": "Transaction options",
+                        "properties": {
+                            "read_concern": { "type": "string" },
+                            "write_concern": { "type": "string" },
+                            "max_time_ms": { "type": "integer" }
+                        }
+                    }
+                },
+                "required": ["steps"]
+            }),
+        },
     ]
 }
 
@@ -1068,7 +1102,122 @@ pub async fn execute_tool(
                 "total_operations": summary.total_operations
             })).unwrap_or_default())
         }
+        "transaction_pipeline" => {
+            execute_transaction_pipeline_tool(pool, safety, arguments).await
+        }
         _ => error_result(format!("Unknown tool: {}", name)),
+    }
+}
+
+async fn execute_transaction_pipeline_tool(
+    pool: &ConnectionPool,
+    safety: &SafetyConfig,
+    args: &Value,
+) -> McpToolCallResult {
+    use crate::operations::transaction_pipeline::{
+        execute_transaction_pipeline, PipelineStepDef, TransactionPipelineOptions,
+    };
+
+    if let Err(reason) = safety.check_tool_allowed("transaction_pipeline") {
+        return error_result(reason);
+    }
+
+    let steps_arr = match args.get("steps").and_then(|v| v.as_array()) {
+        Some(arr) => arr,
+        None => return error_result("Missing required field: steps".to_string()),
+    };
+
+    if steps_arr.is_empty() {
+        return error_result("Pipeline must contain at least one step".to_string());
+    }
+
+    let steps: Vec<PipelineStepDef> = steps_arr
+        .iter()
+        .map(|s| {
+            let name = s
+                .get("name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let database = s
+                .get("database")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let collection = s
+                .get("collection")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let operation = s
+                .get("operation")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let params = s.get("params").cloned().unwrap_or(json!({}));
+            let find_limit = params.get("limit").and_then(|v| v.as_i64());
+
+            PipelineStepDef {
+                name,
+                database,
+                collection,
+                operation_type: operation,
+                operation_json: params,
+                find_limit,
+            }
+        })
+        .collect();
+
+    let options = match args.get("options") {
+        Some(opts) => TransactionPipelineOptions {
+            read_concern: opts
+                .get("read_concern")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            write_concern: opts
+                .get("write_concern")
+                .and_then(|v| v.as_str())
+                .map(String::from),
+            max_time_ms: opts
+                .get("max_time_ms")
+                .and_then(|v| v.as_u64())
+                .unwrap_or(crate::defaults::DEFAULT_TRANSACTION_PIPELINE_TIMEOUT_MS),
+        },
+        None => TransactionPipelineOptions::default(),
+    };
+
+    match execute_transaction_pipeline(pool, steps, options).await {
+        Ok(result) => {
+            let response = json!({
+                "steps": result.steps.iter().map(|s| json!({
+                    "name": s.name,
+                    "success": s.success,
+                    "result": s.result_json,
+                })).collect::<Vec<_>>(),
+                "summary": {
+                    "total_steps": result.total_steps,
+                    "steps_completed": result.steps_completed,
+                    "elapsed_ms": result.elapsed_ms,
+                }
+            });
+            McpToolCallResult {
+                content: vec![McpContent {
+                    type_: "text".to_string(),
+                    text: response.to_string(),
+                }],
+                is_error: false,
+            }
+        }
+        Err(failure) => error_result(
+            json!({
+                "failed_step": failure.failed_step,
+                "step_index": failure.step_index,
+                "reason": failure.reason,
+                "steps_completed": failure.steps_completed,
+                "rolled_back": failure.rolled_back,
+            })
+            .to_string(),
+        ),
     }
 }
 
@@ -2290,7 +2439,7 @@ mod tests {
     #[test]
     fn test_tool_definitions_count() {
         let tools = tool_definitions();
-        assert_eq!(tools.len(), 35);
+        assert_eq!(tools.len(), 36);
     }
 
     #[test]

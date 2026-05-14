@@ -77,10 +77,20 @@ export interface PipelineResult {
   result?: any;
 }
 
-export interface FindStreamOptions extends FindOptions {
-  batchSize?: number;
+export interface TransactionStepResult {
+  stepName: string;
+  success: boolean;
+  error?: string;
+  documents?: Document[];
+  matchedCount?: number;
+  modifiedCount?: number;
+  deletedCount?: number;
+  insertedId?: string;
+  insertedIds?: string[];
 }
 
-export interface AggregateOptions {
-  batchSize?: number;
+export interface TransactionPipelineResult {
+  committed: boolean;
+  results: TransactionStepResult[];
+  error?: string;
 }

@@ -5,7 +5,6 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +44,7 @@ public class IntegrationTest {
         assertNotNull(result.getInsertedId());
         assertFalse(result.getInsertedId().isEmpty());
 
-        List<Document> docs = coll.find(new Document("name", "Alice")).toList();
+        List<Document> docs = coll.find(new Document("name", "Alice"));
         assertEquals(1, docs.size());
         assertEquals("Alice", docs.get(0).getString("name"));
         assertEquals(30, docs.get(0).getInteger("age").intValue());
@@ -63,7 +62,7 @@ public class IntegrationTest {
         assertEquals(3, result.getInsertedCount());
         assertEquals(3, result.getInsertedIds().size());
 
-        List<Document> docs = coll.find(new Document()).toList();
+        List<Document> docs = coll.find(new Document());
         assertEquals(3, docs.size());
     }
 
@@ -105,7 +104,7 @@ public class IntegrationTest {
         long count = coll.deleteOne(new Document("name", "Frank"));
         assertEquals(1, count);
 
-        List<Document> docs = coll.find(new Document()).toList();
+        List<Document> docs = coll.find(new Document());
         assertEquals(1, docs.size());
         assertEquals("Grace", docs.get(0).getString("name"));
     }
@@ -123,7 +122,7 @@ public class IntegrationTest {
         long count = coll.deleteMany(new Document("group", "A"));
         assertEquals(2, count);
 
-        List<Document> docs = coll.find(new Document()).toList();
+        List<Document> docs = coll.find(new Document());
         assertEquals(1, docs.size());
     }
 
@@ -141,7 +140,7 @@ public class IntegrationTest {
                 new Document("$group", new Document("_id", "$category")
                         .append("total", new Document("$sum", "$value"))),
                 new Document("$sort", new Document("_id", 1))
-        )).toList();
+        ));
 
         assertEquals(2, results.size());
         assertEquals("A", results.get(0).getString("_id"));
@@ -158,7 +157,7 @@ public class IntegrationTest {
             coll.insertOne(new Document("i", i));
         }
 
-        List<Document> docs = coll.find(new Document(), new FindOptions().limit(3)).toList();
+        List<Document> docs = coll.find(new Document(), new FindOptions().limit(3));
         assertEquals(3, docs.size());
     }
 
@@ -228,7 +227,7 @@ public class IntegrationTest {
         );
         assertEquals(2, result.getModifiedCount());
 
-        List<Document> docs = coll.find(new Document("status", "inactive")).toList();
+        List<Document> docs = coll.find(new Document("status", "inactive"));
         assertEquals(2, docs.size());
     }
 
@@ -469,74 +468,5 @@ public class IntegrationTest {
         PipelineResult.ListDatabasesResult listDbResult = results.get(2).asListDatabases();
         assertNotNull(listDbResult);
         assertFalse(listDbResult.getDatabases().isEmpty());
-    }
-
-    @Test
-    public void testFindCursorIteration() {
-        MongoCollection coll = getCollection();
-        List<Document> docs = new ArrayList<>();
-        for (int i = 0; i < 50; i++) {
-            docs.add(new Document("i", i));
-        }
-        coll.insertMany(docs);
-
-        int count = 0;
-        try (MongoCursor cursor = coll.find(new Document())) {
-            while (cursor.hasNext()) {
-                Document doc = cursor.next();
-                assertNotNull(doc);
-                count++;
-            }
-        }
-        assertEquals(50, count);
-    }
-
-    @Test
-    public void testFindCursorEarlyClose() {
-        MongoCollection coll = getCollection();
-        List<Document> docs = new ArrayList<>();
-        for (int i = 0; i < 100; i++) {
-            docs.add(new Document("i", i));
-        }
-        coll.insertMany(docs);
-
-        int count = 0;
-        try (MongoCursor cursor = coll.find(new Document(), new FindOptions().batchSize(10))) {
-            while (cursor.hasNext() && count < 5) {
-                cursor.next();
-                count++;
-            }
-        }
-        assertEquals(5, count);
-    }
-
-    @Test
-    public void testFindCursorEmpty() {
-        MongoCollection coll = getCollection();
-        List<Document> docs = coll.find(new Document("nonexistent", true)).toList();
-        assertEquals(0, docs.size());
-    }
-
-    @Test
-    public void testAggregateCursorIteration() {
-        MongoCollection coll = getCollection();
-        coll.insertMany(List.of(
-            new Document("category", "A").append("value", 10),
-            new Document("category", "A").append("value", 20),
-            new Document("category", "B").append("value", 30)
-        ));
-
-        List<Document> results = new ArrayList<>();
-        try (MongoCursor cursor = coll.aggregate(List.of(
-            new Document("$group", new Document("_id", "$category").append("total", new Document("$sum", "$value"))),
-            new Document("$sort", new Document("_id", 1))
-        ))) {
-            while (cursor.hasNext()) {
-                results.add(cursor.next());
-            }
-        }
-        assertEquals(2, results.size());
-        assertEquals("A", results.get(0).getString("_id"));
-        assertEquals(30, results.get(0).getInteger("total").intValue());
     }
 }

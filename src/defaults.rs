@@ -78,6 +78,18 @@ pub fn default_read_concern() -> mongodb::options::ReadConcern {
     mongodb::options::ReadConcern::majority()
 }
 
+/// Maximum steps allowed in a transactional pipeline.
+pub const DEFAULT_TRANSACTION_PIPELINE_MAX_STEPS: usize = 50;
+
+/// Maximum documents stored from a Find/Aggregate step for referencing.
+pub const DEFAULT_TRANSACTION_PIPELINE_MAX_DOCS: usize = 101;
+
+/// Default transaction pipeline timeout in milliseconds.
+pub const DEFAULT_TRANSACTION_PIPELINE_TIMEOUT_MS: u64 = 30_000;
+
+/// Maximum retries on transient transaction errors.
+pub const DEFAULT_TRANSACTION_PIPELINE_MAX_RETRIES: u32 = 3;
+
 /// Returns the default read preference (PrimaryPreferred).
 pub fn default_read_preference() -> mongodb::options::ReadPreference {
     mongodb::options::ReadPreference::PrimaryPreferred {

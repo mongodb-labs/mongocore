@@ -374,3 +374,29 @@ Implemented the Pipeline RPC to batch N independent operations in a single gRPC 
 - Typed op builders in all 4 client languages for ergonomic API
 
 **Learned:** The proto `oneof` for 20 operation types creates a large message definition but the implementation is mechanical — each per-op dispatch helper is ~20 lines following the same pattern.
+
+---
+
+## Session 6: Transactional Pipeline (v0.10)
+
+### The Problem
+
+The concurrent Pipeline RPC (v0.9) executes independent operations in parallel — great for batching, but many real workflows need dependent operations that must succeed atomically. "Find a user, then deactivate them, then log the action with their details" requires sequential execution with result forwarding between steps.
+
+### Design Decisions
+
+After brainstorming, several key choices shaped the design:
+
+- **Named steps with `{{step.path}}` references** — aligned with the existing template registry's `{{param}}` syntax. Considered `$step.field` (conflicts with MQL's `$` operators) and `@step.field` (unfamiliar). The double-brace syntax is universally recognized as "placeholder" and clearly not MQL.
+- **Fail-fast error model** — matches transaction semantics (all-or-nothing). Null propagation and skip-dependent alternatives were rejected as too confusing.
+- **Strictly sequential** — no DAG scheduling. Independent ops should use the concurrent Pipeline instead.
+- **Per-step database/collection** — unified proto with client convenience wrappers (collection-scoped auto-fills both fields).
+- **101-document cap** on Find/Aggregate results — prevents memory exhaustion. Auto-sets limit if unspecified; rejects if explicit limit > 101.
+
+### Implementation
+
+Built in dependency order: proto → error/constants → reference parser → validator → executor → gRPC handler → MCP tool → client wrappers → docs. The reference parser supports dot-paths (`step.field.sub`), array indexing (`step[0].field`), wildcard pluck (`step[*].field`), full passthrough (`step`), and length (`step.length`).
+
+The executor reuses the existing `ClientSession` pattern from `transaction.rs` — start session, begin transaction, execute steps with reference resolution between each, commit or abort. Auto-retries up to 3 times on `TransientTransactionError`.
+
+**Learned:** Keeping the concurrent Pipeline and TransactionPipeline as separate RPCs was the right call. They have fundamentally different execution models, error semantics, and use cases. Trying to merge them with a "mode" flag would have created a confusing API.

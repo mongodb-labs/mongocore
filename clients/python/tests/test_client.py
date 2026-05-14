@@ -23,7 +23,7 @@ def test_database_collection_access():
 
 def test_client_default_address():
     client = MongoClient()
-    assert client._address is None
+    assert client._address == "localhost:50051"
 
 
 def test_client_metadata_constant():

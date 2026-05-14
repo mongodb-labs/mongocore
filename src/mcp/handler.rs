@@ -324,6 +324,6 @@ mod tests {
     fn test_tools_list_returns_definitions() {
         let definitions = tools::tool_definitions();
         assert!(!definitions.is_empty());
-        assert_eq!(definitions.len(), 35);
+        assert_eq!(definitions.len(), 36);
     }
 }

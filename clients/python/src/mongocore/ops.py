@@ -261,3 +261,66 @@ def abort_transaction(transaction_id: str) -> AbortTransactionOp:
 def get_analytics(window_seconds: int = 0) -> GetAnalyticsOp:
     """Create a get_analytics operation."""
     return GetAnalyticsOp(window_seconds)
+
+
+# --- Transaction Pipeline Step Builders ---
+
+@dataclass
+class TransactionStep:
+    """A step in a transactional pipeline."""
+    name: str
+    operation: dict  # Operation params (from step_* builders)
+    collection: Optional[str] = None  # Set for database-scoped API
+
+
+def step_find_one(filter: Optional[dict] = None) -> dict:
+    """Create a find_one step operation."""
+    return {"op": "find_one", "filter": filter or {}}
+
+
+def step_find(filter: Optional[dict] = None, *, limit: int = 0) -> dict:
+    """Create a find step operation."""
+    result = {"op": "find", "filter": filter or {}}
+    if limit:
+        result["limit"] = limit
+    return result
+
+
+def step_insert(document: dict) -> dict:
+    """Create an insert step operation."""
+    return {"op": "insert", "document": document}
+
+
+def step_insert_many(documents: list[dict]) -> dict:
+    """Create an insert_many step operation."""
+    return {"op": "insert_many", "documents": documents}
+
+
+def step_update(filter: dict, update: dict) -> dict:
+    """Create an update step operation."""
+    return {"op": "update", "filter": filter, "update": update}
+
+
+def step_update_many(filter: dict, update: dict) -> dict:
+    """Create an update_many step operation."""
+    return {"op": "update_many", "filter": filter, "update": update}
+
+
+def step_delete(filter: dict) -> dict:
+    """Create a delete step operation."""
+    return {"op": "delete", "filter": filter}
+
+
+def step_delete_many(filter: dict) -> dict:
+    """Create a delete_many step operation."""
+    return {"op": "delete_many", "filter": filter}
+
+
+def step_find_and_modify(filter: dict, update: dict, *, return_new: bool = True) -> dict:
+    """Create a find_and_modify step operation."""
+    return {"op": "find_and_modify", "filter": filter, "update": update, "return_new": return_new}
+
+
+def step_aggregate(pipeline: list[dict]) -> dict:
+    """Create an aggregate step operation."""
+    return {"op": "aggregate", "pipeline": pipeline}
