@@ -176,9 +176,10 @@ def bench_mongocore_ingest(label, format_ext):
 
 
 TRANSFORMS = [
+    "cast(age, Int64)",
+    "cast(score, Int32)",
     "filter(age >= 21)",
     "rename(name, full_name)",
-    "cast(score, Int32)",
     "drop(tags)",
 ]
 
@@ -221,10 +222,11 @@ def bench_native_transform(label, format_ext):
             with open(file_path) as f:
                 rows = [json.loads(line) for line in f]
 
-        # Transform: filter age>=21, rename name→full_name, cast score to int, drop tags
+        # Transform: cast age/score, filter age>=21, rename name→full_name, drop tags
         transformed = []
         for row in rows:
             age = int(row["age"]) if isinstance(row["age"], str) else row["age"]
+            score = int(float(row["score"])) if isinstance(row["score"], str) else int(row["score"])
             if age < 21:
                 continue
             doc = {
@@ -232,7 +234,7 @@ def bench_native_transform(label, format_ext):
                 "full_name": row["name"],
                 "email": row["email"],
                 "age": age,
-                "score": int(float(row["score"])) if isinstance(row["score"], str) else int(row["score"]),
+                "score": score,
                 "created_at": row["created_at"],
             }
             transformed.append(doc)
