@@ -400,3 +400,90 @@ Built in dependency order: proto → error/constants → reference parser → va
 The executor reuses the existing `ClientSession` pattern from `transaction.rs` — start session, begin transaction, execute steps with reference resolution between each, commit or abort. Auto-retries up to 3 times on `TransientTransactionError`.
 
 **Learned:** Keeping the concurrent Pipeline and TransactionPipeline as separate RPCs was the right call. They have fundamentally different execution models, error semantics, and use cases. Trying to merge them with a "mode" flag would have created a confusing API.
+
+---
+
+## 2026-05-14: Benchmark Overhaul & Ingestion Fairness
+
+### The Problem: Apples to Oranges
+
+The ingestion benchmarks weren't a fair comparison. The native (pymongo) benchmark did synchronous single-threaded inserts while MongoCore used async concurrent writes. The schema inference also had a bug — it inferred types from the raw source DataFrame rather than the transformed one, meaning transform benchmarks could produce wrong types.
+
+### What Was Fixed
+
+**Concurrent writes in native benchmarks:** Added 4-thread concurrent batch inserts to pymongo, matching MongoCore's 4-task async writes. Previously pymongo was handicapped by single-threaded sequential inserts.
+
+**Schema inference bug:** MongoCore was inferring schema from the raw Polars DataFrame before transforms were applied. If a transform cast a column from String to Int64, the schema still said String. Fixed to infer from the post-transform DataFrame.
+
+**Double file read:** The ingestion path was reading the file once for schema inference and again for data processing. Eliminated the redundant read.
+
+**Transform benchmarks:** Added a new "ingest + transform" scenario that applies Polars expressions (cast, filter, derive) during ingestion. The native equivalent applies the same transforms in a Python per-row loop before insert. This shows where Polars' columnar vectorized processing dominates.
+
+**Panic handling:** Ingestion spawns a Tokio task; if it panicked (e.g., from a Polars error), the error was swallowed. Added `catch_unwind` to surface panics as proper errors.
+
+### Methodology Documentation
+
+Added clear methodology descriptions to each benchmark section in RESULTS.md:
+- **Driver Operations:** "This is the worst case for MongoCore — pure sidecar overhead on localhost"
+- **Pipeline Batching:** "Even with sidecar overhead, batching beats individual calls"
+- **Ingestion:** "At scale, Polars' columnar processing outperforms Python's per-row parsing"
+
+Moved methodology text after the data tables (not before), split into Native/MongoCore/Insight for scannability.
+
+### Results After Fixes
+
+The ingestion numbers told a clearer story once fair:
+- **Small data (10K rows):** Roughly even — overhead of gRPC amortizes poorly
+- **Medium data (100K rows):** MongoCore 2-3x faster — Polars parallelism kicks in
+- **Large data (500K rows):** MongoCore 3x+ faster — the gap widens with scale
+
+The transform scenario showed an even larger gap: Python per-row loops can't compete with Polars vectorized expressions at scale.
+
+---
+
+## 2026-05-14: Demo Planning & Transactional Pipeline Benchmarks
+
+### Demo Video Design
+
+Planned a 3-minute skunkworks demo video for a mixed audience (MongoDB engineers + leadership). The thesis: "AI changes what a driver can be — and AI built this one in 4 days."
+
+**Key decisions:**
+- **Format:** Slides + live demo clips, all shown through Claude Desktop with MCP
+- **Structure:** Single continuous narrative ("The Journey") rather than feature-per-slide — one realistic workflow that naturally hits all four hero features
+- **Four acts:** Ingestion (Polars from remote CSV) → NL queries (with template cache demo) → Request pipelines (batch updates) → Transactional pipelines (atomic multi-step with result forwarding)
+- **Dataset:** ~4,800-row movie dataset from GitHub, ingested live via URL to complement the pre-loaded sample_mflix collection
+- **Honest framing:** Acknowledge the latency trade-off openly, show the numbers, explain what you get in return
+- **Closer:** "Built by AI. In 4 days."
+
+**Skunkworks presentation principles:** Show real interactions (not mocked), let impressive moments breathe, don't cover every feature (depth on 4 beats breadth on 12), don't speed-talk, slightly raw feel says "this is real."
+
+Spec committed to `docs/design/specs/2026-05-14-demo-video-design.md`.
+
+### Transactional Pipeline Benchmarks
+
+Added benchmarks comparing MongoCore's `transaction_pipeline()` against pymongo's `session.with_transaction()`.
+
+**Design:**
+- 3-operation transfer pattern: find_one (lookup account) → update (debit using `{{lookup_source._id}}` result forwarding) → update (credit target)
+- 1,000 accounts to keep contention realistic without pathological conflicts
+- Scales at 10 / 100 / 1,000 transactions per iteration (reduced from pipeline bench's 100/1K/10K because each txn is 3 ops + session overhead)
+- Apples-to-apples: both versions use the find_one result to filter the debit update (MongoCore via `{{lookup_source._id}}`, pymongo via Python variable)
+
+**Results (localhost):**
+
+| Batch | Native (pymongo) | MongoCore | Ratio |
+|-------|-----------------|-----------|-------|
+| 10 txns | 720 txns/s | 421 txns/s | 0.6x |
+| 100 txns | 710 txns/s | 376 txns/s | 0.5x |
+| 1,000 txns | 681 txns/s | 370 txns/s | 0.5x |
+
+**The honest story:** On localhost, MongoCore is slower. Both make the same 3 round-trips to MongoDB, but pymongo talks directly while MongoCore adds gRPC serialization + reference resolution. The transactional pipeline's advantage is architectural — one client→server call vs three — which pays off over real networks (cross-AZ, cloud deployments) where eliminating round-trips matters.
+
+**What was added:**
+- `bench_txn_pipeline.py` — MongoCore transactional pipeline benchmark
+- `bench_native_txn.py` — pymongo equivalent with `session.with_transaction()`
+- SVG chart generation in `generate_results.py`
+- New "Transactional Pipeline" section in RESULTS.md template
+- Justfile recipes (`bench-txn-pipeline`, private implementations)
+
+**Learned:** Being honest about where MongoCore loses on localhost builds credibility. The value proposition for transactional pipelines isn't raw speed — it's developer ergonomics (one call, result forwarding, automatic retry) and the network-latency win that only materializes in production deployments.
