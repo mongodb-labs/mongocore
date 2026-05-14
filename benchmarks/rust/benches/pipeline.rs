@@ -5,7 +5,7 @@ use mongocore::grpc::proto::pipeline_operation::Operation;
 use mongocore::grpc::proto::{ListDatabasesRequest, PipelineOperation, PipelineRequest};
 use mongocore::grpc::{start_grpc_server, GrpcServerConfig};
 
-#[path = "../tests/harness/mod.rs"]
+#[path = "../../../tests/harness/mod.rs"]
 mod harness;
 
 /// Try to start a test server on a random port.
