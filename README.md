@@ -125,9 +125,7 @@ mongocore/
 
 ## Roadmap
 
-See [Roadmap & Version History](./docs/roadmap.md) for detailed feature sets per version and the full future roadmap.
-
-**Current version: v0.6** — Intelligent NL→MQL routing with LLM-provided templates
+See [Roadmap & Version History](./docs/roadmap.md) for detailed feature sets per version and the backlog.
 
 ## License
 
