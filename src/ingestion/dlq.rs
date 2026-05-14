@@ -14,6 +14,10 @@ impl DeadLetterQueue {
         Self { collection }
     }
 
+    pub fn collection(&self) -> &Collection<Document> {
+        &self.collection
+    }
+
     /// Insert a single failed document entry
     pub async fn push(&self, entry: DeadLetterEntry) -> Result<(), MongoCoreError> {
         let doc = Self::entry_to_document(&entry);

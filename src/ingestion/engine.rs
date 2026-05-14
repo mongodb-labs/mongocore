@@ -1,10 +1,11 @@
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicI64, Ordering};
 
 use futures::FutureExt;
 use mongodb::Client;
 use polars::prelude::*;
-use tokio::sync::{broadcast, RwLock};
+use tokio::sync::{broadcast, mpsc, RwLock};
 
 use crate::error::MongoCoreError;
 use crate::ingestion::dedup::{DedupChecker, DedupResult};
@@ -68,11 +69,7 @@ impl IngestionEngine {
             other => other,
         };
 
-        // Count total rows
-        let total_rows =
-            reader::count_rows_from_source(source, format.clone(), &options.csv_options)? as i64;
-
-        // Read LazyFrame
+        // Read LazyFrame (no separate count_rows pass — we get total after collect)
         let lf = reader::read_lazy_from_source(source, format, &options.csv_options)?;
 
         // Sample for schema inference
@@ -95,14 +92,14 @@ impl IngestionEngine {
             transform::apply_expressions(lf, &options.expressions)?
         };
 
-        // Create job record
+        // Create job record (total_rows updated after collect)
         let job = IngestJob {
             job_id: job_id.clone(),
             file_path: options.file_path.clone(),
             database: options.database.clone(),
             collection: options.collection.clone(),
             status: IngestStatus::Running,
-            total_rows,
+            total_rows: 0,
             rows_processed: 0,
             rows_inserted: 0,
             rows_skipped: 0,
@@ -128,6 +125,7 @@ impl IngestionEngine {
         let dlq = DeadLetterQueue::new(self.db.collection("__mongocore.dead_letter"));
         let progress = self.progress.clone();
         let batch_size = options.batch_size;
+        let concurrency = options.concurrency.max(1) as usize;
         let dedup_key = options.dedup_key.clone();
         let conflict_strategy = options.conflict_strategy;
         let cancel_channels = self.cancel_channels.clone();
@@ -142,6 +140,7 @@ impl IngestionEngine {
                 &progress,
                 &job_id,
                 batch_size,
+                concurrency,
                 dedup_key,
                 conflict_strategy,
                 &mut cancel_rx,
@@ -181,15 +180,186 @@ impl IngestionEngine {
         progress: &ProgressTracker,
         job_id: &str,
         batch_size: u32,
+        concurrency: usize,
         dedup_key: Vec<String>,
         conflict_strategy: ConflictStrategy,
         cancel_rx: &mut broadcast::Receiver<()>,
     ) -> Result<(), MongoCoreError> {
-        // Collect full DataFrame
+        // Collect DataFrame (transforms applied lazily by Polars)
         let df = lf
             .collect()
             .map_err(|e| MongoCoreError::IngestionError(format!("Collect failed: {}", e)))?;
         let total_rows = df.height();
+
+        // Update total_rows now that we know it
+        let _ = progress.update_total_rows(job_id, total_rows as i64).await;
+
+        let has_dedup = !dedup_key.is_empty();
+
+        if has_dedup {
+            // Dedup path: sequential writes (must check existing data per batch)
+            Self::run_sequential_writes(
+                &df, schema, &collection, dlq, progress, job_id,
+                batch_size, dedup_key, conflict_strategy, cancel_rx,
+            ).await
+        } else {
+            // No dedup: concurrent writes for maximum throughput
+            Self::run_concurrent_writes(
+                &df, schema, &collection, dlq, progress, job_id,
+                batch_size, concurrency, cancel_rx,
+            ).await
+        }
+    }
+
+    async fn run_concurrent_writes(
+        df: &DataFrame,
+        schema: &BsonSchema,
+        collection: &mongodb::Collection<bson::Document>,
+        dlq: &DeadLetterQueue,
+        progress: &ProgressTracker,
+        job_id: &str,
+        batch_size: u32,
+        concurrency: usize,
+        cancel_rx: &mut broadcast::Receiver<()>,
+    ) -> Result<(), MongoCoreError> {
+        let total_rows = df.height();
+        let rows_inserted = Arc::new(AtomicI64::new(0));
+        let rows_failed = Arc::new(AtomicI64::new(0));
+
+        // Channel for sending document batches to writer tasks
+        let (tx, rx) = mpsc::channel::<(Vec<bson::Document>, usize)>(concurrency * 2);
+        let rx = Arc::new(tokio::sync::Mutex::new(rx));
+
+        // Spawn writer tasks
+        let mut writer_handles = Vec::with_capacity(concurrency);
+        for _ in 0..concurrency {
+            let rx = rx.clone();
+            let collection = collection.clone();
+            let dlq_coll = dlq.collection().clone();
+            let job_id_owned = job_id.to_string();
+            let inserted = rows_inserted.clone();
+            let failed = rows_failed.clone();
+
+            writer_handles.push(tokio::spawn(async move {
+                loop {
+                    let batch = {
+                        let mut guard = rx.lock().await;
+                        guard.recv().await
+                    };
+                    let Some((docs, offset)) = batch else { break };
+
+                    let doc_count = docs.len() as i64;
+                    match collection.insert_many(&docs).await {
+                        Ok(r) => {
+                            inserted.fetch_add(r.inserted_ids.len() as i64, Ordering::Relaxed);
+                        }
+                        Err(e) => {
+                            // Send failed docs to DLQ
+                            let dlq = DeadLetterQueue::new(dlq_coll.clone());
+                            for (i, doc) in docs.into_iter().enumerate() {
+                                let entry = DeadLetterEntry {
+                                    job_id: job_id_owned.clone(),
+                                    source_row: (offset + i) as i64,
+                                    document: doc,
+                                    error: format!("Insert error: {}", e),
+                                    stage: "write".to_string(),
+                                    timestamp: chrono::Utc::now(),
+                                };
+                                let _ = dlq.push(entry).await;
+                            }
+                            failed.fetch_add(doc_count, Ordering::Relaxed);
+                        }
+                    }
+                }
+            }));
+        }
+
+        // Producer: convert chunks to BSON and send to writers
+        let mut offset = 0usize;
+        let mut chunk_num: i64 = 0;
+        while offset < total_rows {
+            if cancel_rx.try_recv().is_ok() {
+                drop(tx);
+                for h in writer_handles {
+                    let _ = h.await;
+                }
+                return Err(MongoCoreError::IngestionError("Job cancelled".to_string()));
+            }
+
+            let end = (offset + batch_size as usize).min(total_rows);
+            let chunk_df = df.slice(offset as i64, end - offset);
+
+            match writer::dataframe_to_documents(&chunk_df, schema) {
+                Ok(docs) => {
+                    if tx.send((docs, offset)).await.is_err() {
+                        break;
+                    }
+                }
+                Err(e) => {
+                    for i in offset..end {
+                        let entry = DeadLetterEntry {
+                            job_id: job_id.to_string(),
+                            source_row: i as i64,
+                            document: bson::Document::new(),
+                            error: format!("Conversion error: {}", e),
+                            stage: "conversion".to_string(),
+                            timestamp: chrono::Utc::now(),
+                        };
+                        let _ = dlq.push(entry).await;
+                    }
+                    rows_failed.fetch_add((end - offset) as i64, Ordering::Relaxed);
+                }
+            }
+
+            chunk_num += 1;
+            offset = end;
+
+            // Periodic progress update (every 4 chunks to reduce overhead)
+            if chunk_num % 4 == 0 {
+                let _ = progress.update_progress(
+                    job_id,
+                    offset as i64,
+                    rows_inserted.load(Ordering::Relaxed),
+                    0,
+                    rows_failed.load(Ordering::Relaxed),
+                    chunk_num,
+                ).await;
+            }
+        }
+
+        // Close channel and wait for writers to finish
+        drop(tx);
+        for h in writer_handles {
+            let _ = h.await;
+        }
+
+        // Final progress update
+        let _ = progress.update_progress(
+            job_id,
+            total_rows as i64,
+            rows_inserted.load(Ordering::Relaxed),
+            0,
+            rows_failed.load(Ordering::Relaxed),
+            chunk_num,
+        ).await;
+
+        Ok(())
+    }
+
+    async fn run_sequential_writes(
+        df: &DataFrame,
+        schema: &BsonSchema,
+        collection: &mongodb::Collection<bson::Document>,
+        dlq: &DeadLetterQueue,
+        progress: &ProgressTracker,
+        job_id: &str,
+        batch_size: u32,
+        dedup_key: Vec<String>,
+        conflict_strategy: ConflictStrategy,
+        cancel_rx: &mut broadcast::Receiver<()>,
+    ) -> Result<(), MongoCoreError> {
+        let total_rows = df.height();
+        let dedup_checker = DedupChecker::new(collection.clone(), dedup_key, conflict_strategy);
 
         let mut rows_processed: i64 = 0;
         let mut rows_inserted: i64 = 0;
@@ -197,34 +367,18 @@ impl IngestionEngine {
         let mut rows_failed: i64 = 0;
         let mut chunk_num: i64 = 0;
 
-        let has_dedup = !dedup_key.is_empty();
-        let dedup_checker = if has_dedup {
-            Some(DedupChecker::new(
-                collection.clone(),
-                dedup_key,
-                conflict_strategy,
-            ))
-        } else {
-            None
-        };
-
         let mut offset = 0usize;
         while offset < total_rows {
-            // Check cancellation
             if cancel_rx.try_recv().is_ok() {
-                return Err(MongoCoreError::IngestionError(
-                    "Job cancelled".to_string(),
-                ));
+                return Err(MongoCoreError::IngestionError("Job cancelled".to_string()));
             }
 
             let end = (offset + batch_size as usize).min(total_rows);
             let chunk_df = df.slice(offset as i64, end - offset);
 
-            // Convert to documents
             let docs = match writer::dataframe_to_documents(&chunk_df, schema) {
                 Ok(d) => d,
                 Err(e) => {
-                    // Whole chunk failed - send to DLQ
                     for i in offset..end {
                         let entry = DeadLetterEntry {
                             job_id: job_id.to_string(),
@@ -244,61 +398,27 @@ impl IngestionEngine {
                 }
             };
 
-            // Dedup + write
-            if let Some(ref checker) = dedup_checker {
-                let results = checker.check_batch(&docs).await?;
-                let mut to_insert = Vec::new();
-                let mut to_replace = Vec::new();
+            let results = dedup_checker.check_batch(&docs).await?;
+            let mut to_insert = Vec::new();
+            let mut to_replace = Vec::new();
 
-                for result in results.into_iter() {
-                    match result {
-                        DedupResult::Insert(d) => to_insert.push(d),
-                        DedupResult::Skip => rows_skipped += 1,
-                        DedupResult::Replace(d) => to_replace.push(d),
-                        DedupResult::Merge(incoming, existing) => {
-                            to_replace.push(DedupChecker::merge_documents(&incoming, &existing));
-                        }
+            for result in results.into_iter() {
+                match result {
+                    DedupResult::Insert(d) => to_insert.push(d),
+                    DedupResult::Skip => rows_skipped += 1,
+                    DedupResult::Replace(d) => to_replace.push(d),
+                    DedupResult::Merge(incoming, existing) => {
+                        to_replace.push(DedupChecker::merge_documents(&incoming, &existing));
                     }
                 }
+            }
 
-                if !to_insert.is_empty() {
-                    let insert_count = to_insert.len() as i64;
-                    match collection.insert_many(&to_insert).await {
-                        Ok(r) => rows_inserted += r.inserted_ids.len() as i64,
-                        Err(e) => {
-                            // Send failed inserts to DLQ
-                            for (i, doc) in to_insert.into_iter().enumerate() {
-                                let entry = DeadLetterEntry {
-                                    job_id: job_id.to_string(),
-                                    source_row: (offset + i) as i64,
-                                    document: doc,
-                                    error: format!("Insert error: {}", e),
-                                    stage: "write".to_string(),
-                                    timestamp: chrono::Utc::now(),
-                                };
-                                let _ = dlq.push(entry).await;
-                            }
-                            rows_failed += insert_count;
-                        }
-                    }
-                }
-                for replacement in &to_replace {
-                    let filter = checker
-                        .build_dedup_filter(replacement)
-                        .unwrap_or_default();
-                    match collection.replace_one(filter, replacement).await {
-                        Ok(_) => rows_inserted += 1,
-                        Err(_) => rows_failed += 1,
-                    }
-                }
-            } else {
-                // No dedup — straight insert
-                let doc_count = docs.len() as i64;
-                match collection.insert_many(&docs).await {
+            if !to_insert.is_empty() {
+                let insert_count = to_insert.len() as i64;
+                match collection.insert_many(&to_insert).await {
                     Ok(r) => rows_inserted += r.inserted_ids.len() as i64,
                     Err(e) => {
-                        // Send failed docs to DLQ
-                        for (i, doc) in docs.into_iter().enumerate() {
+                        for (i, doc) in to_insert.into_iter().enumerate() {
                             let entry = DeadLetterEntry {
                                 job_id: job_id.to_string(),
                                 source_row: (offset + i) as i64,
@@ -309,8 +429,15 @@ impl IngestionEngine {
                             };
                             let _ = dlq.push(entry).await;
                         }
-                        rows_failed += doc_count;
+                        rows_failed += insert_count;
                     }
+                }
+            }
+            for replacement in &to_replace {
+                let filter = dedup_checker.build_dedup_filter(replacement).unwrap_or_default();
+                match collection.replace_one(filter, replacement).await {
+                    Ok(_) => rows_inserted += 1,
+                    Err(_) => rows_failed += 1,
                 }
             }
 
@@ -318,16 +445,9 @@ impl IngestionEngine {
             chunk_num += 1;
             offset = end;
 
-            let _ = progress
-                .update_progress(
-                    job_id,
-                    rows_processed,
-                    rows_inserted,
-                    rows_skipped,
-                    rows_failed,
-                    chunk_num,
-                )
-                .await;
+            let _ = progress.update_progress(
+                job_id, rows_processed, rows_inserted, rows_skipped, rows_failed, chunk_num,
+            ).await;
         }
 
         Ok(())

@@ -31,6 +31,19 @@ impl ProgressTracker {
         Ok(())
     }
 
+    pub async fn update_total_rows(&self, job_id: &str, total_rows: i64) -> Result<(), MongoCoreError> {
+        let filter = doc! { "job_id": job_id };
+        let update = doc! { "$set": { "total_rows": total_rows } };
+        self.collection.update_one(filter, update).await.map_err(|e| {
+            MongoCoreError::IngestionError(format!("Failed to update total_rows: {e}"))
+        })?;
+        let mut jobs = self.jobs.write().await;
+        if let Some(job) = jobs.iter_mut().find(|j| j.job_id == job_id) {
+            job.total_rows = total_rows;
+        }
+        Ok(())
+    }
+
     pub async fn update_progress(
         &self,
         job_id: &str,
