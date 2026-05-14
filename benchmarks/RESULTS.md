@@ -1,6 +1,6 @@
 # Benchmark Results
 
-Generated: 2026-05-14 17:14 UTC
+Generated: 2026-05-14 19:07 UTC
 
 ![Native vs MongoCore Overhead](results/charts/sidecar_overhead.svg)
 
@@ -43,18 +43,18 @@ Pipeline sends multiple operations in a single gRPC call. Native column shows th
 
 | Scenario | Format | Size | MongoCore (MB/s) | Native (MB/s) | p50 (s) |
 |----------|--------|-----:|-----------------:|--------------:|--------:|
-| ingest | csv | 1mb | 7.70 | 12.13 | 0.107 |
-| ingest | ndjson | 1mb | 8.74 | 19.70 | 0.108 |
-| ingest | csv | 10mb | 11.50 | 13.41 | 0.722 |
-| ingest | ndjson | 10mb | 16.40 | 19.46 | 0.581 |
-| ingest | csv | 100mb | 11.83 | 12.03 | 7.090 |
-| ingest | ndjson | 100mb | 17.17 | 16.80 | 5.585 |
-| ingest + transform | csv | 1mb | — | — | — |
-| ingest + transform | ndjson | 1mb | — | — | — |
-| ingest + transform | csv | 10mb | — | — | — |
-| ingest + transform | ndjson | 10mb | — | — | — |
-| ingest + transform | csv | 100mb | — | — | — |
-| ingest + transform | ndjson | 100mb | — | — | — |
+| ingest | csv | 10k | 17.79 | 11.20 | 0.056 |
+| ingest | ndjson | 10k | 15.79 | 18.78 | 0.108 |
+| ingest | csv | 100k | 32.05 | 13.49 | 0.311 |
+| ingest | ndjson | 100k | 44.92 | 16.83 | 0.382 |
+| ingest | csv | 500k | 40.62 | 13.27 | 1.238 |
+| ingest | ndjson | 500k | 51.50 | 16.31 | 1.676 |
+| ingest + transform | csv | 10k | 15.90 | 11.45 | 0.062 |
+| ingest + transform | ndjson | 10k | 28.38 | 17.69 | 0.060 |
+| ingest + transform | csv | 100k | 36.25 | 13.21 | 0.275 |
+| ingest + transform | ndjson | 100k | 58.40 | 17.91 | 0.294 |
+| ingest + transform | csv | 500k | 41.98 | 12.68 | 1.198 |
+| ingest + transform | ndjson | 500k | 65.36 | 16.84 | 1.320 |
 
 ## Environment
 
