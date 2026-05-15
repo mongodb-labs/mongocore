@@ -4,7 +4,7 @@
 **Format:** HTML slides (bluedusk/html-slides) with embedded terminalizer GIFs, narrated (live or AI voice)
 **Duration:** Max 3 minutes
 **Audience:** Mixed — MongoDB engineers + leadership/product
-**Thesis:** "AI changes what a driver can be — and AI built this one in 4 days"
+**Thesis:** "AI changes what a driver can be — and AI built this one in 5 days"
 **Recording tool:** [terminalizer](https://github.com/faressoft/terminalizer) — terminal → GIF
 **Presentation framework:** [html-slides](https://github.com/bluedusk/html-slides)
 **Demo tool:** Claude Code CLI with MongoCore as MCP server
@@ -22,7 +22,7 @@ A series of focused terminal GIFs, each demonstrating a single MongoCore capabil
 ### Slide 1 — Introduction: "What is MongoCore?" (15 seconds)
 
 **Content:**
-- One-liner: "An AI-native MongoDB driver — built by AI, in 4 days"
+- One-liner: "An AI-native MongoDB driver — built by AI, in 5 days"
 - Architecture diagram:
 
 ```
@@ -168,7 +168,7 @@ Claude calls `explain_session` → generates a complete, runnable Python script 
 - 35+ MCP tools, 25+ gRPC RPCs
 
 **The closer:**
-> "Built by AI. In 4 days."
+> "Built by AI. In 5 days."
 
 End card.
 
@@ -268,7 +268,7 @@ Using [html-slides](https://github.com/bluedusk/html-slides):
 - **Let impressive moments breathe** — don't talk over the magic
 - **Be honest about limitations** — credibility is everything with engineers in the room
 - **Keep energy conversational** — not salesy, not apologetic
-- **End on "4 days"** — it's the mic drop
+- **End on "5 days"** — it's the mic drop
 - **Use the same MongoDB instance throughout** — continuity sells the story
 - **Show the explain output** — the Python code appearing is the "bridge to production" moment
 
@@ -312,4 +312,4 @@ The demo succeeds if the audience walks away thinking:
 1. "AI fundamentally changes what a database driver can do"
 2. "This is real — not a mockup or a future vision"
 3. "The explain feature bridges interactive AI → production code"
-4. "One person + AI built this in 4 days — what could a team do?"
+4. "One person + AI built this in 5 days — what could a team do?"
