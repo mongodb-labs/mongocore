@@ -83,4 +83,4 @@ Generated: 2026-05-14 20:31 UTC
 
 - **OS:** darwin (arm64)
 - **CPUs:** 12
-- **MongoCore:** 0.6.0
+- **MongoCore:** 0.1.0

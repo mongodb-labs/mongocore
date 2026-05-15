@@ -6,6 +6,8 @@
 
 An experimental AI-native MongoDB driver implemented as a lightweight Rust sidecar. MongoCore explores what's possible when driver design starts from AI-first principles — natural language queries, intelligent pipelines, and MCP agent support. It implements a focused subset of MongoDB's driver API alongside entirely new capabilities not found in traditional drivers. Full API coverage is potential future work; the core premise is pioneering new functionality.
 
+> **⚠️ EXPERIMENTAL — This is a research prototype, not a production driver. APIs will change without notice.**
+
 ## Key Features
 
 - **Rust sidecar architecture** — One fast core serves every language via gRPC
