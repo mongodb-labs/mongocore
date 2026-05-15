@@ -20,6 +20,12 @@ An experimental AI-native MongoDB driver implemented as a lightweight Rust sidec
 - **Data ingestion** — Polars-powered CSV/JSON/Parquet/URL/S3/GCS ingestion with schema inference and transforms
 - **Query analytics** — Real-time latency percentiles, error rates, and operation insights
 - **Multi-tenant support** — Shared sidecar with isolated caches, rate limiting, per-tenant pools
+- **Request pipelining** — Batch N independent operations in a single gRPC round-trip
+- **Transactional pipelines** — Atomic multi-step workflows with `{{step.field}}` result forwarding
+- **Operation explain** — `explain_last` / `explain_session` generate reproducible client code from MCP sessions
+- **Web dashboard** — Embedded single-page diagnostic UI (localhost:27999)
+- **Unix Domain Sockets** — ~36% latency reduction for same-machine deployments
+- **Streaming RPCs** — FindStream, AggregateStream, InsertManyStream for large result sets
 - **Raw passthrough** — Escape hatch for arbitrary MongoDB commands with safety validation
 - **Polyglot clients** — Python, TypeScript, Go, and Java with idiomatic APIs
 - **OpenTelemetry** — Optional distributed tracing with driver-level and MongoCore-level spans
@@ -104,20 +110,21 @@ mongocore/
 │   ├── connection/          # Connection pool, capability detection
 │   ├── operations/          # CRUD, aggregation, transactions, admin, raw passthrough
 │   ├── ingestion/           # Polars-based data ingestion, transforms, dedup, DLQ, watch
-│   ├── grpc/                # gRPC server (tonic) — 33 RPCs
-│   ├── mcp/                 # MCP server (axum) — 36 JSON-RPC tools, codegen, skills & resources
+│   ├── grpc/                # gRPC server (tonic) — 37 RPCs
+│   ├── mcp/                 # MCP server (axum) — 38 JSON-RPC tools, codegen, skills & resources
 │   ├── web_ui/              # Web dashboard UI (assets, handlers)
 │   ├── compiled/            # NL→MQL translation, routing, template registry, 3-level cache
 │   ├── search/              # Vector search, full-text, fallback chain
 │   ├── analytics/           # Query analytics, ring buffer, aggregator, persistence
 │   ├── tenant/              # Multi-tenant context, registry, isolation, quota
 │   └── voyage/              # Voyage AI REST client, batch embeddings
-├── proto/                   # Protobuf service definitions (33 RPCs)
+├── proto/                   # Protobuf service definitions (37 RPCs)
 ├── clients/
 │   ├── python/              # Python async client (BSON-native, change streams)
 │   ├── typescript/          # TypeScript/Node.js client (AsyncDisposable streams)
 │   ├── go/                  # Go client (io.Closer streams)
 │   └── java/                # Java client (AutoCloseable, try-with-resources)
+├── demo/                    # Demo GIFs and asciinema recordings
 ├── docs/                    # User-facing documentation
 │   └── design/              # Design specs and implementation plans
 ├── tests/                   # Integration tests (one file per subsystem)

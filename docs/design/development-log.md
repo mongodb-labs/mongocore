@@ -296,23 +296,58 @@ The design process worked well: brainstorm → clarifying questions → 3 approa
 
 ---
 
-## Statistics & Final State
+## Statistics & Current State
 
 | Metric | Count |
 |--------|-------|
-| Total commits | 100+ |
-| Rust unit tests | 233 |
-| Rust integration tests | ~97 |
+| Total commits | 251 |
+| Rust unit tests | 352 |
+| Rust integration tests | ~223 |
 | LLM integration tests | 23 |
-| Client tests | ~126 (26 integration + 5 unit × 4 languages) |
+| Client tests | ~137 |
 | Criterion benchmarks | 11 (sidecar internals) |
 | Driver benchmarks | 8 per language (native + MongoCore) |
-| gRPC RPCs | 25 |
-| MCP tools | 34 |
+| gRPC RPCs | 37 |
+| MCP tools | 38 |
+| MCP skills | 13 |
 | Client libraries | 4 (Python, TypeScript, Go, Java) |
-| Design specs | 13 |
-| Implementation plans | 18 |
-| Versions | v0.1 → v0.8 |
+| Design specs | 19 |
+| Implementation plans | 25 |
+| Versions | v0.1 → v0.10 |
+
+---
+
+## 2026-05-15: MCP Explain & Demo Production
+
+### MCP Operation Explain
+
+**The problem:** Users interact with MongoCore through an AI agent (Claude Desktop, etc.) but have no way to understand what operations were performed underneath, or to reproduce the session programmatically. "I just did all that interactively — now show me the Python code."
+
+**What was built:**
+- **Response enrichment** — Every MCP tool response now includes a `_context` object echoing key input parameters, making responses self-contained
+- **Session recorder** — In-memory operation history per MCP connection, tracking every tool call
+- **`explain_last` tool** — Generates parameterized client code for the most recent operation
+- **`explain_session` tool** — Generates a complete script reproducing all operations in the session
+
+**The key insight:** The explain tools don't just dump raw queries — they generate idiomatic MongoCore client code (Python/TypeScript/Go/Java) with proper async patterns, connection management, and error handling. The session recorder stores enough context to reconstruct the full workflow.
+
+### Demo Production
+
+Built the skunkworks demo as a series of asciinema recordings rendered to GIF, showing MongoCore through Claude Code's MCP interface:
+
+1. **Ingest + Explain** — Remote CSV ingestion via URL, then `explain_session` generates the reproduction script
+2. **NL Queries** — Natural language queries with template cache demonstration
+3. **Pipelines** — Request batching showing multiple operations in one call
+4. **ETL + Code Generation** — Full workflow from ingestion through transformation to code export
+
+**Approach:** Pre-recorded `.cast` files (asciinema format) with timing adjustments for readability, converted to GIFs. This gives reproducible, editable demos without live recording anxiety.
+
+### Test Stability Fixes
+
+Getting `just test-all` to pass reliably required fixing several issues:
+- **stdio log pollution** — MCP stdio transport was writing debug logs to stdout, corrupting JSON-RPC communication
+- **MongoDB pre-check** — Tests now verify MongoDB is accessible before running, with clear error messages
+- **Client test race conditions** — Fixed timing-dependent failures in change stream tests
 
 ---
 
