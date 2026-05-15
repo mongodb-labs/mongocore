@@ -97,7 +97,10 @@
 - **Skills system** — 13 guided workflows (MCP Prompts protocol + `list_skills`/`get_skill` tool fallback)
 - **Insights tools** — `suggest_indexes` and `slow_queries` analyzing analytics ring buffer
 - **Schema resource** — `mongocore://schema/{database}/{collection}` MCP resource
-- **36 MCP tools total** — up from 21 in v0.7
+- **Operation explain** — `explain_last` and `explain_session` tools generate parameterized MongoCore client code (Python, TypeScript, Go, Java) from recorded session history
+- **Response enrichment** — Every MCP tool response includes a `_context` object echoing key input parameters for self-contained explainability
+- **Session recorder** — In-memory per-connection operation history enabling replay, code generation, and debugging of multi-step workflows
+- **38 MCP tools total** — up from 21 in v0.7
 
 ### Web UI & Diagnostics
 
@@ -152,7 +155,7 @@ Items ordered by recommended implementation sequence.
 | MCP Code Quality | Extract schema helpers into `src/mcp/schema.rs`; split `tools.rs` into submodules; add document count limit to `embed_and_store`; complete `ingest_and_embed` pipeline |
 | Pipeline Benchmarks | Add pipeline equivalents to cross-language benchmark suite — compare N individual driver calls vs single pipeline RPC |
 | Demo | Curated restaurant dataset, scripted demo flow |
-| Query Explanation (Enhanced) | Add confidence scores, alternative interpretations, and cost estimates to `explain_query` |
+| Query Explanation (Enhanced) | Add confidence scores, alternative interpretations, and cost estimates to `explain_query` (base explain infrastructure now in place) |
 | Self-Contained AI | Local NL→MQL model, no external LLM dependency required |
 | Native Embedding (FFI) | PyO3, Neon, cgo embedding for zero-IPC overhead |
 | Driver API parity | Add all the standard driver level database / client apis |
