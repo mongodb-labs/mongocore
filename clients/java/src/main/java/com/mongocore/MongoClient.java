@@ -58,11 +58,11 @@ public class MongoClient implements AutoCloseable {
 
     public static MongoClient create() {
         String envSocket = System.getenv("MONGOCORE_SOCKET_PATH");
-        if (envSocket != null && !envSocket.isEmpty()) {
+        if (envSocket != null && !envSocket.isEmpty() && isUdsSupported()) {
             return new MongoClient("unix://" + envSocket, "uds");
         }
         java.io.File socketFile = new java.io.File(DEFAULT_SOCKET_PATH);
-        if (socketFile.exists()) {
+        if (socketFile.exists() && isUdsSupported()) {
             return new MongoClient("unix://" + DEFAULT_SOCKET_PATH, "uds");
         }
         String envAddr = System.getenv("MONGOCORE_ADDRESS");
@@ -70,6 +70,21 @@ public class MongoClient implements AutoCloseable {
             return new MongoClient(envAddr, "tcp");
         }
         return new MongoClient(DEFAULT_ADDRESS, "tcp");
+    }
+
+    private static boolean isUdsSupported() {
+        try {
+            Class.forName("io.netty.channel.epoll.EpollDomainSocketChannel");
+            return true;
+        } catch (ClassNotFoundException e) {
+            // Fall through
+        }
+        try {
+            Class.forName("io.netty.channel.kqueue.KQueueDomainSocketChannel");
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
     }
 
     public String getTransport() {

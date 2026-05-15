@@ -19,6 +19,25 @@ fn spawn_mongocore_stdio() -> std::process::Child {
         .expect("Failed to start mongocore")
 }
 
+/// Returns true if MongoDB is reachable via TCP on localhost:27017.
+fn mongodb_available() -> bool {
+    use std::net::TcpStream;
+    use std::time::Duration;
+    TcpStream::connect_timeout(
+        &"127.0.0.1:27017".parse().unwrap(),
+        Duration::from_secs(2),
+    ).is_ok()
+}
+
+macro_rules! skip_if_no_mongodb {
+    () => {
+        if !mongodb_available() {
+            eprintln!("SKIPPED: MongoDB not available on localhost:27017 (run `just docker-up`)");
+            return;
+        }
+    };
+}
+
 fn send_request(stdin: &mut impl Write, request: &Value) {
     writeln!(stdin, "{}", serde_json::to_string(request).unwrap()).unwrap();
     stdin.flush().unwrap();
@@ -32,6 +51,7 @@ fn read_response(reader: &mut impl BufRead) -> Value {
 
 #[test]
 fn test_stdio_initialize() {
+    skip_if_no_mongodb!();
     let mut child = spawn_mongocore_stdio();
     let stdin = child.stdin.as_mut().unwrap();
     let mut reader = BufReader::new(child.stdout.take().unwrap());
@@ -56,6 +76,7 @@ fn test_stdio_initialize() {
 
 #[test]
 fn test_stdio_tools_list() {
+    skip_if_no_mongodb!();
     let mut child = spawn_mongocore_stdio();
     let stdin = child.stdin.as_mut().unwrap();
     let mut reader = BufReader::new(child.stdout.take().unwrap());
@@ -85,6 +106,7 @@ fn test_stdio_tools_list() {
 
 #[test]
 fn test_stdio_invalid_json() {
+    skip_if_no_mongodb!();
     let mut child = spawn_mongocore_stdio();
     let stdin = child.stdin.as_mut().unwrap();
     let mut reader = BufReader::new(child.stdout.take().unwrap());
@@ -103,6 +125,7 @@ fn test_stdio_invalid_json() {
 
 #[test]
 fn test_stdio_unknown_method() {
+    skip_if_no_mongodb!();
     let mut child = spawn_mongocore_stdio();
     let stdin = child.stdin.as_mut().unwrap();
     let mut reader = BufReader::new(child.stdout.take().unwrap());

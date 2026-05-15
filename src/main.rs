@@ -25,8 +25,14 @@ async fn main() {
     });
 
     // Initialize tracing/logging
-    let filter = EnvFilter::try_from_default_env()
-        .unwrap_or_else(|_| EnvFilter::new(&config.log_level));
+    // In stdio mode, force logs to stderr so stdout stays clean for JSON-RPC
+    let filter = if cli.stdio {
+        EnvFilter::try_from_default_env()
+            .unwrap_or_else(|_| EnvFilter::new("warn"))
+    } else {
+        EnvFilter::try_from_default_env()
+            .unwrap_or_else(|_| EnvFilter::new(&config.log_level))
+    };
 
     #[cfg(feature = "otel")]
     let _otel_provider = {
@@ -51,7 +57,8 @@ async fn main() {
 
             let otel_layer = tracing_opentelemetry::layer()
                 .with_tracer(tracer_provider.tracer(config.otel_service_name.clone()));
-            let fmt_layer = tracing_subscriber::fmt::layer();
+            let fmt_layer = tracing_subscriber::fmt::layer()
+                .with_writer(std::io::stderr);
 
             tracing_subscriber::registry()
                 .with(filter)
@@ -62,14 +69,20 @@ async fn main() {
             info!("OpenTelemetry tracing enabled, exporting to {}", config.otel_endpoint);
             Some(tracer_provider)
         } else {
-            tracing_subscriber::fmt().with_env_filter(filter).init();
+            tracing_subscriber::fmt()
+                .with_writer(std::io::stderr)
+                .with_env_filter(filter)
+                .init();
             None
         }
     };
 
     #[cfg(not(feature = "otel"))]
     {
-        tracing_subscriber::fmt().with_env_filter(filter).init();
+        tracing_subscriber::fmt()
+            .with_writer(std::io::stderr)
+            .with_env_filter(filter)
+            .init();
     }
 
     // Connect to MongoDB and detect capabilities

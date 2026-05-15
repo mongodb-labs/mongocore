@@ -23,7 +23,11 @@ def test_database_collection_access():
 
 def test_client_default_address():
     client = MongoClient()
-    assert client._address == "localhost:50051"
+    # No explicit address — auto-discovery resolves target at connect time
+    assert client._address is None
+    # Explicit address is stored as-is
+    client2 = MongoClient(address="localhost:50051")
+    assert client2._address == "localhost:50051"
 
 
 def test_client_metadata_constant():

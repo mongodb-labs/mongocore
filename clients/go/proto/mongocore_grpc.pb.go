@@ -52,6 +52,10 @@ const (
 	MongoCore_StopWatch_FullMethodName           = "/mongocore.v1.MongoCore/StopWatch"
 	MongoCore_Pipeline_FullMethodName            = "/mongocore.v1.MongoCore/Pipeline"
 	MongoCore_TransactionPipeline_FullMethodName = "/mongocore.v1.MongoCore/TransactionPipeline"
+	MongoCore_CountDocuments_FullMethodName      = "/mongocore.v1.MongoCore/CountDocuments"
+	MongoCore_DropCollection_FullMethodName      = "/mongocore.v1.MongoCore/DropCollection"
+	MongoCore_EmbedAndStore_FullMethodName       = "/mongocore.v1.MongoCore/EmbedAndStore"
+	MongoCore_SemanticSearch_FullMethodName      = "/mongocore.v1.MongoCore/SemanticSearch"
 )
 
 // MongoCoreClient is the client API for MongoCore service.
@@ -104,6 +108,12 @@ type MongoCoreClient interface {
 	Pipeline(ctx context.Context, in *PipelineRequest, opts ...grpc.CallOption) (*PipelineResponse, error)
 	// Transaction Pipeline
 	TransactionPipeline(ctx context.Context, in *TransactionPipelineRequest, opts ...grpc.CallOption) (*TransactionPipelineResponse, error)
+	// Count & Drop
+	CountDocuments(ctx context.Context, in *CountDocumentsRequest, opts ...grpc.CallOption) (*CountDocumentsResponse, error)
+	DropCollection(ctx context.Context, in *DropCollectionRequest, opts ...grpc.CallOption) (*DropCollectionResponse, error)
+	// Embed & Semantic Search
+	EmbedAndStore(ctx context.Context, in *EmbedAndStoreRequest, opts ...grpc.CallOption) (*EmbedAndStoreResponse, error)
+	SemanticSearch(ctx context.Context, in *SemanticSearchRequest, opts ...grpc.CallOption) (*SemanticSearchResponse, error)
 }
 
 type mongoCoreClient struct {
@@ -477,6 +487,46 @@ func (c *mongoCoreClient) TransactionPipeline(ctx context.Context, in *Transacti
 	return out, nil
 }
 
+func (c *mongoCoreClient) CountDocuments(ctx context.Context, in *CountDocumentsRequest, opts ...grpc.CallOption) (*CountDocumentsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CountDocumentsResponse)
+	err := c.cc.Invoke(ctx, MongoCore_CountDocuments_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mongoCoreClient) DropCollection(ctx context.Context, in *DropCollectionRequest, opts ...grpc.CallOption) (*DropCollectionResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DropCollectionResponse)
+	err := c.cc.Invoke(ctx, MongoCore_DropCollection_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mongoCoreClient) EmbedAndStore(ctx context.Context, in *EmbedAndStoreRequest, opts ...grpc.CallOption) (*EmbedAndStoreResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(EmbedAndStoreResponse)
+	err := c.cc.Invoke(ctx, MongoCore_EmbedAndStore_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *mongoCoreClient) SemanticSearch(ctx context.Context, in *SemanticSearchRequest, opts ...grpc.CallOption) (*SemanticSearchResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SemanticSearchResponse)
+	err := c.cc.Invoke(ctx, MongoCore_SemanticSearch_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MongoCoreServer is the server API for MongoCore service.
 // All implementations must embed UnimplementedMongoCoreServer
 // for forward compatibility.
@@ -527,6 +577,12 @@ type MongoCoreServer interface {
 	Pipeline(context.Context, *PipelineRequest) (*PipelineResponse, error)
 	// Transaction Pipeline
 	TransactionPipeline(context.Context, *TransactionPipelineRequest) (*TransactionPipelineResponse, error)
+	// Count & Drop
+	CountDocuments(context.Context, *CountDocumentsRequest) (*CountDocumentsResponse, error)
+	DropCollection(context.Context, *DropCollectionRequest) (*DropCollectionResponse, error)
+	// Embed & Semantic Search
+	EmbedAndStore(context.Context, *EmbedAndStoreRequest) (*EmbedAndStoreResponse, error)
+	SemanticSearch(context.Context, *SemanticSearchRequest) (*SemanticSearchResponse, error)
 	mustEmbedUnimplementedMongoCoreServer()
 }
 
@@ -635,6 +691,18 @@ func (UnimplementedMongoCoreServer) Pipeline(context.Context, *PipelineRequest) 
 }
 func (UnimplementedMongoCoreServer) TransactionPipeline(context.Context, *TransactionPipelineRequest) (*TransactionPipelineResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method TransactionPipeline not implemented")
+}
+func (UnimplementedMongoCoreServer) CountDocuments(context.Context, *CountDocumentsRequest) (*CountDocumentsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CountDocuments not implemented")
+}
+func (UnimplementedMongoCoreServer) DropCollection(context.Context, *DropCollectionRequest) (*DropCollectionResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DropCollection not implemented")
+}
+func (UnimplementedMongoCoreServer) EmbedAndStore(context.Context, *EmbedAndStoreRequest) (*EmbedAndStoreResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method EmbedAndStore not implemented")
+}
+func (UnimplementedMongoCoreServer) SemanticSearch(context.Context, *SemanticSearchRequest) (*SemanticSearchResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SemanticSearch not implemented")
 }
 func (UnimplementedMongoCoreServer) mustEmbedUnimplementedMongoCoreServer() {}
 func (UnimplementedMongoCoreServer) testEmbeddedByValue()                   {}
@@ -1208,6 +1276,78 @@ func _MongoCore_TransactionPipeline_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MongoCore_CountDocuments_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CountDocumentsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MongoCoreServer).CountDocuments(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MongoCore_CountDocuments_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MongoCoreServer).CountDocuments(ctx, req.(*CountDocumentsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MongoCore_DropCollection_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DropCollectionRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MongoCoreServer).DropCollection(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MongoCore_DropCollection_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MongoCoreServer).DropCollection(ctx, req.(*DropCollectionRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MongoCore_EmbedAndStore_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(EmbedAndStoreRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MongoCoreServer).EmbedAndStore(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MongoCore_EmbedAndStore_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MongoCoreServer).EmbedAndStore(ctx, req.(*EmbedAndStoreRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MongoCore_SemanticSearch_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SemanticSearchRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MongoCoreServer).SemanticSearch(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MongoCore_SemanticSearch_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MongoCoreServer).SemanticSearch(ctx, req.(*SemanticSearchRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MongoCore_ServiceDesc is the grpc.ServiceDesc for MongoCore service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -1326,6 +1466,22 @@ var MongoCore_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "TransactionPipeline",
 			Handler:    _MongoCore_TransactionPipeline_Handler,
+		},
+		{
+			MethodName: "CountDocuments",
+			Handler:    _MongoCore_CountDocuments_Handler,
+		},
+		{
+			MethodName: "DropCollection",
+			Handler:    _MongoCore_DropCollection_Handler,
+		},
+		{
+			MethodName: "EmbedAndStore",
+			Handler:    _MongoCore_EmbedAndStore_Handler,
+		},
+		{
+			MethodName: "SemanticSearch",
+			Handler:    _MongoCore_SemanticSearch_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

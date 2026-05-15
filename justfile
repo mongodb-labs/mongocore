@@ -6,6 +6,13 @@ test-unit:
 
 # Run integration tests only (requires MongoDB running)
 test-integration:
+    #!/usr/bin/env bash
+    set -e
+    if ! nc -z 127.0.0.1 27017 2>/dev/null; then
+        echo "ERROR: MongoDB not reachable on localhost:27017"
+        echo "       Run 'just docker-up' to start the test database."
+        exit 1
+    fi
     cargo test --test integration
 
 # Run all Rust tests
@@ -32,6 +39,12 @@ test-java:
 test-clients:
     #!/usr/bin/env bash
     set -e
+    # Fail fast if MongoDB is not reachable
+    if ! nc -z 127.0.0.1 27017 2>/dev/null; then
+        echo "ERROR: MongoDB not reachable on localhost:27017"
+        echo "       Run 'just docker-up' to start the test database."
+        exit 1
+    fi
     # Kill any existing sidecar on port 50051
     EXISTING_PID=$(lsof -ti :50051 -sTCP:LISTEN 2>/dev/null || true)
     if [ -n "$EXISTING_PID" ]; then
@@ -55,26 +68,26 @@ test-clients:
         echo "ERROR: Sidecar failed to start within 30s"
         exit 1
     fi
-    # Run all client tests
+    # Run all client tests (each in a subshell to preserve working directory)
     echo "====================="
     echo " PYTHON test suite"
     echo "====================="
-    cd clients/python && python3 -m pytest tests/ -v && cd ../..
+    (cd clients/python && python3 -m pytest tests/ -v)
     echo ""
     echo "====================="
     echo " TYPESCRIPT test suite"
     echo "====================="
-    cd clients/typescript && npx jest --no-coverage && cd ../..
+    (cd clients/typescript && npx jest --no-coverage)
     echo ""
     echo "====================="
     echo " GO test suite"
     echo "====================="
-    cd clients/go && go test ./mongocore/ -v -count=1 && cd ../..
+    (cd clients/go && go test ./mongocore/ -v -count=1)
     echo ""
     echo "====================="
     echo " JAVA test suite"
     echo "====================="
-    cd clients/java && mvn test && cd ../..
+    (cd clients/java && mvn test)
     echo ""
     echo "==================================="
     echo "      ALL CLIENT TESTS PASSED"

@@ -4,16 +4,14 @@ use mongocore::connection::pool::ConnectionPool;
 
 pub const TEST_DB: &str = "mongocore_test";
 
-/// Get a connected ConnectionPool for integration tests.
-///
-/// Uses the `MONGOCORE_TEST_URI` environment variable if set,
-/// otherwise defaults to `mongodb://localhost:27017`.
-pub async fn get_test_pool() -> ConnectionPool {
-    let uri = std::env::var("MONGOCORE_TEST_URI")
-        .unwrap_or_else(|_| "mongodb://localhost:27017".to_string());
+fn test_uri() -> String {
+    std::env::var("MONGOCORE_TEST_URI")
+        .unwrap_or_else(|_| "mongodb://localhost:27017".to_string())
+}
 
-    let config = Config {
-        connection_uri: uri,
+fn test_config() -> Config {
+    Config {
+        connection_uri: test_uri(),
         grpc_port: 50051,
         mcp_port: 3000,
         llm_api_key: None,
@@ -42,11 +40,28 @@ pub async fn get_test_pool() -> ConnectionPool {
         pipeline_max_concurrency: 20,
         web_ui_enabled: true,
         web_ui_port: 27999,
-    };
+    }
+}
 
+/// Check if MongoDB is reachable via TCP (fast, no driver overhead).
+pub fn mongodb_available() -> bool {
+    use std::net::TcpStream;
+    use std::time::Duration;
+    TcpStream::connect_timeout(
+        &"127.0.0.1:27017".parse().unwrap(),
+        Duration::from_secs(2),
+    ).is_ok()
+}
+
+/// Get a connected ConnectionPool for integration tests.
+///
+/// Uses the `MONGOCORE_TEST_URI` environment variable if set,
+/// otherwise defaults to `mongodb://localhost:27017`.
+pub async fn get_test_pool() -> ConnectionPool {
+    let config = test_config();
     ConnectionPool::connect(&config)
         .await
-        .expect("Failed to connect to test MongoDB instance")
+        .expect("Failed to connect to test MongoDB instance. Is Docker running? Try: just docker-up")
 }
 
 /// Drop a specific collection to ensure clean state for a test.

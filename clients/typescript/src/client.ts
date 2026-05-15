@@ -455,7 +455,9 @@ export class MongoClient {
           protoOp.aggregate = {
             database: op.database,
             collection: op.collection,
-            pipeline: op.pipeline.map((stage) => ({ data: encodeBson(stage) })),
+            pipeline: {
+              stages: op.pipeline.map((stage) => encodeBson(stage)),
+            },
           };
           break;
 
