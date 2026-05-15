@@ -4,6 +4,7 @@ use tracing::{error, info, warn};
 use tracing_subscriber::EnvFilter;
 
 use mongocore::analytics::AnalyticsCollector;
+use mongocore::compiled::providers::gateway::{GatewayConfig, GatewayProvider};
 use mongocore::compiled::providers::sampling::McpSamplingProvider;
 use mongocore::compiled::translator::CompiledQueryTranslator;
 use mongocore::config::{CliArgs, Config};
@@ -151,13 +152,17 @@ async fn main() {
         // Create sampling channel for zero-config LLM via MCP host
         let (sampling_tx, sampling_rx) = tokio::sync::mpsc::channel(32);
 
-        // Use configured LLM key if available, otherwise fall back to MCP sampling
+        // Use configured LLM gateway if available, otherwise fall back to MCP sampling
         let llm_provider: Option<Box<dyn mongocore::compiled::providers::LlmProvider>> =
-            if config.llm_api_key.is_some() || config.llm_gateway.is_some() {
-                // Direct LLM provider would be created here from config
-                // For now, fall through to sampling (the existing provider creation
-                // logic is in the gRPC search handler — we'll unify later)
-                None
+            if let Some(ref gw) = config.llm_gateway {
+                let gateway_config = GatewayConfig {
+                    base_url: gw.base_url.clone(),
+                    api_key: gw.api_key.clone(),
+                    auth_header: gw.auth_header.clone(),
+                    model: gw.model.clone(),
+                    provider_type: gw.provider_type.clone(),
+                };
+                Some(Box::new(GatewayProvider::new(gateway_config)))
             } else {
                 Some(Box::new(McpSamplingProvider::new(sampling_tx.clone())))
             };

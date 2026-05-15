@@ -233,11 +233,11 @@ pub fn tool_definitions() -> Vec<McpToolDefinition> {
         },
         McpToolDefinition {
             name: "ingest".to_string(),
-            description: "Start a file ingestion job to load data from a file into a MongoDB collection".to_string(),
+            description: "Start an ingestion job to load data from a local file or remote URL into a MongoDB collection. Supports local paths and http/https URLs (e.g. CSV files hosted on GitHub).".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
-                    "file_path": { "type": "string", "description": "Path to the file to ingest" },
+                    "file_path": { "type": "string", "description": "Local file path or URL (http/https) to ingest" },
                     "database": { "type": "string", "description": "Target database name" },
                     "collection": { "type": "string", "description": "Target collection name" },
                     "format": { "type": "string", "enum": ["auto", "csv", "json", "ndjson", "parquet"], "description": "File format (default: auto-detect)" },
@@ -251,7 +251,7 @@ pub fn tool_definitions() -> Vec<McpToolDefinition> {
                     "expressions": {
                         "type": "array",
                         "items": { "type": "string" },
-                        "description": "Transform expressions to apply before ingestion"
+                        "description": "Transform expressions to apply before ingestion. Supported: rename(old, new), drop(col1, col2), filter(col > val), cast(col, Type), select(col1, col2), compute(new_name, col1 + col2 - col3)"
                     },
                     "schema_overrides": { "type": "object", "description": "Field name to BSON type overrides (e.g. {\"age\": \"int32\"})" },
                     "sample_size": { "type": "integer", "description": "Number of rows to sample for schema inference (default: 1000)" }
@@ -371,7 +371,7 @@ pub fn tool_definitions() -> Vec<McpToolDefinition> {
         },
         McpToolDefinition {
             name: "ask".to_string(),
-            description: "Ask a natural language question about your data. Translates to MQL, executes, and returns the answer with the generated query.".to_string(),
+            description: "Ask a natural language question about your data — this is the preferred tool for querying. Automatically translates your question to an optimal MQL query, executes it, and returns results. Use this instead of manually constructing find or aggregate queries.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -474,11 +474,11 @@ pub fn tool_definitions() -> Vec<McpToolDefinition> {
         },
         McpToolDefinition {
             name: "ingest_and_embed".to_string(),
-            description: "Parse a file (CSV/JSON/NDJSON/Parquet), embed a specified text field using Voyage AI, and store all documents with vector embeddings. For large files, use 'ingest' followed by 'embed_and_store' instead.".to_string(),
+            description: "Parse a file or URL (CSV/JSON/NDJSON/Parquet), embed a specified text field using Voyage AI, and store all documents with vector embeddings. For large files, use 'ingest' followed by 'embed_and_store' instead.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
-                    "file_path": { "type": "string", "description": "Path to the file to ingest" },
+                    "file_path": { "type": "string", "description": "Local file path or URL (http/https) to ingest" },
                     "database": { "type": "string", "description": "Target database" },
                     "collection": { "type": "string", "description": "Target collection" },
                     "embed_field": { "type": "string", "description": "Field containing text to embed" },
@@ -536,7 +536,7 @@ pub fn tool_definitions() -> Vec<McpToolDefinition> {
         },
         McpToolDefinition {
             name: "transaction_pipeline".to_string(),
-            description: "Execute multiple dependent operations atomically in a transaction. Steps run sequentially and can reference results from prior steps using {{step_name.field}} syntax.".to_string(),
+            description: "Execute multiple dependent operations atomically in a transaction. Steps run sequentially and can reference results from prior steps using {{step_name.field}} syntax. Reference examples: {{find_top._id}} gets the _id from a find_one result, {{find_top[0]._id}} gets first result's _id from find, {{find_top[*]._id}} gets all _ids as an array, {{find_top}} gets the full result. For insert_many results use {{insert_step.inserted_ids}}.".to_string(),
             input_schema: json!({
                 "type": "object",
                 "properties": {
@@ -782,7 +782,16 @@ async fn execute_tool_inner(
                 None => return error_result("Natural language queries require an LLM provider. Configure ANTHROPIC_API_KEY or use MongoCore within Claude (MCP sampling). Use 'find' or 'aggregate' tools directly.".to_string()),
             };
 
-            let context = crate::compiled::providers::TranslationContext::default();
+            // Fetch a sample document to provide schema context to the translator
+            let sample_docs = match operations.find(database, collection, bson::doc! {}, Some(FindOptions { limit: Some(1), skip: None, sort: None, projection: None })).await {
+                Ok(docs) => docs.iter().map(|d| serde_json::to_string(d).unwrap_or_default()).collect(),
+                Err(_) => vec![],
+            };
+            let context = crate::compiled::providers::TranslationContext {
+                sample_documents: sample_docs,
+                available_indexes: vec![],
+                schema_hint: None,
+            };
             let translate_start = std::time::Instant::now();
 
             match translator.translate(question, database, collection, &context).await {
