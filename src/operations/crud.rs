@@ -195,6 +195,24 @@ impl Operations {
         Ok(result)
     }
 
+    /// Count documents matching the filter.
+    pub async fn count_documents(
+        &self,
+        db: &str,
+        collection: &str,
+        filter: Document,
+    ) -> Result<u64> {
+        let coll = self.pool.collection(db, collection);
+
+        let count = timeout(DEFAULT_QUERY_TIMEOUT, coll.count_documents(filter))
+            .await
+            .map_err(|_| {
+                MongoCoreError::TimeoutError("count_documents operation timed out".to_string())
+            })??;
+
+        Ok(count)
+    }
+
     /// Delete all documents matching the filter.
     pub async fn delete_many(
         &self,

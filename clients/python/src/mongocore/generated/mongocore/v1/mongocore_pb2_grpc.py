@@ -201,6 +201,26 @@ class MongoCoreStub(object):
                 request_serializer=mongocore_dot_v1_dot_mongocore__pb2.TransactionPipelineRequest.SerializeToString,
                 response_deserializer=mongocore_dot_v1_dot_mongocore__pb2.TransactionPipelineResponse.FromString,
                 _registered_method=True)
+        self.CountDocuments = channel.unary_unary(
+                '/mongocore.v1.MongoCore/CountDocuments',
+                request_serializer=mongocore_dot_v1_dot_mongocore__pb2.CountDocumentsRequest.SerializeToString,
+                response_deserializer=mongocore_dot_v1_dot_mongocore__pb2.CountDocumentsResponse.FromString,
+                _registered_method=True)
+        self.DropCollection = channel.unary_unary(
+                '/mongocore.v1.MongoCore/DropCollection',
+                request_serializer=mongocore_dot_v1_dot_mongocore__pb2.DropCollectionRequest.SerializeToString,
+                response_deserializer=mongocore_dot_v1_dot_mongocore__pb2.DropCollectionResponse.FromString,
+                _registered_method=True)
+        self.EmbedAndStore = channel.unary_unary(
+                '/mongocore.v1.MongoCore/EmbedAndStore',
+                request_serializer=mongocore_dot_v1_dot_mongocore__pb2.EmbedAndStoreRequest.SerializeToString,
+                response_deserializer=mongocore_dot_v1_dot_mongocore__pb2.EmbedAndStoreResponse.FromString,
+                _registered_method=True)
+        self.SemanticSearch = channel.unary_unary(
+                '/mongocore.v1.MongoCore/SemanticSearch',
+                request_serializer=mongocore_dot_v1_dot_mongocore__pb2.SemanticSearchRequest.SerializeToString,
+                response_deserializer=mongocore_dot_v1_dot_mongocore__pb2.SemanticSearchResponse.FromString,
+                _registered_method=True)
 
 
 class MongoCoreServicer(object):
@@ -417,6 +437,32 @@ class MongoCoreServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def CountDocuments(self, request, context):
+        """Count & Drop
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def DropCollection(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def EmbedAndStore(self, request, context):
+        """Embed & Semantic Search
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SemanticSearch(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_MongoCoreServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -584,6 +630,26 @@ def add_MongoCoreServicer_to_server(servicer, server):
                     servicer.TransactionPipeline,
                     request_deserializer=mongocore_dot_v1_dot_mongocore__pb2.TransactionPipelineRequest.FromString,
                     response_serializer=mongocore_dot_v1_dot_mongocore__pb2.TransactionPipelineResponse.SerializeToString,
+            ),
+            'CountDocuments': grpc.unary_unary_rpc_method_handler(
+                    servicer.CountDocuments,
+                    request_deserializer=mongocore_dot_v1_dot_mongocore__pb2.CountDocumentsRequest.FromString,
+                    response_serializer=mongocore_dot_v1_dot_mongocore__pb2.CountDocumentsResponse.SerializeToString,
+            ),
+            'DropCollection': grpc.unary_unary_rpc_method_handler(
+                    servicer.DropCollection,
+                    request_deserializer=mongocore_dot_v1_dot_mongocore__pb2.DropCollectionRequest.FromString,
+                    response_serializer=mongocore_dot_v1_dot_mongocore__pb2.DropCollectionResponse.SerializeToString,
+            ),
+            'EmbedAndStore': grpc.unary_unary_rpc_method_handler(
+                    servicer.EmbedAndStore,
+                    request_deserializer=mongocore_dot_v1_dot_mongocore__pb2.EmbedAndStoreRequest.FromString,
+                    response_serializer=mongocore_dot_v1_dot_mongocore__pb2.EmbedAndStoreResponse.SerializeToString,
+            ),
+            'SemanticSearch': grpc.unary_unary_rpc_method_handler(
+                    servicer.SemanticSearch,
+                    request_deserializer=mongocore_dot_v1_dot_mongocore__pb2.SemanticSearchRequest.FromString,
+                    response_serializer=mongocore_dot_v1_dot_mongocore__pb2.SemanticSearchResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -1477,6 +1543,114 @@ class MongoCore(object):
             '/mongocore.v1.MongoCore/TransactionPipeline',
             mongocore_dot_v1_dot_mongocore__pb2.TransactionPipelineRequest.SerializeToString,
             mongocore_dot_v1_dot_mongocore__pb2.TransactionPipelineResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def CountDocuments(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mongocore.v1.MongoCore/CountDocuments',
+            mongocore_dot_v1_dot_mongocore__pb2.CountDocumentsRequest.SerializeToString,
+            mongocore_dot_v1_dot_mongocore__pb2.CountDocumentsResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def DropCollection(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mongocore.v1.MongoCore/DropCollection',
+            mongocore_dot_v1_dot_mongocore__pb2.DropCollectionRequest.SerializeToString,
+            mongocore_dot_v1_dot_mongocore__pb2.DropCollectionResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def EmbedAndStore(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mongocore.v1.MongoCore/EmbedAndStore',
+            mongocore_dot_v1_dot_mongocore__pb2.EmbedAndStoreRequest.SerializeToString,
+            mongocore_dot_v1_dot_mongocore__pb2.EmbedAndStoreResponse.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SemanticSearch(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/mongocore.v1.MongoCore/SemanticSearch',
+            mongocore_dot_v1_dot_mongocore__pb2.SemanticSearchRequest.SerializeToString,
+            mongocore_dot_v1_dot_mongocore__pb2.SemanticSearchResponse.FromString,
             options,
             channel_credentials,
             insecure,

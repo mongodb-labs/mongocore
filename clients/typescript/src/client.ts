@@ -317,6 +317,49 @@ export class MongoClient {
     });
   }
 
+  // --- Embed & Search Methods ---
+
+  /** Generate embeddings for documents and store them */
+  async embedAndStore(database: string, collection: string, documents: string, embedField: string, embeddingField?: string): Promise<{ documentsStored: number; embeddingsGenerated: number; embeddingDimensions: number }> {
+    return new Promise((resolve, reject) => {
+      const request = {
+        database,
+        collection,
+        documents,
+        embedField,
+        embeddingField: embeddingField || '',
+      };
+      this.getGrpcClient().embedAndStore(request, CLIENT_METADATA, (err: any, response: any) => {
+        if (err) return reject(err);
+        resolve({
+          documentsStored: response.documentsStored || response.documents_stored || 0,
+          embeddingsGenerated: response.embeddingsGenerated || response.embeddings_generated || 0,
+          embeddingDimensions: response.embeddingDimensions || response.embedding_dimensions || 0,
+        });
+      });
+    });
+  }
+
+  /** Perform semantic search using vector embeddings */
+  async semanticSearch(database: string, collection: string, query: string, indexName?: string, limit?: number): Promise<{ results: string; count: number }> {
+    return new Promise((resolve, reject) => {
+      const request = {
+        database,
+        collection,
+        query,
+        indexName: indexName || '',
+        limit: limit || 10,
+      };
+      this.getGrpcClient().semanticSearch(request, CLIENT_METADATA, (err: any, response: any) => {
+        if (err) return reject(err);
+        resolve({
+          results: response.results || '',
+          count: response.count || 0,
+        });
+      });
+    });
+  }
+
   // --- Pipeline Methods ---
 
   /** Execute a batch of operations in a pipeline */

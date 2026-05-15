@@ -31,6 +31,19 @@ impl Operations {
         Ok(())
     }
 
+    /// Drop a collection from the specified database.
+    pub async fn drop_collection(&self, db: &str, name: &str) -> Result<()> {
+        let collection = self.pool.collection(db, name);
+
+        timeout(DEFAULT_QUERY_TIMEOUT, collection.drop())
+            .await
+            .map_err(|_| {
+                MongoCoreError::TimeoutError("drop_collection operation timed out".to_string())
+            })??;
+
+        Ok(())
+    }
+
     /// Create a database by verifying connectivity to it.
     ///
     /// MongoDB creates databases implicitly when data is first written.

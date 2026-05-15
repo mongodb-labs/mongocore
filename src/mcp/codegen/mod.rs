@@ -1,7 +1,11 @@
+pub mod crud_gen;
 pub mod detect;
+pub mod index_gen;
+pub mod ingest_gen;
 pub mod model_gen;
 pub mod query_gen;
-pub mod index_gen;
+pub mod search_gen;
+pub mod session_gen;
 pub mod templates;
 
 use serde::{Deserialize, Serialize};

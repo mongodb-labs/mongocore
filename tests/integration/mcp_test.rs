@@ -58,7 +58,13 @@ fn parse_tool_result(response: &Value) -> Value {
     let text = response["result"]["content"][0]["text"]
         .as_str()
         .expect("Expected text content in tool result");
-    serde_json::from_str(text).unwrap_or_else(|_| json!(text))
+    let parsed: Value = serde_json::from_str(text).unwrap_or_else(|_| json!(text));
+    // Handle enriched responses: arrays are wrapped in {"result": [...], "_context": {...}}
+    if let Some(inner) = parsed.get("result") {
+        inner.clone()
+    } else {
+        parsed
+    }
 }
 
 #[tokio::test]
@@ -90,7 +96,7 @@ async fn test_mcp_tools_list() {
     let resp = rpc_call(&client, &url, "tools/list", None).await;
     let tools = resp["result"]["tools"].as_array().unwrap();
 
-    assert_eq!(tools.len(), 36);
+    assert_eq!(tools.len(), 38);
 
     let names: Vec<&str> = tools.iter().map(|t| t["name"].as_str().unwrap()).collect();
     let expected = [
@@ -116,9 +122,12 @@ async fn test_mcp_tools_list() {
         "watch_directory",
         "stop_watch",
         "pipeline",
+        "transaction_pipeline",
         "collection_schema",
         "ask",
         "explain_query",
+        "explain_last",
+        "explain_session",
         "generate_code",
         "generate_model",
         "generate_index",

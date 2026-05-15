@@ -121,7 +121,7 @@ async fn test_mcp_server_serves_on_configured_port() {
 
     let body: serde_json::Value = resp.json().await.unwrap();
     let tools = body["result"]["tools"].as_array().unwrap();
-    assert_eq!(tools.len(), 35);
+    assert_eq!(tools.len(), 38);
 }
 
 #[tokio::test]
@@ -183,7 +183,9 @@ async fn test_shared_pool_across_servers() {
     assert_eq!(body["result"]["isError"], json!(false));
 
     let text = body["result"]["content"][0]["text"].as_str().unwrap();
-    let docs: Vec<serde_json::Value> = serde_json::from_str(text).unwrap();
+    let parsed: serde_json::Value = serde_json::from_str(text).unwrap();
+    // Array responses are wrapped: {"result": [...], "_context": {...}}
+    let docs = parsed["result"].as_array().unwrap();
     assert_eq!(docs.len(), 1);
     assert_eq!(docs[0]["source"], "grpc");
 }

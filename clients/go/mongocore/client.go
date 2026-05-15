@@ -333,6 +333,56 @@ func (c *Client) AbortTransaction(ctx context.Context, transactionID string) err
 	return err
 }
 
+// EmbedAndStoreResult contains the result of an embed and store operation.
+type EmbedAndStoreResult struct {
+	DocumentsStored     int64
+	EmbeddingsGenerated int64
+	EmbeddingDimensions int32
+}
+
+// EmbedAndStore generates embeddings for documents and stores them.
+func (c *Client) EmbedAndStore(ctx context.Context, database, collection, documents, embedField string, embeddingField string) (*EmbedAndStoreResult, error) {
+	resp, err := c.stub.EmbedAndStore(clientContext(ctx), &pb.EmbedAndStoreRequest{
+		Database:       database,
+		Collection:     collection,
+		Documents:      documents,
+		EmbedField:     embedField,
+		EmbeddingField: embeddingField,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &EmbedAndStoreResult{
+		DocumentsStored:     resp.DocumentsStored,
+		EmbeddingsGenerated: resp.EmbeddingsGenerated,
+		EmbeddingDimensions: resp.EmbeddingDimensions,
+	}, nil
+}
+
+// SemanticSearchResult contains the result of a semantic search.
+type SemanticSearchResult struct {
+	Results string
+	Count   int64
+}
+
+// SemanticSearch performs semantic search using vector embeddings.
+func (c *Client) SemanticSearch(ctx context.Context, database, collection, query, indexName string, limit int32) (*SemanticSearchResult, error) {
+	resp, err := c.stub.SemanticSearch(clientContext(ctx), &pb.SemanticSearchRequest{
+		Database:   database,
+		Collection: collection,
+		Query:      query,
+		IndexName:  indexName,
+		Limit:      limit,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &SemanticSearchResult{
+		Results: resp.Results,
+		Count:   resp.Count,
+	}, nil
+}
+
 // AnalyticsData contains aggregated analytics data.
 type AnalyticsData struct {
 	TotalOperations int64

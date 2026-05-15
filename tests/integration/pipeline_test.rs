@@ -287,9 +287,11 @@ async fn test_pipeline_timeout() {
         })),
     }];
 
-    // Set an impossibly short gRPC deadline to trigger timeout
+    // Set an impossibly short gRPC deadline to trigger timeout.
+    // Use from_nanos(1) — a nanosecond timeout is reliably impossible to meet,
+    // unlike 1ms which can succeed on fast machines with local MongoDB.
     let mut request = tonic::Request::new(PipelineRequest { operations });
-    request.set_timeout(std::time::Duration::from_millis(1));
+    request.set_timeout(std::time::Duration::from_nanos(1));
 
     let result = client.pipeline(request).await;
 

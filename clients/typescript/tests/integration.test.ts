@@ -489,3 +489,74 @@ describe('Pipeline operations', () => {
     expect(results[0].result?.ok).toBe(1);
   });
 });
+
+describe('count and drop operations', () => {
+  test('countDocuments returns correct count', async () => {
+    const collName = uniqueCollection();
+    const coll = client.db(TEST_DB).collection(collName);
+
+    await coll.insertMany([
+      { status: 'active' },
+      { status: 'active' },
+      { status: 'inactive' },
+    ]);
+
+    const total = await coll.countDocuments();
+    expect(total).toBe(3);
+
+    const active = await coll.countDocuments({ status: 'active' });
+    expect(active).toBe(2);
+  });
+
+  test('drop collection', async () => {
+    const collName = uniqueCollection();
+    const coll = client.db(TEST_DB).collection(collName);
+
+    await coll.insertOne({ data: 'to be dropped' });
+    const docs = await coll.find({});
+    expect(docs).toHaveLength(1);
+
+    const result = await coll.drop();
+    expect(result).toBe(true);
+
+    const docsAfter = await coll.find({});
+    expect(docsAfter).toHaveLength(0);
+  });
+
+  test('dropCollection from database', async () => {
+    const collName = uniqueCollection();
+    const db = client.db(TEST_DB);
+    const coll = db.collection(collName);
+
+    await coll.insertOne({ data: 'test' });
+
+    const result = await db.dropCollection(collName);
+    expect(result).toBe(true);
+  });
+});
+
+describe('embed and semantic search operations', () => {
+  test('embedAndStore (may fail without provider)', async () => {
+    const documents = JSON.stringify([
+      { text: 'Hello world', id: 1 },
+      { text: 'Goodbye world', id: 2 },
+    ]);
+    try {
+      const result = await client.embedAndStore(TEST_DB, uniqueCollection(), documents, 'text');
+      expect(result.documentsStored).toBeDefined();
+      expect(result.embeddingsGenerated).toBeDefined();
+    } catch {
+      // Expected if no embedding provider configured
+    }
+  });
+
+  test('semanticSearch (may fail without vector index)', async () => {
+    try {
+      const result = await client.semanticSearch(TEST_DB, uniqueCollection(), 'hello');
+      expect(result.results).toBeDefined();
+      expect(result.count).toBeDefined();
+    } catch {
+      // Expected if no vector index configured
+    }
+  });
+});

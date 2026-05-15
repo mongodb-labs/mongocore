@@ -32,6 +32,7 @@ MongoCore is an AI-native MongoDB driver implemented as a Rust sidecar. It provi
 | [Change Streams](./streaming.md) | Real-time notifications via Watch |
 | [Admin Operations](./admin-operations.md) | Collections, indexes, introspection |
 | [MCP Server](./mcp-server.md) | AI agent integration via JSON-RPC |
+| [Operation Explain](./explain.md) | Response context and code generation from MCP sessions |
 | [Client Libraries](./client-libraries.md) | Language-specific setup and API reference |
 | [Raw Passthrough](./raw-passthrough.md) | Arbitrary MongoDB commands for power users |
 | [Analytics](./analytics.md) | Query performance insights and operation tracking |

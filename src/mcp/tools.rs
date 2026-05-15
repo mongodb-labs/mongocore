@@ -2,6 +2,10 @@ use bson::Document;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::Mutex;
+
+use super::context;
+use super::session::SessionRecorder;
 
 use crate::analytics::AnalyticsCollector;
 use crate::compiled::translator::CompiledQueryTranslator;
@@ -564,6 +568,41 @@ pub fn tool_definitions() -> Vec<McpToolDefinition> {
                 "required": ["steps"]
             }),
         },
+        McpToolDefinition {
+            name: "explain_last".to_string(),
+            description: "Generate reusable MongoCore client code for a recent operation. Produces a parameterized function in the specified language.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "language": {
+                        "type": "string",
+                        "enum": ["python", "typescript", "go", "java"],
+                        "description": "Target programming language"
+                    },
+                    "offset": {
+                        "type": "integer",
+                        "description": "How many operations back (0 = most recent)",
+                        "default": 0
+                    }
+                },
+                "required": ["language"]
+            }),
+        },
+        McpToolDefinition {
+            name: "explain_session".to_string(),
+            description: "Generate a complete MongoCore client script reproducing all operations performed in this session. Produces parameterized functions with a main entry point.".to_string(),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "language": {
+                        "type": "string",
+                        "enum": ["python", "typescript", "go", "java"],
+                        "description": "Target programming language"
+                    }
+                },
+                "required": ["language"]
+            }),
+        },
     ]
 }
 
@@ -578,11 +617,12 @@ pub async fn execute_tool(
     translator: Option<&Arc<CompiledQueryTranslator>>,
     voyage: Option<&Arc<crate::voyage::client::VoyageClient>>,
     skills: &SkillRegistry,
+    session: &Arc<Mutex<SessionRecorder>>,
     name: &str,
     arguments: &Value,
 ) -> McpToolCallResult {
     let start = std::time::Instant::now();
-    let result = execute_tool_inner(operations, pool, analytics, ingestion, watcher, safety, translator, voyage, skills, name, arguments).await;
+    let result = execute_tool_inner(operations, pool, analytics, ingestion, watcher, safety, translator, voyage, skills, session, name, arguments).await;
 
     // Record analytics for data operations
     if let Some(analytics) = analytics {
@@ -600,7 +640,59 @@ pub async fn execute_tool(
         }
     }
 
-    result
+    // Enrich response with _context
+    enrich_result(result, name, arguments)
+}
+
+/// Wrap a tool result with _context metadata.
+/// For text responses that are valid JSON objects, inserts _context as a field.
+/// For non-JSON or array responses, wraps in {"result": ..., "_context": ...}.
+fn enrich_result(result: McpToolCallResult, tool_name: &str, args: &Value) -> McpToolCallResult {
+    let context = context::build_context(tool_name, args);
+
+    let enriched_content: Vec<McpContent> = result
+        .content
+        .into_iter()
+        .map(|content| {
+            if let Ok(mut parsed) = serde_json::from_str::<Value>(&content.text) {
+                if let Some(obj) = parsed.as_object_mut() {
+                    if !obj.contains_key("_context") {
+                        obj.insert("_context".to_string(), context.clone());
+                    }
+                    McpContent {
+                        type_: content.type_,
+                        text: serde_json::to_string_pretty(&parsed).unwrap_or(content.text),
+                    }
+                } else {
+                    // Array or scalar — wrap
+                    let wrapped = json!({
+                        "result": parsed,
+                        "_context": context
+                    });
+                    McpContent {
+                        type_: content.type_,
+                        text: serde_json::to_string_pretty(&wrapped).unwrap_or(content.text),
+                    }
+                }
+            } else {
+                // Non-JSON text (error messages) — wrap
+                let original_text = content.text.clone();
+                let wrapped = json!({
+                    "message": content.text,
+                    "_context": context
+                });
+                McpContent {
+                    type_: "text".to_string(),
+                    text: serde_json::to_string_pretty(&wrapped).unwrap_or(original_text),
+                }
+            }
+        })
+        .collect();
+
+    McpToolCallResult {
+        content: enriched_content,
+        is_error: result.is_error,
+    }
 }
 
 fn tool_name_to_operation_kind(name: &str) -> Option<crate::analytics::OperationKind> {
@@ -637,6 +729,7 @@ async fn execute_tool_inner(
     translator: Option<&Arc<CompiledQueryTranslator>>,
     voyage: Option<&Arc<crate::voyage::client::VoyageClient>>,
     skills: &SkillRegistry,
+    session: &Arc<Mutex<SessionRecorder>>,
     name: &str,
     arguments: &Value,
 ) -> McpToolCallResult {
@@ -663,7 +756,7 @@ async fn execute_tool_inner(
         "watch_directory" => execute_watch_directory(watcher, arguments).await,
         "stop_watch" => execute_stop_watch(watcher, arguments).await,
         "pipeline" => {
-            execute_pipeline(operations, pool, analytics, ingestion, watcher, safety, translator, voyage, skills, arguments)
+            execute_pipeline(operations, pool, analytics, ingestion, watcher, safety, translator, voyage, skills, session, arguments)
                 .await
         }
         "collection_schema" => execute_collection_schema(operations, arguments).await,
@@ -718,6 +811,15 @@ async fn execute_tool_inner(
                     let execution_time_ms = exec_start.elapsed().as_millis();
                     match exec_result {
                         Ok(docs) => {
+                            let compiled_query = match &compiled.mql {
+                                crate::compiled::CompiledMql::Find { filter, .. } => {
+                                    json!({"method": "find", "filter": filter})
+                                }
+                                crate::compiled::CompiledMql::Aggregate { pipeline } => {
+                                    json!({"method": "aggregate", "pipeline": pipeline})
+                                }
+                                _ => json!({"method": compiled.mql.method()}),
+                            };
                             let result = json!({
                                 "documents": docs.iter().take(20).map(|d| {
                                     serde_json::to_value(d).unwrap_or(Value::Null)
@@ -728,7 +830,14 @@ async fn execute_tool_inner(
                                     "intent": compiled.intent
                                 },
                                 "execution_time_ms": execution_time_ms,
-                                "from_cache": from_cache
+                                "from_cache": from_cache,
+                                "_context": {
+                                    "operation": "ask",
+                                    "database": database,
+                                    "collection": collection,
+                                    "question": question,
+                                    "compiled_query": compiled_query
+                                }
                             });
                             success_result(serde_json::to_string_pretty(&result).unwrap_or_default())
                         }
@@ -1164,7 +1273,108 @@ async fn execute_tool_inner(
         "transaction_pipeline" => {
             execute_transaction_pipeline_tool(pool, safety, arguments).await
         }
+        "explain_last" => execute_explain_last(session, arguments),
+        "explain_session" => execute_explain_session(session, arguments),
         _ => error_result(format!("Unknown tool: {}", name)),
+    }
+}
+
+fn parse_language(args: &Value) -> Result<super::codegen::Language, McpToolCallResult> {
+    use super::codegen::Language;
+    match args.get("language").and_then(|v| v.as_str()) {
+        Some("python") => Ok(Language::Python),
+        Some("typescript") => Ok(Language::TypeScript),
+        Some("go") => Ok(Language::Go),
+        Some("java") => Ok(Language::Java),
+        Some(other) => Err(error_result(format!(
+            "Unsupported language: {}. Use python, typescript, go, or java.",
+            other
+        ))),
+        None => Err(error_result(
+            "Missing required field: language".to_string(),
+        )),
+    }
+}
+
+fn execute_explain_last(
+    session: &Arc<Mutex<SessionRecorder>>,
+    args: &Value,
+) -> McpToolCallResult {
+    let language = match parse_language(args) {
+        Ok(l) => l,
+        Err(e) => return e,
+    };
+    let offset = args.get("offset").and_then(|v| v.as_u64()).unwrap_or(0) as usize;
+
+    let session_guard = match session.lock() {
+        Ok(s) => s,
+        Err(_) => return error_result("Failed to access session state".to_string()),
+    };
+
+    if session_guard.is_empty() {
+        return error_result("No operations recorded in this session yet.".to_string());
+    }
+
+    let record = match session_guard.get_last(offset) {
+        Some(r) => r,
+        None => {
+            return error_result(format!(
+                "Offset {} is out of bounds. Session has {} operations.",
+                offset,
+                session_guard.len()
+            ))
+        }
+    };
+
+    match super::codegen::session_gen::generate_single_operation_code(
+        language,
+        &record.tool_name,
+        &record.params,
+    ) {
+        Ok(code) => {
+            let result = json!({
+                "code": code,
+                "language": args.get("language").unwrap_or(&Value::Null),
+                "operation": record.tool_name,
+            });
+            success_result(serde_json::to_string_pretty(&result).unwrap_or_default())
+        }
+        Err(e) => error_result(format!("Code generation failed: {}", e)),
+    }
+}
+
+fn execute_explain_session(
+    session: &Arc<Mutex<SessionRecorder>>,
+    args: &Value,
+) -> McpToolCallResult {
+    let language = match parse_language(args) {
+        Ok(l) => l,
+        Err(e) => return e,
+    };
+
+    let session_guard = match session.lock() {
+        Ok(s) => s,
+        Err(_) => return error_result("Failed to access session state".to_string()),
+    };
+
+    if session_guard.is_empty() {
+        return error_result("No operations recorded in this session yet.".to_string());
+    }
+
+    let operations = session_guard.get_all();
+
+    match super::codegen::session_gen::generate_session_script(language, operations) {
+        Ok(code) => {
+            let op_names: Vec<&str> = operations.iter().map(|o| o.tool_name.as_str()).collect();
+            let result = json!({
+                "code": code,
+                "language": args.get("language").unwrap_or(&Value::Null),
+                "operation_count": operations.len(),
+                "operations": op_names,
+            });
+            success_result(serde_json::to_string_pretty(&result).unwrap_or_default())
+        }
+        Err(e) => error_result(format!("Code generation failed: {}", e)),
     }
 }
 
@@ -2086,6 +2296,7 @@ async fn execute_pipeline(
     translator: Option<&Arc<CompiledQueryTranslator>>,
     voyage: Option<&Arc<crate::voyage::client::VoyageClient>>,
     skills: &SkillRegistry,
+    session: &Arc<Mutex<SessionRecorder>>,
     args: &Value,
 ) -> McpToolCallResult {
     let ops = match args.get("operations").and_then(|v| v.as_array()) {
@@ -2117,7 +2328,7 @@ async fn execute_pipeline(
             let op_type = op.get("op").and_then(|v| v.as_str()).unwrap_or("unknown");
             async move {
                 let result = execute_tool(
-                    operations, pool, analytics, ingestion, watcher, safety, translator, voyage, skills, op_type, op,
+                    operations, pool, analytics, ingestion, watcher, safety, translator, voyage, skills, session, op_type, op,
                 )
                 .await;
                 (op_type.to_string(), result)
@@ -2498,7 +2709,7 @@ mod tests {
     #[test]
     fn test_tool_definitions_count() {
         let tools = tool_definitions();
-        assert_eq!(tools.len(), 36);
+        assert_eq!(tools.len(), 38);
     }
 
     #[test]

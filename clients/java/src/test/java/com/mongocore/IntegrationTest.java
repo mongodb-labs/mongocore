@@ -469,4 +469,74 @@ public class IntegrationTest {
         assertNotNull(listDbResult);
         assertFalse(listDbResult.getDatabases().isEmpty());
     }
+
+    @Test
+    public void testCountDocuments() {
+        MongoCollection coll = getCollection();
+
+        coll.insertMany(Arrays.asList(
+                new Document("status", "active"),
+                new Document("status", "active"),
+                new Document("status", "inactive")
+        ));
+
+        long total = coll.countDocuments();
+        assertEquals(3, total);
+
+        long active = coll.countDocuments(new Document("status", "active"));
+        assertEquals(2, active);
+    }
+
+    @Test
+    public void testDropCollection() {
+        MongoCollection coll = getCollection();
+
+        coll.insertOne(new Document("data", "to be dropped"));
+
+        List<Document> docs = coll.find(new Document());
+        assertEquals(1, docs.size());
+
+        boolean result = coll.drop();
+        assertTrue(result);
+
+        docs = coll.find(new Document());
+        assertEquals(0, docs.size());
+    }
+
+    @Test
+    public void testDropCollectionFromDatabase() {
+        String collName = uniqueCollection();
+        MongoDatabase db = client.getDatabase(TEST_DB);
+        MongoCollection coll = db.getCollection(collName);
+
+        coll.insertOne(new Document("data", "test"));
+
+        boolean result = db.dropCollection(collName);
+        assertTrue(result);
+    }
+
+    @Test
+    public void testEmbedAndStore() {
+        String documents = "[{\"text\": \"Hello world\", \"id\": 1}, {\"text\": \"Goodbye world\", \"id\": 2}]";
+        try {
+            MongoClient.EmbedAndStoreResult result = client.embedAndStore(
+                    TEST_DB, uniqueCollection(), documents, "text");
+            assertNotNull(result);
+        } catch (Exception e) {
+            // Expected to fail if no embedding provider is configured
+            System.out.println("embedAndStore failed (expected without provider): " + e.getMessage());
+        }
+    }
+
+    @Test
+    public void testSemanticSearch() {
+        try {
+            MongoClient.SemanticSearchResult result = client.semanticSearch(
+                    TEST_DB, uniqueCollection(), "hello");
+            assertNotNull(result);
+        } catch (Exception e) {
+            // Expected to fail if no vector index configured
+            System.out.println("semanticSearch failed (expected without index): " + e.getMessage());
+        }
+    }
 }

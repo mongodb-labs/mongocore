@@ -47,6 +47,19 @@ export class Database {
     });
   }
 
+  async dropCollection(name: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      this.client.getGrpcClient().dropCollection(
+        { database: this.name, collection: name },
+        CLIENT_METADATA,
+        (err: any, response: any) => {
+          if (err) return reject(err);
+          resolve(response.ok || false);
+        }
+      );
+    });
+  }
+
   async transactionPipeline(steps: TransactionStep[]): Promise<TransactionPipelineResult> {
     return new Promise((resolve, reject) => {
       const request = {

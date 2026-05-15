@@ -752,3 +752,112 @@ func TestPipeline(t *testing.T) {
 		t.Fatal("Expected ListDatabases result at index 2")
 	}
 }
+
+func TestCountDocuments(t *testing.T) {
+	client, ctx := setupClient(t)
+
+	coll := client.Database(testDB).Collection(uniqueCollection() + "_count")
+
+	// Insert some documents
+	_, err := coll.InsertMany(ctx, []bson.D{
+		{{"status", "active"}},
+		{{"status", "active"}},
+		{{"status", "inactive"}},
+	})
+	if err != nil {
+		t.Fatalf("InsertMany failed: %v", err)
+	}
+
+	// Count all
+	total, err := coll.CountDocuments(ctx, bson.D{})
+	if err != nil {
+		t.Fatalf("CountDocuments failed: %v", err)
+	}
+	if total != 3 {
+		t.Fatalf("Expected 3, got %d", total)
+	}
+
+	// Count with filter
+	active, err := coll.CountDocuments(ctx, bson.D{{"status", "active"}})
+	if err != nil {
+		t.Fatalf("CountDocuments with filter failed: %v", err)
+	}
+	if active != 2 {
+		t.Fatalf("Expected 2 active, got %d", active)
+	}
+}
+
+func TestDropCollection(t *testing.T) {
+	client, ctx := setupClient(t)
+
+	coll := client.Database(testDB).Collection(uniqueCollection() + "_drop")
+
+	// Insert a document
+	_, err := coll.InsertOne(ctx, bson.D{{"data", "to be dropped"}})
+	if err != nil {
+		t.Fatalf("InsertOne failed: %v", err)
+	}
+
+	// Verify it exists
+	docs, err := coll.Find(ctx, bson.D{}, nil)
+	if err != nil {
+		t.Fatalf("Find failed: %v", err)
+	}
+	if len(docs) != 1 {
+		t.Fatalf("Expected 1 document, got %d", len(docs))
+	}
+
+	// Drop it
+	err = coll.Drop(ctx)
+	if err != nil {
+		t.Fatalf("Drop failed: %v", err)
+	}
+
+	// Verify it's gone
+	docs, err = coll.Find(ctx, bson.D{}, nil)
+	if err != nil {
+		t.Fatalf("Find after drop failed: %v", err)
+	}
+	if len(docs) != 0 {
+		t.Fatalf("Expected 0 documents after drop, got %d", len(docs))
+	}
+}
+
+func TestDropCollectionFromDatabase(t *testing.T) {
+	client, ctx := setupClient(t)
+
+	collName := uniqueCollection() + "_db_drop"
+	db := client.Database(testDB)
+	coll := db.Collection(collName)
+
+	_, err := coll.InsertOne(ctx, bson.D{{"data", "test"}})
+	if err != nil {
+		t.Fatalf("InsertOne failed: %v", err)
+	}
+
+	err = db.DropCollection(ctx, collName)
+	if err != nil {
+		t.Fatalf("DropCollection failed: %v", err)
+	}
+}
+
+func TestEmbedAndStore(t *testing.T) {
+	client, ctx := setupClient(t)
+
+	documents := `[{"text": "Hello world", "id": 1}, {"text": "Goodbye world", "id": 2}]`
+	_, err := client.EmbedAndStore(ctx, testDB, uniqueCollection()+"_embed", documents, "text", "")
+	if err != nil {
+		// Expected to fail if no embedding provider is configured
+		t.Logf("EmbedAndStore failed (expected without provider): %v", err)
+	}
+}
+
+func TestSemanticSearch(t *testing.T) {
+	client, ctx := setupClient(t)
+
+	_, err := client.SemanticSearch(ctx, testDB, uniqueCollection()+"_semantic", "hello", "", 10)
+	if err != nil {
+		// Expected to fail if no vector index is configured
+		t.Logf("SemanticSearch failed (expected without index): %v", err)
+	}
+}

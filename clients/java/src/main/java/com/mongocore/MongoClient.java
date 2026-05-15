@@ -201,6 +201,49 @@ public class MongoClient implements AutoCloseable {
         return new WatchResult(watchId, resp.getSuccess());
     }
 
+    // --- Embed & Search Methods ---
+
+    public record EmbedAndStoreResult(long documentsStored, long embeddingsGenerated, int embeddingDimensions) {}
+
+    public EmbedAndStoreResult embedAndStore(String database, String collection, String documents,
+                                              String embedField, String embeddingField) {
+        MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
+        Mongocore.EmbedAndStoreResponse resp = stub.embedAndStore(
+                Mongocore.EmbedAndStoreRequest.newBuilder()
+                        .setDatabase(database)
+                        .setCollection(collection)
+                        .setDocuments(documents)
+                        .setEmbedField(embedField)
+                        .setEmbeddingField(embeddingField != null ? embeddingField : "")
+                        .build());
+        return new EmbedAndStoreResult(resp.getDocumentsStored(),
+                resp.getEmbeddingsGenerated(), resp.getEmbeddingDimensions());
+    }
+
+    public EmbedAndStoreResult embedAndStore(String database, String collection, String documents, String embedField) {
+        return embedAndStore(database, collection, documents, embedField, "");
+    }
+
+    public record SemanticSearchResult(String results, long count) {}
+
+    public SemanticSearchResult semanticSearch(String database, String collection, String query,
+                                               String indexName, int limit) {
+        MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
+        Mongocore.SemanticSearchResponse resp = stub.semanticSearch(
+                Mongocore.SemanticSearchRequest.newBuilder()
+                        .setDatabase(database)
+                        .setCollection(collection)
+                        .setQuery(query)
+                        .setIndexName(indexName != null ? indexName : "")
+                        .setLimit(limit)
+                        .build());
+        return new SemanticSearchResult(resp.getResults(), resp.getCount());
+    }
+
+    public SemanticSearchResult semanticSearch(String database, String collection, String query) {
+        return semanticSearch(database, collection, query, "", 10);
+    }
+
     // --- Transaction Methods ---
 
     public String beginTransaction() {
@@ -258,8 +301,43 @@ public class MongoClient implements AutoCloseable {
 
     public TransactionPipelineResult transactionPipeline(TransactionPipelineOptions options,
                                                          TransactionPipelineStep... steps) {
-        throw new UnsupportedOperationException(
-                "transactionPipeline requires regenerated gRPC stubs (Task 15)");
+        MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(channel);
+
+        Mongocore.TransactionPipelineRequest.Builder reqBuilder =
+                Mongocore.TransactionPipelineRequest.newBuilder();
+
+        for (TransactionPipelineStep step : steps) {
+            reqBuilder.addSteps(step.toProto());
+        }
+
+        if (options != null) {
+            Mongocore.TransactionPipelineOptions.Builder optsBuilder =
+                    Mongocore.TransactionPipelineOptions.newBuilder();
+            if (options.readConcern() != null) {
+                optsBuilder.setReadConcern(options.readConcern());
+            }
+            if (options.writeConcern() != null) {
+                optsBuilder.setWriteConcern(options.writeConcern());
+            }
+            if (options.maxTimeMs() != null) {
+                optsBuilder.setMaxTimeMs(options.maxTimeMs());
+            }
+            reqBuilder.setOptions(optsBuilder.build());
+        }
+
+        Mongocore.TransactionPipelineResponse resp = stub.transactionPipeline(reqBuilder.build());
+
+        List<TransactionStepResult> stepResults = new java.util.ArrayList<>();
+        for (Mongocore.TransactionStepResult stepResult : resp.getStepsList()) {
+            stepResults.add(new TransactionStepResult(
+                    stepResult.getName(), stepResult.getSuccess(), null));
+        }
+
+        int totalSteps = resp.hasSummary() ? resp.getSummary().getTotalSteps() : steps.length;
+        int stepsCompleted = resp.hasSummary() ? resp.getSummary().getStepsCompleted() : stepResults.size();
+        long elapsedMs = resp.hasSummary() ? resp.getSummary().getElapsedMs() : 0;
+
+        return new TransactionPipelineResult(stepResults, totalSteps, stepsCompleted, elapsedMs);
     }
 
     // --- Pipeline Methods ---

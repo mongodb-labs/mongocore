@@ -257,6 +257,30 @@ public class MongoCollection {
         return null;
     }
 
+    public long countDocuments(Document filter) {
+        String filterJson = filter != null ? filter.toJson() : "{}";
+        Mongocore.CountDocumentsResponse resp = getStub().countDocuments(
+                Mongocore.CountDocumentsRequest.newBuilder()
+                        .setDatabase(database)
+                        .setCollection(name)
+                        .setFilter(filterJson)
+                        .build());
+        return resp.getCount();
+    }
+
+    public long countDocuments() {
+        return countDocuments(null);
+    }
+
+    public boolean drop() {
+        Mongocore.DropCollectionResponse resp = getStub().dropCollection(
+                Mongocore.DropCollectionRequest.newBuilder()
+                        .setDatabase(database)
+                        .setCollection(name)
+                        .build());
+        return resp.getOk();
+    }
+
     public String createIndex(Document keys, boolean unique) {
         Types.IndexOptions.Builder opts = Types.IndexOptions.newBuilder()
                 .setUnique(unique);

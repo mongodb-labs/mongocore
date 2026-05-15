@@ -64,6 +64,14 @@ service MongoCore {
 
   // Transaction Pipeline
   rpc TransactionPipeline(TransactionPipelineRequest) returns (TransactionPipelineResponse);
+
+  // Count & Drop
+  rpc CountDocuments(CountDocumentsRequest) returns (CountDocumentsResponse);
+  rpc DropCollection(DropCollectionRequest) returns (DropCollectionResponse);
+
+  // Embed & Semantic Search
+  rpc EmbedAndStore(EmbedAndStoreRequest) returns (EmbedAndStoreResponse);
+  rpc SemanticSearch(SemanticSearchRequest) returns (SemanticSearchResponse);
 }
 
 // ==================== CRUD Requests/Responses ====================
@@ -484,4 +492,58 @@ message TransactionPipelineError {
   string reason = 3;
   repeated string steps_completed = 4;
   bool rolled_back = 5;
+}
+
+// ==================== Count Documents ====================
+
+message CountDocumentsRequest {
+  string database = 1;
+  string collection = 2;
+  string filter = 3;
+}
+
+message CountDocumentsResponse {
+  int64 count = 1;
+}
+
+// ==================== Drop Collection ====================
+
+message DropCollectionRequest {
+  string database = 1;
+  string collection = 2;
+}
+
+message DropCollectionResponse {
+  bool ok = 1;
+}
+
+// ==================== Embed and Store ====================
+
+message EmbedAndStoreRequest {
+  string database = 1;
+  string collection = 2;
+  string documents = 3;
+  string embed_field = 4;
+  string embedding_field = 5;
+}
+
+message EmbedAndStoreResponse {
+  int64 documents_stored = 1;
+  int64 embeddings_generated = 2;
+  int32 embedding_dimensions = 3;
+}
+
+// ==================== Semantic Search ====================
+
+message SemanticSearchRequest {
+  string database = 1;
+  string collection = 2;
+  string query = 3;
+  string index_name = 4;
+  int32 limit = 5;
+}
+
+message SemanticSearchResponse {
+  string results = 1;
+  int64 count = 2;
 }

@@ -45,3 +45,12 @@ func (d *Database) CreateCollection(ctx context.Context, name string) error {
 	})
 	return err
 }
+
+// DropCollection drops a collection from the database.
+func (d *Database) DropCollection(ctx context.Context, name string) error {
+	_, err := d.client.stub.DropCollection(clientContext(ctx), &pb.DropCollectionRequest{
+		Database:   d.name,
+		Collection: name,
+	})
+	return err
+}

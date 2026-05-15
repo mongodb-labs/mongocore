@@ -2,6 +2,7 @@ package mongocore
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 
 	pb "github.com/rozza/mongocore/clients/go/proto"
@@ -340,6 +341,42 @@ func (c *Collection) Watch(ctx context.Context, pipeline []bson.D) (*ChangeStrea
 	}
 
 	return &ChangeStream{stream: stream, cancelFn: cancel}, nil
+}
+
+// CountDocuments returns the number of documents matching the filter.
+func (c *Collection) CountDocuments(ctx context.Context, filter bson.D) (int64, error) {
+	filterJSON := "{}"
+	if filter != nil && len(filter) > 0 {
+		// Convert bson.D to a map for JSON serialization
+		m := make(map[string]interface{}, len(filter))
+		for _, elem := range filter {
+			m[elem.Key] = elem.Value
+		}
+		jsonBytes, err := json.Marshal(m)
+		if err != nil {
+			return 0, err
+		}
+		filterJSON = string(jsonBytes)
+	}
+
+	resp, err := c.client.stub.CountDocuments(clientContext(ctx), &pb.CountDocumentsRequest{
+		Database:   c.database,
+		Collection: c.name,
+		Filter:     filterJSON,
+	})
+	if err != nil {
+		return 0, err
+	}
+	return resp.Count, nil
+}
+
+// Drop drops this collection from the database.
+func (c *Collection) Drop(ctx context.Context) error {
+	_, err := c.client.stub.DropCollection(clientContext(ctx), &pb.DropCollectionRequest{
+		Database:   c.database,
+		Collection: c.name,
+	})
+	return err
 }
 
 // Ensure ChangeStream implements io.Closer.

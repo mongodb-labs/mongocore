@@ -740,6 +740,87 @@ impl MongoCore for MongoCoreService {
         Ok(Response::new(proto::CreateIndexResponse { index_name }))
     }
 
+    #[tracing::instrument(skip(self, request))]
+    async fn count_documents(
+        &self,
+        request: Request<proto::CountDocumentsRequest>,
+    ) -> Result<Response<proto::CountDocumentsResponse>, Status> {
+        self.append_client_language(request.metadata());
+        self.check_tenant_quota(request.metadata())?;
+        let start = std::time::Instant::now();
+        let req = request.into_inner();
+
+        let filter: Document = if req.filter.is_empty() {
+            Document::new()
+        } else {
+            serde_json::from_str(&req.filter)
+                .map_err(|e| Status::invalid_argument(format!("Invalid filter JSON: {}", e)))?
+        };
+
+        let result = self
+            .operations
+            .count_documents(&req.database, &req.collection, filter)
+            .await;
+
+        self.record_analytics(OperationKind::Find, &req.database, &req.collection, start.elapsed(), result.is_ok());
+        let count = result.map_err(to_status)?;
+
+        Ok(Response::new(proto::CountDocumentsResponse {
+            count: count as i64,
+        }))
+    }
+
+    #[tracing::instrument(skip(self, request))]
+    async fn drop_collection(
+        &self,
+        request: Request<proto::DropCollectionRequest>,
+    ) -> Result<Response<proto::DropCollectionResponse>, Status> {
+        self.append_client_language(request.metadata());
+        self.check_tenant_quota(request.metadata())?;
+        let req = request.into_inner();
+
+        tracing::info!(
+            database = %req.database,
+            collection = %req.collection,
+            "Dropping collection"
+        );
+
+        self.operations
+            .drop_collection(&req.database, &req.collection)
+            .await
+            .map_err(to_status)?;
+
+        Ok(Response::new(proto::DropCollectionResponse { ok: true }))
+    }
+
+    #[tracing::instrument(skip(self, request))]
+    async fn embed_and_store(
+        &self,
+        request: Request<proto::EmbedAndStoreRequest>,
+    ) -> Result<Response<proto::EmbedAndStoreResponse>, Status> {
+        self.append_client_language(request.metadata());
+        self.check_tenant_quota(request.metadata())?;
+        let _req = request.into_inner();
+
+        Err(Status::unimplemented(
+            "EmbedAndStore is not yet available via gRPC. Use the MCP interface for embedding operations.",
+        ))
+    }
+
+    #[tracing::instrument(skip(self, request))]
+    async fn semantic_search(
+        &self,
+        request: Request<proto::SemanticSearchRequest>,
+    ) -> Result<Response<proto::SemanticSearchResponse>, Status> {
+        self.append_client_language(request.metadata());
+        self.check_tenant_quota(request.metadata())?;
+        let _req = request.into_inner();
+
+        Err(Status::unimplemented(
+            "SemanticSearch is not yet available via gRPC. Use the MCP interface for semantic search operations.",
+        ))
+    }
+
     // === Introspection ===
 
     #[tracing::instrument(skip(self, request))]

@@ -55,6 +55,16 @@ class Database:
             metadata=_CLIENT_METADATA
         )
 
+    async def drop_collection(self, name: str) -> bool:
+        """Drop a collection from this database."""
+        from .generated import mongocore_pb2, mongocore_pb2_grpc
+        stub = mongocore_pb2_grpc.MongoCoreStub(self._client.channel)
+        response = await stub.DropCollection(
+            mongocore_pb2.DropCollectionRequest(database=self._name, collection=name),
+            metadata=_CLIENT_METADATA
+        )
+        return response.ok
+
     async def transaction_pipeline(self, steps: list, *, options: dict = None):
         """Execute a transactional pipeline across collections in this database.
 

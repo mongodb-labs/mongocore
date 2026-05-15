@@ -226,6 +226,29 @@ class Collection:
         from .database import _parse_pipeline_response
         return _parse_pipeline_response(response)
 
+    async def count_documents(self, filter: Optional[dict] = None) -> int:
+        """Count documents matching the filter."""
+        import json
+        from .generated import mongocore_pb2
+        stub = self._get_stub()
+        filter_str = json.dumps(filter) if filter else "{}"
+        response = await stub.CountDocuments(mongocore_pb2.CountDocumentsRequest(
+            database=self._database,
+            collection=self._name,
+            filter=filter_str,
+        ), metadata=_CLIENT_METADATA)
+        return response.count
+
+    async def drop(self) -> bool:
+        """Drop this collection."""
+        from .generated import mongocore_pb2
+        stub = self._get_stub()
+        response = await stub.DropCollection(mongocore_pb2.DropCollectionRequest(
+            database=self._database,
+            collection=self._name,
+        ), metadata=_CLIENT_METADATA)
+        return response.ok
+
     def watch(self, pipeline: Optional[list[dict]] = None) -> "ChangeStream":
         """Open a change stream on this collection. Returns an async context manager."""
         return ChangeStream(self, pipeline)

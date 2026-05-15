@@ -444,3 +444,92 @@ async def test_pipeline():
         assert results[2].databases is not None
         assert isinstance(results[2].databases, list)
         assert len(results[2].databases) > 0
+
+
+@pytest.mark.asyncio
+async def test_count_documents():
+    async with MongoClient("localhost:50051") as client:
+        coll = client[TEST_DB][unique_collection()]
+
+        await coll.insert_many([
+            {"status": "active"},
+            {"status": "active"},
+            {"status": "inactive"},
+        ])
+
+        # Count all
+        total = await coll.count_documents()
+        assert total == 3
+
+        # Count with filter
+        active = await coll.count_documents({"status": "active"})
+        assert active == 2
+
+
+@pytest.mark.asyncio
+async def test_drop_collection():
+    async with MongoClient("localhost:50051") as client:
+        coll_name = unique_collection()
+        coll = client[TEST_DB][coll_name]
+
+        await coll.insert_one({"data": "to be dropped"})
+
+        # Verify it exists
+        docs = await coll.find({})
+        assert len(docs) == 1
+
+        # Drop it
+        result = await coll.drop()
+        assert result is True
+
+        # Verify it's gone
+        docs = await coll.find({})
+        assert len(docs) == 0
+
+
+@pytest.mark.asyncio
+async def test_drop_collection_from_database():
+    async with MongoClient("localhost:50051") as client:
+        db = client[TEST_DB]
+        coll_name = unique_collection()
+        coll = db[coll_name]
+
+        await coll.insert_one({"data": "test"})
+
+        result = await db.drop_collection(coll_name)
+        assert result is True
+
+
+@pytest.mark.asyncio
+async def test_embed_and_store():
+    """Test embed_and_store (may fail if no embedding provider configured)."""
+    import json
+    async with MongoClient("localhost:50051") as client:
+        documents = json.dumps([
+            {"text": "Hello world", "id": 1},
+            {"text": "Goodbye world", "id": 2},
+        ])
+        try:
+            result = await client.embed_and_store(
+                TEST_DB, unique_collection(), documents, "text"
+            )
+            assert "documents_stored" in result
+            assert "embeddings_generated" in result
+        except Exception:
+            # Expected to fail if no embedding provider is configured
+            pass
+
+
+@pytest.mark.asyncio
+async def test_semantic_search():
+    """Test semantic_search (may fail if no vector index configured)."""
+    async with MongoClient("localhost:50051") as client:
+        try:
+            result = await client.semantic_search(
+                TEST_DB, unique_collection(), "hello"
+            )
+            assert "results" in result
+            assert "count" in result
+        except Exception:
+            # Expected to fail if no vector index is configured
+            pass

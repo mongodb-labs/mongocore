@@ -248,6 +248,33 @@ export class Collection {
     });
   }
 
+  async countDocuments(filter?: Document): Promise<number> {
+    return new Promise((resolve, reject) => {
+      const request = {
+        database: this.database,
+        collection: this.name,
+        filter: JSON.stringify(filter || {}),
+      };
+      this.client.getGrpcClient().countDocuments(request, CLIENT_METADATA, (err: any, response: any) => {
+        if (err) return reject(err);
+        resolve(response.count || 0);
+      });
+    });
+  }
+
+  async drop(): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      const request = {
+        database: this.database,
+        collection: this.name,
+      };
+      this.client.getGrpcClient().dropCollection(request, CLIENT_METADATA, (err: any, response: any) => {
+        if (err) return reject(err);
+        resolve(response.ok || false);
+      });
+    });
+  }
+
   async transactionPipeline(steps: TransactionStep[]): Promise<TransactionPipelineResult> {
     // Scope all steps to this collection by default
     const scopedSteps = steps.map(s => ({

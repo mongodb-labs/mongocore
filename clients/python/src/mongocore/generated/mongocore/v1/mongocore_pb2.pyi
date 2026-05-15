@@ -674,3 +674,79 @@ class TransactionPipelineError(_message.Message):
     steps_completed: _containers.RepeatedScalarFieldContainer[str]
     rolled_back: bool
     def __init__(self, failed_step: _Optional[str] = ..., step_index: _Optional[int] = ..., reason: _Optional[str] = ..., steps_completed: _Optional[_Iterable[str]] = ..., rolled_back: bool = ...) -> None: ...
+
+class CountDocumentsRequest(_message.Message):
+    __slots__ = ("database", "collection", "filter")
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    FILTER_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    filter: str
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., filter: _Optional[str] = ...) -> None: ...
+
+class CountDocumentsResponse(_message.Message):
+    __slots__ = ("count",)
+    COUNT_FIELD_NUMBER: _ClassVar[int]
+    count: int
+    def __init__(self, count: _Optional[int] = ...) -> None: ...
+
+class DropCollectionRequest(_message.Message):
+    __slots__ = ("database", "collection")
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ...) -> None: ...
+
+class DropCollectionResponse(_message.Message):
+    __slots__ = ("ok",)
+    OK_FIELD_NUMBER: _ClassVar[int]
+    ok: bool
+    def __init__(self, ok: bool = ...) -> None: ...
+
+class EmbedAndStoreRequest(_message.Message):
+    __slots__ = ("database", "collection", "documents", "embed_field", "embedding_field")
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    DOCUMENTS_FIELD_NUMBER: _ClassVar[int]
+    EMBED_FIELD_FIELD_NUMBER: _ClassVar[int]
+    EMBEDDING_FIELD_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    documents: str
+    embed_field: str
+    embedding_field: str
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., documents: _Optional[str] = ..., embed_field: _Optional[str] = ..., embedding_field: _Optional[str] = ...) -> None: ...
+
+class EmbedAndStoreResponse(_message.Message):
+    __slots__ = ("documents_stored", "embeddings_generated", "embedding_dimensions")
+    DOCUMENTS_STORED_FIELD_NUMBER: _ClassVar[int]
+    EMBEDDINGS_GENERATED_FIELD_NUMBER: _ClassVar[int]
+    EMBEDDING_DIMENSIONS_FIELD_NUMBER: _ClassVar[int]
+    documents_stored: int
+    embeddings_generated: int
+    embedding_dimensions: int
+    def __init__(self, documents_stored: _Optional[int] = ..., embeddings_generated: _Optional[int] = ..., embedding_dimensions: _Optional[int] = ...) -> None: ...
+
+class SemanticSearchRequest(_message.Message):
+    __slots__ = ("database", "collection", "query", "index_name", "limit")
+    DATABASE_FIELD_NUMBER: _ClassVar[int]
+    COLLECTION_FIELD_NUMBER: _ClassVar[int]
+    QUERY_FIELD_NUMBER: _ClassVar[int]
+    INDEX_NAME_FIELD_NUMBER: _ClassVar[int]
+    LIMIT_FIELD_NUMBER: _ClassVar[int]
+    database: str
+    collection: str
+    query: str
+    index_name: str
+    limit: int
+    def __init__(self, database: _Optional[str] = ..., collection: _Optional[str] = ..., query: _Optional[str] = ..., index_name: _Optional[str] = ..., limit: _Optional[int] = ...) -> None: ...
+
+class SemanticSearchResponse(_message.Message):
+    __slots__ = ("results", "count")
+    RESULTS_FIELD_NUMBER: _ClassVar[int]
+    COUNT_FIELD_NUMBER: _ClassVar[int]
+    results: str
+    count: int
+    def __init__(self, results: _Optional[str] = ..., count: _Optional[int] = ...) -> None: ...

@@ -298,6 +298,77 @@ class MongoClient:
             "p99_latency_ms": response.p99_latency_ms,
         }
 
+    async def embed_and_store(
+        self,
+        database: str,
+        collection: str,
+        documents: str,
+        embed_field: str,
+        *,
+        embedding_field: str = "",
+    ) -> dict:
+        """Generate embeddings for documents and store them.
+
+        Args:
+            database: Target database name.
+            collection: Target collection name.
+            documents: JSON string of documents to embed and store.
+            embed_field: The field in each document to generate embeddings for.
+            embedding_field: The field to store the embedding in (optional).
+
+        Returns:
+            Dict with documents_stored, embeddings_generated, embedding_dimensions.
+        """
+        from .generated import mongocore_pb2, mongocore_pb2_grpc
+        stub = mongocore_pb2_grpc.MongoCoreStub(self.channel)
+        response = await stub.EmbedAndStore(mongocore_pb2.EmbedAndStoreRequest(
+            database=database,
+            collection=collection,
+            documents=documents,
+            embed_field=embed_field,
+            embedding_field=embedding_field,
+        ), metadata=_CLIENT_METADATA)
+        return {
+            "documents_stored": response.documents_stored,
+            "embeddings_generated": response.embeddings_generated,
+            "embedding_dimensions": response.embedding_dimensions,
+        }
+
+    async def semantic_search(
+        self,
+        database: str,
+        collection: str,
+        query: str,
+        *,
+        index_name: str = "",
+        limit: int = 10,
+    ) -> dict:
+        """Perform semantic search using vector embeddings.
+
+        Args:
+            database: Database to search in.
+            collection: Collection to search in.
+            query: Natural language query to search for.
+            index_name: Name of the vector search index (optional).
+            limit: Maximum number of results to return.
+
+        Returns:
+            Dict with results (JSON string) and count.
+        """
+        from .generated import mongocore_pb2, mongocore_pb2_grpc
+        stub = mongocore_pb2_grpc.MongoCoreStub(self.channel)
+        response = await stub.SemanticSearch(mongocore_pb2.SemanticSearchRequest(
+            database=database,
+            collection=collection,
+            query=query,
+            index_name=index_name,
+            limit=limit,
+        ), metadata=_CLIENT_METADATA)
+        return {
+            "results": response.results,
+            "count": response.count,
+        }
+
     async def __aenter__(self):
         await self.connect()
         return self

@@ -40,6 +40,16 @@ public class MongoDatabase {
                         .build());
     }
 
+    public boolean dropCollection(String collectionName) {
+        MongoCoreGrpc.MongoCoreBlockingStub stub = MongoCoreGrpc.newBlockingStub(client.getChannel());
+        Mongocore.DropCollectionResponse resp = stub.dropCollection(
+                Mongocore.DropCollectionRequest.newBuilder()
+                        .setDatabase(name)
+                        .setCollection(collectionName)
+                        .build());
+        return resp.getOk();
+    }
+
     MongoClient getClient() {
         return client;
     }

@@ -1,5 +1,6 @@
 use serde_json::{json, Value};
 use std::sync::Arc;
+use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::analytics::AnalyticsCollector;
@@ -10,8 +11,10 @@ use crate::ingestion::watch::DirectoryWatcher;
 use crate::operations::Operations;
 use crate::voyage::client::VoyageClient;
 
+use super::context;
 use super::resources;
 use super::safety::SafetyConfig;
+use super::session::SessionRecorder;
 use super::skills::registry::SkillRegistry;
 use super::tools;
 use super::types::{JsonRpcRequest, JsonRpcResponse, McpContent, McpToolCallResult};
@@ -29,6 +32,7 @@ pub struct McpHandler {
     is_stdio: bool,
     mcp_metadata_appended: AtomicBool,
     skills: SkillRegistry,
+    session: Arc<Mutex<SessionRecorder>>,
 }
 
 impl McpHandler {
@@ -56,6 +60,7 @@ impl McpHandler {
             is_stdio,
             mcp_metadata_appended: AtomicBool::new(false),
             skills: SkillRegistry::new(),
+            session: Arc::new(Mutex::new(SessionRecorder::new())),
         }
     }
 
@@ -155,7 +160,30 @@ impl McpHandler {
             .unwrap_or(json!({}));
 
         let result =
-            tools::execute_tool(&self.operations, &self.pool, self.analytics.as_ref(), self.ingestion.as_ref(), self.watcher.as_ref(), &self.safety, self.translator.as_ref(), self.voyage.as_ref(), &self.skills, &tool_name, &arguments).await;
+            tools::execute_tool(&self.operations, &self.pool, self.analytics.as_ref(), self.ingestion.as_ref(), self.watcher.as_ref(), &self.safety, self.translator.as_ref(), self.voyage.as_ref(), &self.skills, &self.session, &tool_name, &arguments).await;
+
+        // Record to session (if not excluded)
+        if SessionRecorder::should_record(&tool_name) {
+            let ctx = context::build_context(&tool_name, &arguments);
+            match self.session.lock() {
+                Ok(mut session) => {
+                    session.record(
+                        tool_name.clone(),
+                        arguments.clone(),
+                        ctx,
+                        !result.is_error,
+                        if result.is_error {
+                            result.content.first().map(|c| c.text.clone())
+                        } else {
+                            None
+                        },
+                    );
+                }
+                Err(e) => {
+                    tracing::warn!("Session recorder lock poisoned, recording skipped: {}", e);
+                }
+            }
+        }
 
         JsonRpcResponse::success(id, serde_json::to_value(&result).unwrap_or(json!(null)))
     }
@@ -324,6 +352,6 @@ mod tests {
     fn test_tools_list_returns_definitions() {
         let definitions = tools::tool_definitions();
         assert!(!definitions.is_empty());
-        assert_eq!(definitions.len(), 36);
+        assert_eq!(definitions.len(), 38);
     }
 }
