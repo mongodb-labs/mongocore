@@ -9,6 +9,7 @@ pub enum TransformOp {
     Filter(String),
     Cast { column: String, dtype: DataType },
     Select(Vec<String>),
+    Compute { name: String, expr: String },
 }
 
 /// Apply a sequence of string expressions to a LazyFrame.
@@ -72,6 +73,18 @@ fn parse_expression(expr_str: &str) -> Result<TransformOp, MongoCoreError> {
             let cols: Vec<String> = inner.split(',').map(|s| s.trim().to_string()).collect();
             Ok(TransformOp::Select(cols))
         }
+        "compute" => {
+            let parts: Vec<&str> = inner.splitn(2, ',').map(|s| s.trim()).collect();
+            if parts.len() != 2 {
+                return Err(MongoCoreError::IngestionError(
+                    "compute requires 2 arguments: name, expression (e.g. compute(profit, DomesticGross + ForeignGross - Budget))".to_string(),
+                ));
+            }
+            Ok(TransformOp::Compute {
+                name: parts[0].to_string(),
+                expr: parts[1].to_string(),
+            })
+        }
         _ => Err(MongoCoreError::IngestionError(format!(
             "Unknown transform function: {func}"
         ))),
@@ -97,7 +110,67 @@ fn compile_transform(op: &TransformOp, lf: LazyFrame) -> Result<LazyFrame, Mongo
             let exprs: Vec<Expr> = cols.iter().map(|c| col(c.as_str())).collect();
             Ok(lf.select(exprs))
         }
+        TransformOp::Compute { name, expr } => {
+            let polars_expr = parse_arithmetic_expr(expr)?;
+            Ok(lf.with_column(polars_expr.alias(name.as_str())))
+        }
     }
+}
+
+/// Parse a simple arithmetic expression like "A + B - C" into a Polars Expr.
+/// Supports +, -, *, / operators and column references or numeric literals.
+fn parse_arithmetic_expr(expr_str: &str) -> Result<Expr, MongoCoreError> {
+    let expr_str = expr_str.trim();
+    // Tokenize: split on operators while keeping them
+    let mut tokens: Vec<&str> = Vec::new();
+    let mut last = 0;
+    let bytes = expr_str.as_bytes();
+    for (i, &b) in bytes.iter().enumerate() {
+        if b == b'+' || b == b'-' || b == b'*' || b == b'/' {
+            if i > last {
+                tokens.push(expr_str[last..i].trim());
+            }
+            tokens.push(&expr_str[i..i + 1]);
+            last = i + 1;
+        }
+    }
+    if last < expr_str.len() {
+        tokens.push(expr_str[last..].trim());
+    }
+
+    if tokens.is_empty() {
+        return Err(MongoCoreError::IngestionError(
+            "Empty arithmetic expression".to_string(),
+        ));
+    }
+
+    fn token_to_expr(token: &str) -> Expr {
+        if let Ok(n) = token.parse::<f64>() {
+            lit(n)
+        } else {
+            col(token)
+        }
+    }
+
+    let mut result = token_to_expr(tokens[0]);
+    let mut i = 1;
+    while i < tokens.len() - 1 {
+        let op = tokens[i];
+        let rhs = token_to_expr(tokens[i + 1]);
+        result = match op {
+            "+" => result + rhs,
+            "-" => result - rhs,
+            "*" => result * rhs,
+            "/" => result / rhs,
+            _ => {
+                return Err(MongoCoreError::IngestionError(format!(
+                    "Unknown operator in arithmetic expression: {op}"
+                )))
+            }
+        };
+        i += 2;
+    }
+    Ok(result)
 }
 
 /// Parse a simple filter expression like "age > 26" into a Polars Expr.

@@ -1,153 +1,262 @@
 # MongoCore Demo Video — Design Spec
 
-**Date:** 2026-05-14
-**Format:** 3-minute video (slides + live demo clips via Claude Desktop MCP)
+**Date:** 2026-05-14 (updated 2026-05-15)
+**Format:** HTML slides (bluedusk/html-slides) with embedded terminalizer GIFs, narrated (live or AI voice)
+**Duration:** Max 3 minutes
 **Audience:** Mixed — MongoDB engineers + leadership/product
 **Thesis:** "AI changes what a driver can be — and AI built this one in 4 days"
+**Recording tool:** [terminalizer](https://github.com/faressoft/terminalizer) — terminal → GIF
+**Presentation framework:** [html-slides](https://github.com/bluedusk/html-slides)
+**Demo tool:** Claude Code CLI with MongoCore as MCP server
 
 ---
 
 ## Overview
 
-A single continuous narrative filmed in Claude Desktop, showing one realistic workflow that naturally demonstrates four revolutionary features: data ingestion, natural language queries, request pipelines, and transactional pipelines. Bookended by brief slides that establish context and deliver the mic-drop.
-
-The video is honest about capabilities and limitations. It shows real interactions, not mocked outputs.
+A series of focused terminal GIFs, each demonstrating a single MongoCore capability via Claude Code. Embedded in an HTML slide deck with intro/closing slides providing context. The `explain` feature bridges each demo to production code — "here's what you just saw, now here's the Python to do it yourself."
 
 ---
 
-## Structure
+## Slide Structure
 
-### Opening — "What is this?" (20 seconds)
+### Slide 1 — Introduction: "What is MongoCore?" (15 seconds)
 
-**Format:** 1-2 slides + voiceover
+**Content:**
+- One-liner: "An AI-native MongoDB driver — built by AI, in 4 days"
+- Architecture diagram:
 
-**Slide 1:** Title card
-> "MongoCore — an AI-native MongoDB driver, built by AI, in 4 days"
-
-**Slide 2:** Architecture flash
 ```
 App (any lang) ──gRPC──▶ MongoCore (Rust sidecar) ──▶ MongoDB
 AI Agent ───────MCP────▶         │
                                  └──▶ LLM (Claude/OpenAI)
 ```
 
-**Voiceover (paraphrased):**
-> "MongoCore is a Rust sidecar that gives any language a MongoDB driver — Python, TypeScript, Go, Java — from one core. But what makes it different is native AI agent support via MCP. Let me show you what that means."
+- Key stats: Rust sidecar, 4 language clients, MCP + gRPC, NL→MQL query engine
 
-**Transition:** Cut to Claude Desktop, already connected to MongoCore via MCP.
+**Voiceover:**
+> "MongoCore is a Rust sidecar that gives any language a MongoDB driver — Python, TypeScript, Go, Java — from one core. What makes it different is native AI agent support via MCP. Let me show you."
 
 ---
 
-### Act 1 — Ingestion: "Get data in" (40 seconds)
+### Slide 2 — GIF 1: Ingest + Explain (35 seconds)
 
-**Setup:** A movie dataset CSV from GitHub (~4800 rows with budget, revenue, genres, cast, director, ratings). The sample_mflix movies collection is already loaded.
+**Dataset:** https://raw.githubusercontent.com/mongodb-labs/mongocore/datasets/demo/data/movies_dataset.csv (~4800 rows)
 
-**Dataset:** https://raw.githubusercontent.com/rashida048/Datasets/refs/heads/master/movie_dataset.csv
+**Claude Code interaction:**
 
-**Claude interaction:**
-> User: "Ingest this CSV into MongoDB as a new collection called box_office: https://raw.githubusercontent.com/rashida048/Datasets/refs/heads/master/movie_dataset.csv"
+```
+> Ingest this CSV into MongoDB as a new collection called movies:
+  https://raw.githubusercontent.com/mongodb-labs/mongocore/datasets/demo/data/movies_dataset.csv
+```
 
-**What happens (visible in Claude):**
-- Claude calls the `ingest` MCP tool
-- MongoCore's Polars engine reads the CSV, infers schema, maps types to BSON
-- Data flows into MongoDB
-- Claude reports success with row count and inferred schema
+MongoCore ingests via Polars engine — schema inference, type mapping, bulk write.
+
+```
+> Show me the Python code to do that ingestion
+```
+
+Claude calls `explain_last` → displays parameterized Python function using the MongoCore client.
 
 **Voiceover callouts:**
-- "Polars under the hood — schema inference, type mapping, deduplication, dead letter queue for bad rows. All automatic."
-- "Supports CSV, JSON, NDJSON, Parquet — from local files, HTTP URLs, or cloud storage."
-
-**Key point:** Zero code written. Natural language → data in MongoDB.
-
----
-
-### Act 2 — Natural Language Queries: "Ask questions" (45 seconds)
-
-**Claude interaction #1:**
-> User: "What are the top-rated sci-fi movies from the 1990s?"
-
-**What happens:**
-- Claude calls the `ask` MCP tool
-- MongoCore translates NL → MQL (via LLM), executes, returns results
-- Claude presents the answer naturally
-
-**Voiceover callout:**
-> "That query went through our compiled query engine — natural language to MongoDB Query Language. The generated MQL is now cached as a parameterized template."
-
-**Claude interaction #2 (template reuse):**
-> User: "What about horror movies from the 2000s?"
-
-**What happens:**
-- Template cache hit — no LLM call
-- Sub-millisecond response
-
-**Voiceover callout:**
-> "Same template, different parameters. No LLM round-trip. Sub-millisecond. The cache has three levels: in-memory, disk, and MongoDB itself."
-
-**Key point:** First query pays the LLM cost. Every variant after is near-instant.
+- "Zero code written. Natural language → data in MongoDB."
+- "Polars under the hood — schema inference, type mapping, deduplication, dead letter queue."
+- "And here's the Python to reproduce it — generated from what just happened."
 
 ---
 
-### Act 3 — Request Pipelines: "Batch operations" (40 seconds)
+### Slide 3 — GIF 2: Natural Language Queries (35 seconds)
 
-**Claude interaction:**
-> User: "For every movie in the box_office collection, set a field 'source' to 'box_office_import' and 'imported_at' to today's date. Do it in a single batch."
+**Claude Code interaction #1 (cold — LLM call):**
 
-**What happens:**
-- Claude calls the pipeline MCP tool
-- MongoCore batches all update operations into a single gRPC round-trip
-- Executes them concurrently on the server side
-- Reports completion with count
+```
+> What are the top-rated sci-fi movies from the 1990s?
+```
+
+MongoCore's compiled query engine translates NL → MQL via LLM, executes, returns results.
+
+**Claude Code interaction #2 (warm — cache hit):**
+
+```
+> What about horror movies from the 2000s?
+```
+
+Template cache hit — no LLM round-trip, sub-millisecond response.
 
 **Voiceover callouts:**
-- "That was [N] update operations in one round-trip. No chatty back-and-forth between client and database."
-- "Pipelines can mix operation types — finds, updates, inserts, deletes — all in one batch with concurrent execution."
-
-**Key point:** Eliminates network round-trip overhead for bulk operations.
+- "Natural language to MongoDB Query Language. The generated MQL is cached as a parameterized template."
+- "Same template, different parameters. No LLM call. Sub-millisecond."
+- "Three cache levels: in-memory, disk, and MongoDB itself."
 
 ---
 
-### Act 4 — Transactional Pipelines: "Atomic multi-step workflows" (35 seconds)
+### Slide 4 — GIF 3: Pipelines (40 seconds)
 
-**Claude interaction:**
-> User: "Create a 'curated_picks' collection. Find the top 5 highest-rated movies, insert them into curated_picks with a 'featured: true' tag, and update the originals to mark them as 'featured_elsewhere: true'. If any step fails, roll everything back."
+**Request pipeline interaction:**
 
-**What happens:**
-- Claude calls the transactional pipeline MCP tool
-- MongoCore runs a multi-step atomic pipeline:
-  1. Create collection
-  2. Find top 5 (result stored)
-  3. Insert into curated_picks using `{{find_step.documents}}`
-  4. Update originals using `{{find_step.documents._id}}`
-- All wrapped in a transaction — automatic rollback on failure
+```
+> For every movie in the movies collection, set a field 'source' to 'movies_import'
+  and 'imported_at' to today's date. Do it in a single batch.
+```
+
+MongoCore batches all operations into one gRPC round-trip, executes concurrently.
+
+**Transactional pipeline interaction:**
+
+```
+> Create a 'curated_picks' collection. Find the top 5 highest-rated movies, insert them
+  into curated_picks with a 'featured: true' tag, and update the originals to mark them
+  as 'featured_elsewhere: true'. If any step fails, roll everything back.
+```
+
+Multi-step atomic pipeline — results flow between steps, automatic rollback on failure.
 
 **Voiceover callouts:**
+- "Thousands of updates in one round-trip. No chatty back-and-forth."
 - "Multi-step, atomic. Results flow between steps with template syntax."
 - "If any step fails — automatic rollback. No partial state."
 
-**Key point:** Complex workflows that would require manual transaction management — expressed in natural language.
+---
+
+### Slide 5 — GIF 4: ETL + Explain Session (40 seconds)
+
+**Dataset:** https://raw.githubusercontent.com/mongodb-labs/mongocore/datasets/demo/data/box_office.csv (~970 rows)
+
+**Fields kept:** Movie, LeadStudio, RottenTomatoes, AudienceScore, Genre, DomesticGross, ForeignGross, Budget, Year
+
+**Claude Code interaction:**
+
+```
+> Ingest this CSV into the box_office collection:
+  https://raw.githubusercontent.com/mongodb-labs/mongocore/datasets/demo/data/box_office.csv
+  Calculate a profit field as DomesticGross + ForeignGross - Budget.
+```
+
+MongoCore ingests with transform expression to compute the derived field.
+
+```
+> Create an index on genre and profit (descending) for that collection.
+```
+
+```
+> What are the most profitable Action movies?
+```
+
+Quick verification query showing the ETL worked.
+
+```
+> Show me the full Python script to reproduce everything I just did.
+```
+
+Claude calls `explain_session` → generates a complete, runnable Python script with parameterized functions for each step and a `main()` entry point.
+
+**Voiceover callouts:**
+- "Raw CSV → enriched MongoDB collection with one command."
+- "The transform computed profit on the fly — no post-processing needed."
+- "And here's the entire session as a Python script. Copy it, schedule it, run it when the data updates."
 
 ---
 
-### Closing — "What you just saw" (20 seconds)
+### Slide 6 — Closing: "What We Didn't Cover" (15 seconds)
 
-**Format:** Slide or voiceover over final Claude screen
-
-**The numbers (quick flash):**
-- 35 MCP tools
-- 25 gRPC RPCs
+**Content — features not shown:**
+- Vector/semantic search with Voyage AI embeddings
+- Real-time analytics dashboard (web UI)
+- Multi-tenant isolation and quotas
 - 4 language clients (Python, TypeScript, Go, Java)
-- 3-level query cache
-- Real-time analytics dashboard
-- Multi-tenant isolation
-
-**The honesty beat:**
-> "There's a trade-off. The sidecar adds milliseconds of latency compared to native drivers. In return, you get AI-native capabilities that are impossible in a traditional driver architecture."
+- Directory watching with live re-ingestion
+- OpenTelemetry tracing
+- 35+ MCP tools, 25+ gRPC RPCs
 
 **The closer:**
 > "Built by AI. In 4 days."
 
 End card.
+
+---
+
+## Datasets
+
+### Main Demo (GIFs 1-3)
+
+**Source:** https://raw.githubusercontent.com/mongodb-labs/mongocore/datasets/demo/data/movies_dataset.csv
+**Rows:** ~4800
+**Fields:** budget, revenue, genres, cast, director, ratings, etc.
+**Collection:** `movies`
+
+### ETL Demo (GIF 4)
+
+**Source:** https://raw.githubusercontent.com/mongodb-labs/mongocore/datasets/demo/data/box_office.csv
+**Rows:** ~970
+**Fields:** Movie, LeadStudio, RottenTomatoes, AudienceScore, Genre, DomesticGross, ForeignGross, Budget, Year
+**Derived field:** `profit = DomesticGross + ForeignGross - Budget`
+**Collection:** `box_office`
+**Index:** `{"genre": 1, "profit": -1}`
+
+---
+
+## Timing Budget
+
+| Slide | Target | Max |
+|-------|--------|-----|
+| Intro | 15s | 20s |
+| GIF 1: Ingest + explain_last | 35s | 40s |
+| GIF 2: NL Queries | 35s | 40s |
+| GIF 3: Pipelines | 40s | 45s |
+| GIF 4: ETL + explain_session | 40s | 45s |
+| Closing | 15s | 20s |
+| **Total** | **3:00** | **3:30** |
+
+---
+
+## Recording Setup
+
+### Prerequisites
+
+1. **MongoDB running** with sample data (`just docker-up`)
+2. **MongoCore built** (`cargo build --release`)
+3. **Claude Code MCP config** pointing to MongoCore:
+   ```json
+   {
+     "mcpServers": {
+       "mongocore": {
+         "command": "./target/release/mongocore",
+         "args": ["--stdio", "--connection-uri", "mongodb://localhost:27017"],
+         "env": {
+           "MONGOCORE_LOG_LEVEL": "warn"
+         }
+       }
+     }
+   }
+   ```
+4. **terminalizer installed** (`npm install -g terminalizer`)
+5. **Dataset URLs verified** (both accessible from datasets branch)
+6. **Compiled query cache cleared** for GIF 2 (cold → warm transition)
+
+### Recording Workflow
+
+For each GIF:
+1. `terminalizer record <gif-name>` — start recording
+2. Run the Claude Code interaction
+3. `terminalizer stop` — end recording
+4. `terminalizer render <gif-name>` — generate GIF
+5. Review timing, re-record if needed
+
+### terminalizer Config Tips
+
+- Set `cols` / `rows` to a consistent terminal size across all GIFs
+- Use a clean prompt (minimal PS1)
+- Set reasonable `frameDelay` to keep GIFs smooth but not too large
+- Consider `quality` setting to balance file size vs clarity
+
+---
+
+## Presentation Assembly
+
+Using [html-slides](https://github.com/bluedusk/html-slides):
+- Each slide embeds its GIF with `<img>` tag
+- Intro and closing slides are text/diagram only
+- Narration recorded separately (live or AI-generated via ElevenLabs/PlayHT)
+- Final video: screen-record the slideshow with narration playing
 
 ---
 
@@ -161,7 +270,7 @@ End card.
 - **Keep energy conversational** — not salesy, not apologetic
 - **End on "4 days"** — it's the mic drop
 - **Use the same MongoDB instance throughout** — continuity sells the story
-- **Show Claude thinking** — the MCP tool calls appearing is part of the wow factor
+- **Show the explain output** — the Python code appearing is the "bridge to production" moment
 
 ### Don't
 
@@ -171,58 +280,28 @@ End card.
 - **Don't hide the overhead** — own it as a conscious trade-off
 - **Don't over-edit** — slightly raw says "this is real"
 - **Don't explain MCP protocol details** — show what it does, not how it works
-- **Don't show code** — the whole point is you don't need code
+- **Don't show code** (except explain output) — the whole point is you don't need code
 
 ---
 
 ## Pre-Recording Checklist
 
-1. **MongoDB running** with sample_mflix loaded (`just docker-up`)
-2. **MongoCore built** and configured as MCP server in Claude Desktop
-3. **Dataset URL verified** — https://raw.githubusercontent.com/rashida048/Datasets/refs/heads/master/movie_dataset.csv (~4800 rows, budget/revenue/genres/cast/director)
-4. **Claude Desktop connected** — verify MCP tools are listed
-5. **Compiled query cache cleared** — so Act 2 shows a genuine cold → warm transition
-6. **Screen recording configured** — capture Claude Desktop window only
-7. **Dry run** — do the full flow once to check timing and catch errors
-
----
-
-## Timing Budget
-
-| Segment | Target | Max |
-|---------|--------|-----|
-| Opening slides | 20s | 25s |
-| Act 1: Ingestion | 40s | 45s |
-| Act 2: NL Queries | 45s | 50s |
-| Act 3: Pipelines | 40s | 45s |
-| Act 4: Transactional Pipelines | 35s | 40s |
-| Closing | 20s | 25s |
-| **Total** | **3:20** | **3:50** |
-
-Note: Budget is slightly over 3 minutes to allow for cuts. Editing will tighten pauses and LLM wait times.
-
----
-
-## Tooling Recommendations
-
-| Tool | Purpose | Cost |
-|------|---------|------|
-| **OBS Studio** | Screen recording with region capture | Free |
-| **ScreenFlow** | Record + edit in one (Mac) | $169 |
-| **DaVinci Resolve** | Professional editing, transitions, text overlays | Free |
-| **Keynote** | Intro/closing slides | Free (Mac) |
-| **ElevenLabs** | AI voiceover from script | $5-22/mo |
-| **PlayHT** | AI voiceover alternative | $31/mo |
-| **Descript** | Edit video by editing transcript, remove pauses | $24/mo |
-| **Claude** | Write and refine the voiceover script | Already here |
+- [ ] MongoDB running and accessible
+- [ ] MongoCore release binary built and configured as MCP server
+- [ ] Dataset URLs verified (movies_dataset.csv and box_office.csv accessible from datasets branch)
+- [ ] Claude Code connected — MCP tools listed
+- [ ] Compiled query cache cleared for cold demo
+- [ ] terminalizer installed and configured (consistent terminal size)
+- [ ] Dry run each GIF — check timing and catch errors
+- [ ] Terminal font/theme readable at GIF resolution
 
 ---
 
 ## Limitations to Acknowledge
 
 - **Sidecar latency:** adds milliseconds vs native drivers (honest trade-off)
-- **LLM dependency for NL queries:** first query requires LLM call (~500-2000ms), subsequent queries use cache
-- **v0.1.0:** this is a skunkworks prototype, not production-shipped software
+- **LLM dependency for NL queries:** first query requires LLM call (~500-2000ms), subsequent use cache
+- **v0.1.0:** skunkworks prototype, not production-shipped software
 - **Single developer + AI:** built fast, not battle-tested at scale
 
 ---
@@ -232,4 +311,5 @@ Note: Budget is slightly over 3 minutes to allow for cuts. Editing will tighten 
 The demo succeeds if the audience walks away thinking:
 1. "AI fundamentally changes what a database driver can do"
 2. "This is real — not a mockup or a future vision"
-3. "One person + AI built this in 4 days — what could a team do?"
+3. "The explain feature bridges interactive AI → production code"
+4. "One person + AI built this in 4 days — what could a team do?"

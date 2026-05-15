@@ -72,3 +72,4 @@ config.test.toml
 # Claude Code session data
 .claude/
 .superpowers/
+.mcp.json
